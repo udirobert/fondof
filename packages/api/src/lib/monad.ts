@@ -5,6 +5,8 @@ import {
   defineChain,
   parseEther,
   decodeEventLog,
+  keccak256,
+  stringToHex,
   type Hex,
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
@@ -140,7 +142,11 @@ const monadTestnet = defineChain({
 
 function toBytes32(hex: string): Hex {
   const clean = hex.startsWith("0x") ? hex.slice(2) : hex;
-  return `0x${clean.padStart(64, "0")}` as Hex;
+  if (!/^[0-9a-fA-F]*$/.test(clean)) {
+    // Non-hex input → keccak seed (acquire "demo", timestamps, etc.)
+    return keccak256(stringToHex(hex));
+  }
+  return `0x${clean.padStart(64, "0").slice(-64)}` as Hex;
 }
 
 /** Normalize bytes32 → 64-char hex (no 0x). Keep leading zeros. */
