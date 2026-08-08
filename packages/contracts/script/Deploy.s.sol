@@ -7,13 +7,15 @@ import "../src/SkillPool.sol";
 contract DeployScript is Script {
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
-        address resolver = vm.envAddress("RESOLVER_ADDRESS");
+
+        // For Blitz: resolver = deployer (same wallet acts as oracle)
+        address resolver = vm.addr(deployerPrivateKey);
 
         vm.startBroadcast(deployerPrivateKey);
         SkillPool pool = new SkillPool(resolver);
         vm.stopBroadcast();
 
         console.log("SkillPool deployed at:", address(pool));
-        console.log("Resolver set to:", resolver);
+        console.log("Resolver (oracle):", resolver);
     }
 }
