@@ -1,13 +1,14 @@
 /** Shared material tokens for the landing WebGL scene (CSS var mirrors). */
 export const experienceColors = {
-  ink: "#1a1612",
-  mist: "#2a2520",
-  paper: "#f2ede4",
-  paperSoft: "#d9d0c2",
-  ember: "#e07a45",
-  emberHot: "#f0955c",
-  steel: "#9aadc0",
-  novel: "#4db6a0",
+  ink: "#2a241c",
+  mist: "#e8dfd0",
+  parchment: "#f4efe6",
+  paper: "#fffaf2",
+  paperSoft: "#ebe2d4",
+  ember: "#c45a2a",
+  emberHot: "#a84820",
+  steel: "#5a6d7e",
+  novel: "#2f8f7a",
 } as const;
 
 export type ExperienceColor = keyof typeof experienceColors;

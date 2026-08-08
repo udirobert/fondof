@@ -15,7 +15,7 @@ export function RepoPanel({ repos, dimmed = false }: RepoPanelProps) {
       initial={{ x: 20, opacity: 0 }}
       animate={{ x: 0, opacity: dimmed ? 0.4 : 1 }}
       transition={{ type: "spring", stiffness: 200, damping: 25, delay: 0.2 }}
-      className="w-full lg:w-64 shrink-0 p-5 overflow-y-auto border-t lg:border-t-0 lg:border-l border-paper/5 bg-ink-deep/40 max-h-[40vh] lg:max-h-none"
+      className="w-full lg:w-64 shrink-0 p-5 overflow-y-auto border-t lg:border-t-0 lg:border-l border-ink/8 bg-parchment-deep/40 max-h-[40vh] lg:max-h-none"
       aria-label="Repositories"
     >
       <h2 className="text-[11px] text-muted uppercase tracking-wider font-medium mb-4">
@@ -52,7 +52,7 @@ function RepoCard({ repo }: { repo: DemoRepo }) {
     <div className="panel-sm p-3.5 transition-shadow hover:shadow-md cursor-pointer group focus-within:ring-1 focus-within:ring-ember/30">
       <div className="flex items-center gap-2 mb-1.5">
         <GitFork size={12} className="text-muted" />
-        <h3 className="text-[13px] font-medium text-paper group-hover:text-ember transition-colors truncate">
+        <h3 className="text-[13px] font-medium text-ink group-hover:text-ember transition-colors truncate">
           {repo.name}
         </h3>
         {repo.matchCount > 0 && (

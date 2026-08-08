@@ -37,7 +37,7 @@ export function SourceCard({
           <Icon size={14} className="text-ember" />
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="text-sm font-medium leading-snug text-paper">
+          <h3 className="text-sm font-medium leading-snug text-ink">
             {title}
           </h3>
           {author && <p className="text-xs text-muted mt-0.5">{author}</p>}

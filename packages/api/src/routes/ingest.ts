@@ -3,6 +3,7 @@ import type { Env } from "../index.js";
 import { chat, embed } from "../lib/llm.js";
 import { extractContent } from "../lib/extract.js";
 import { transcribeAudio, isAudioUrl, resolveAudioUrl } from "../lib/transcribe.js";
+import { isYouTubeUrl, getYouTubeTranscript } from "../lib/youtube.js";
 
 const EXTRACT_SYSTEM = `You are a JSON-only response bot. You extract actionable technical ideas from content.
 
@@ -22,10 +23,21 @@ ingestRoute.post("/ingest", async (c) => {
   try {
     let text: string;
     let title: string;
-    let contentType: "audio" | "article";
+    let contentType: "audio" | "article" | "youtube";
 
     // Detect content type and extract text
-    if (isAudioUrl(url)) {
+    if (isYouTubeUrl(url)) {
+      // YouTube: extract transcript directly (no audio download needed)
+      contentType = "youtube";
+      const transcript = await getYouTubeTranscript(url, c.env.FIRECRAWL_API_KEY);
+
+      if (!transcript || !transcript.text) {
+        return c.json({ error: "Could not extract transcript from YouTube video. The video may not have captions." }, 400);
+      }
+
+      text = transcript.text;
+      title = transcript.title;
+    } else if (isAudioUrl(url)) {
       // Audio: resolve URL → transcribe via ElevenLabs
       contentType = "audio";
       const audioUrl = (await resolveAudioUrl(url)) ?? url;

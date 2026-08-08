@@ -8,7 +8,7 @@ export default function CanvasLayout({
   return (
     <Suspense
       fallback={
-        <div className="flex h-[calc(100vh-3.5rem)] pt-14 items-center justify-center bg-ink">
+        <div className="flex h-[calc(100vh-3.5rem)] pt-14 items-center justify-center bg-parchment">
           <p className="text-sm text-muted">Opening canvas…</p>
         </div>
       }

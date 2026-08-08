@@ -20,15 +20,14 @@ export function SelectionBar({ count, onForge, onClear }: SelectionBarProps) {
           transition={{ type: "spring", stiffness: 320, damping: 28 }}
           className="fixed bottom-6 left-1/2 z-40 -translate-x-1/2"
         >
-          <div className="panel-float flex items-center gap-3 px-3 py-2.5 pl-4 ember-glow">
-            <p className="text-sm text-paper">
-              <span className="font-medium text-ember">{count}</span> idea
-              {count === 1 ? "" : "s"} selected
+          <div className="panel-float flex items-center gap-3 border border-ink/8 px-3 py-2.5 pl-4">
+            <p className="text-sm text-ink">
+              <span className="font-medium text-ember">{count}</span> selected
             </p>
             <button
               type="button"
               onClick={onClear}
-              className="rounded-full p-1.5 text-muted hover:text-paper hover:bg-mist transition-colors"
+              className="rounded-full p-1.5 text-muted hover:text-ink hover:bg-mist transition-colors"
               aria-label="Clear selection"
             >
               <X size={14} />
@@ -36,10 +35,10 @@ export function SelectionBar({ count, onForge, onClear }: SelectionBarProps) {
             <button
               type="button"
               onClick={onForge}
-              className="flex items-center gap-2 rounded-full bg-ember px-4 py-2 text-sm font-medium text-ink hover:bg-ember-hot transition-colors"
+              className="flex items-center gap-2 rounded-full bg-ember px-4 py-2 text-sm font-medium text-paper hover:bg-ember-hot transition-colors"
             >
               <Flame size={14} />
-              Forge
+              Forge skill
             </button>
           </div>
         </motion.div>

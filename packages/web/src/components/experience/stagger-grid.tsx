@@ -104,18 +104,18 @@ export function StaggerGrid() {
           <div
             key={label}
             data-grid-item
-            className="stagger-grid-item relative aspect-[4/3] rounded-lg border border-paper/10 bg-gradient-to-br from-paper/15 to-paper/[0.03] p-3 overflow-hidden will-change-transform"
+            className="stagger-grid-item relative aspect-[4/3] rounded-xl border border-ink/10 bg-paper shadow-md p-3 overflow-hidden will-change-transform"
             style={{
               transformStyle: "preserve-3d",
               transformOrigin: "50% 100%",
             }}
           >
-            <span className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-ember/40 to-transparent" />
+            <span className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-ember/50 to-transparent" />
             <span className="font-mono text-[10px] text-muted">{String(i + 1).padStart(2, "0")}</span>
-            <p className="mt-2 font-serif text-sm sm:text-base text-paper/90 leading-snug">
+            <p className="mt-2 font-serif text-sm sm:text-base text-ink leading-snug">
               {label}
             </p>
-            <span className="absolute bottom-2 right-2 h-1.5 w-1.5 rounded-full bg-ember/70" />
+            <span className="absolute bottom-2 right-2 h-1.5 w-1.5 rounded-full bg-ember/80" />
           </div>
         ))}
       </div>

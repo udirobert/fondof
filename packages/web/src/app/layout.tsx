@@ -19,9 +19,23 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "fondof — The bridge between what you learn and what your agents do",
+  metadataBase: new URL("https://fondof.netlify.app"),
+  title: "fondof — Skill quality discovery on Monad",
   description:
-    "Connect the content you consume with the projects you build. Forge best-in-class skills fitted to your coding environment.",
+    "Paste a podcast or blog → extract ideas → forge a skill fitted to your codebase → publish to the SkillPool where quality is measured on-chain.",
+  openGraph: {
+    type: "website",
+    siteName: "fondof",
+    title: "fondof — Skill quality discovery on Monad",
+    description:
+      "Ingest, discover, forge, and attest agent skills with verifiable provenance on Monad.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "fondof — Skill quality discovery on Monad",
+    description:
+      "Ingest, discover, forge, and attest agent skills with verifiable provenance on Monad.",
+  },
 };
 
 export default function RootLayout({
@@ -35,10 +49,10 @@ export default function RootLayout({
         className={`${outfit.variable} ${fraunces.variable} ${geistMono.variable} antialiased grain vignette`}
       >
         <a
-          href="#main"
-          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-ember focus:px-3 focus:py-2 focus:text-ink focus:text-sm"
+          href="/canvas"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-ember focus:px-3 focus:py-2 focus:text-sm focus:text-ink"
         >
-          Skip to content
+          Skip to tool
         </a>
         <Nav />
         <main id="main">{children}</main>

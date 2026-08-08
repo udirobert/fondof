@@ -22,7 +22,14 @@ export interface AppState {
   addIdeas: (ideas: IdeaFromAPI[]) => void;
   selectedIdeaIds: Set<string>;
   toggleIdeaSelection: (id: string) => void;
+  selectIdeas: (ids: string[]) => void;
   clearSelection: () => void;
+  /** Instant path: seed sources + ideas + optional preselection */
+  loadSample: (
+    sources: SourceEntry[],
+    ideas: IdeaFromAPI[],
+    selectIds?: string[],
+  ) => void;
 
   // Forge
   forgedSkill: ForgeResponse | null;
@@ -40,6 +47,8 @@ export interface AppState {
   setForging: (v: boolean) => void;
   isPublishing: boolean;
   setPublishing: (v: boolean) => void;
+  forgeOpen: boolean;
+  setForgeOpen: (v: boolean) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -48,7 +57,9 @@ export const useAppStore = create<AppState>((set) => ({
   addSource: (source) => set((s) => ({ sources: [...s.sources, source] })),
   updateSource: (url, update) =>
     set((s) => ({
-      sources: s.sources.map((src) => (src.url === url ? { ...src, ...update } : src)),
+      sources: s.sources.map((src) =>
+        src.url === url ? { ...src, ...update } : src,
+      ),
     })),
 
   // Ideas
@@ -63,7 +74,17 @@ export const useAppStore = create<AppState>((set) => ({
       else next.add(id);
       return { selectedIdeaIds: next };
     }),
+  selectIdeas: (ids) => set({ selectedIdeaIds: new Set(ids) }),
   clearSelection: () => set({ selectedIdeaIds: new Set() }),
+  loadSample: (sources, ideas, selectIds = []) =>
+    set({
+      sources,
+      ideas,
+      selectedIdeaIds: new Set(selectIds),
+      forgedSkill: null,
+      publishedTxHash: null,
+      publishedSignal: null,
+    }),
 
   // Forge
   forgedSkill: null,
@@ -81,4 +102,6 @@ export const useAppStore = create<AppState>((set) => ({
   setForging: (v) => set({ isForging: v }),
   isPublishing: false,
   setPublishing: (v) => set({ isPublishing: v }),
+  forgeOpen: false,
+  setForgeOpen: (v) => set({ forgeOpen: v }),
 }));

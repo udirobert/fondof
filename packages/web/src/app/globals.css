@@ -1,51 +1,69 @@
 @import "tailwindcss";
 
 :root {
-  /* Material grammar: ink ground, paper shards, ember making, steel settled */
-  --ink: oklch(0.14 0.012 55);
-  --ink-deep: oklch(0.1 0.01 55);
-  --mist: oklch(0.2 0.014 55);
-  --mist-elevated: oklch(0.24 0.016 55);
-  --paper: oklch(0.95 0.012 85);
-  --paper-soft: oklch(0.88 0.014 80);
-  --ember: oklch(0.68 0.14 45);
-  --ember-soft: oklch(0.35 0.06 45);
-  --ember-hot: oklch(0.75 0.16 50);
-  --steel: oklch(0.72 0.03 230);
-  --steel-soft: oklch(0.35 0.02 230);
+  /* Warm parchment forge — lit workshop, not black void */
+  --ink: oklch(0.22 0.02 55);
+  --ink-deep: oklch(0.18 0.018 55);
+  --parchment: oklch(0.96 0.018 85);
+  --parchment-deep: oklch(0.91 0.022 78);
+  --mist: oklch(0.94 0.02 82);
+  --mist-elevated: oklch(0.98 0.012 90);
+  --paper: oklch(0.99 0.008 95);
+  --paper-soft: oklch(0.93 0.02 80);
+  --ember: oklch(0.58 0.16 42);
+  --ember-soft: oklch(0.9 0.05 55);
+  --ember-hot: oklch(0.52 0.17 38);
+  --steel: oklch(0.45 0.04 230);
+  --steel-soft: oklch(0.88 0.02 230);
 
-  --background: var(--ink);
-  --background-subtle: var(--mist);
-  --foreground: var(--paper);
-  --foreground-secondary: oklch(0.78 0.014 80);
-  --muted: oklch(0.58 0.016 70);
+  --background: var(--parchment);
+  --background-subtle: var(--parchment-deep);
+  --foreground: var(--ink);
+  --foreground-secondary: oklch(0.42 0.02 55);
+  --muted: oklch(0.55 0.02 60);
 
   --accent: var(--ember);
   --accent-soft: var(--ember-soft);
   --accent-hover: var(--ember-hot);
 
   --surface: var(--mist-elevated);
-  --surface-warm: oklch(0.26 0.018 50);
+  --surface-warm: oklch(0.97 0.02 75);
 
-  --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.35);
-  --shadow-md: 0 8px 24px oklch(0 0 0 / 0.4), 0 2px 6px oklch(0 0 0 / 0.25);
-  --shadow-lg: 0 16px 40px oklch(0 0 0 / 0.5), 0 4px 12px oklch(0 0 0 / 0.3);
-  --shadow-float: 0 24px 56px oklch(0 0 0 / 0.55), 0 8px 20px oklch(0 0 0 / 0.35);
-  --shadow-ember: 0 0 24px oklch(0.68 0.14 45 / 0.25);
+  --shadow-sm: 0 1px 2px oklch(0.3 0.02 55 / 0.06);
+  --shadow-md: 0 8px 24px oklch(0.3 0.02 55 / 0.08), 0 2px 6px oklch(0.3 0.02 55 / 0.04);
+  --shadow-lg: 0 16px 40px oklch(0.3 0.02 55 / 0.1), 0 4px 12px oklch(0.3 0.02 55 / 0.05);
+  --shadow-float: 0 24px 56px oklch(0.3 0.02 55 / 0.12), 0 8px 20px oklch(0.3 0.02 55 / 0.06);
+  --shadow-ember: 0 0 28px oklch(0.58 0.16 42 / 0.22);
 
   --forge: var(--ember);
-  --apply: oklch(0.72 0.12 75);
+  --apply: oklch(0.55 0.12 70);
   --skip: var(--muted);
 
-  --line-novel: oklch(0.72 0.1 175);
-  --line-partial: oklch(0.72 0.12 75);
-  --line-conflict: oklch(0.65 0.18 25);
+  --line-novel: oklch(0.5 0.1 175);
+  --line-partial: oklch(0.55 0.12 70);
+  --line-conflict: oklch(0.55 0.18 25);
 
   --vignette: radial-gradient(
-    ellipse 80% 70% at 50% 40%,
-    transparent 0%,
-    oklch(0.08 0.01 55 / 0.55) 100%
+    ellipse 90% 80% at 50% 30%,
+    oklch(0.98 0.02 85 / 0.4) 0%,
+    transparent 55%
   );
+  --atmosphere: radial-gradient(
+      ellipse 70% 50% at 80% 20%,
+      oklch(0.75 0.08 55 / 0.18) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      ellipse 60% 45% at 15% 70%,
+      oklch(0.7 0.06 200 / 0.1) 0%,
+      transparent 45%
+    ),
+    linear-gradient(
+      165deg,
+      oklch(0.97 0.02 90) 0%,
+      oklch(0.93 0.025 78) 45%,
+      oklch(0.9 0.03 70) 100%
+    );
 }
 
 @theme inline {
@@ -66,6 +84,8 @@
   --color-ink-deep: var(--ink-deep);
   --color-mist: var(--mist);
   --color-paper: var(--paper);
+  --color-parchment: var(--parchment);
+  --color-parchment-deep: var(--parchment-deep);
   --color-ember: var(--ember);
   --color-ember-hot: var(--ember-hot);
   --color-ember-soft: var(--ember-soft);
@@ -113,52 +133,62 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Elevated mist/paper panels for tool readability */
 .panel {
   background: var(--surface);
   box-shadow: var(--shadow-md);
-  border: 1px solid oklch(0.95 0.012 85 / 0.06);
+  border: 1px solid oklch(0.3 0.02 55 / 0.06);
   border-radius: 14px;
 }
 
 .panel-sm {
   background: var(--surface);
   box-shadow: var(--shadow-sm);
-  border: 1px solid oklch(0.95 0.012 85 / 0.05);
+  border: 1px solid oklch(0.3 0.02 55 / 0.05);
   border-radius: 12px;
 }
 
 .panel-float {
   background: var(--surface-warm);
   box-shadow: var(--shadow-float);
-  border: 1px solid oklch(0.95 0.012 85 / 0.08);
+  border: 1px solid oklch(0.3 0.02 55 / 0.07);
   border-radius: 18px;
 }
 
-/* Legacy aliases used during migration */
 .paper {
   background: var(--surface);
   box-shadow: var(--shadow-md);
-  border: 1px solid oklch(0.95 0.012 85 / 0.06);
+  border: 1px solid oklch(0.3 0.02 55 / 0.06);
   border-radius: 14px;
 }
 
 .paper-sm {
   background: var(--surface);
   box-shadow: var(--shadow-sm);
-  border: 1px solid oklch(0.95 0.012 85 / 0.05);
+  border: 1px solid oklch(0.3 0.02 55 / 0.05);
   border-radius: 12px;
 }
 
 .paper-float {
   background: var(--surface-warm);
   box-shadow: var(--shadow-float);
-  border: 1px solid oklch(0.95 0.012 85 / 0.08);
+  border: 1px solid oklch(0.3 0.02 55 / 0.07);
   border-radius: 18px;
 }
 
 .ember-glow {
   box-shadow: var(--shadow-ember);
+}
+
+.atmosphere {
+  background: var(--atmosphere);
+}
+
+.copy-plate {
+  background: oklch(0.99 0.01 95 / 0.82);
+  backdrop-filter: blur(12px);
+  border: 1px solid oklch(0.3 0.02 55 / 0.08);
+  box-shadow: var(--shadow-md);
+  border-radius: 20px;
 }
 
 .ink-mark {
@@ -204,12 +234,11 @@ body {
   animation: ember-pulse 2.4s ease-in-out infinite;
 }
 
-/* Atmosphere */
 .grain::after {
   content: "";
   position: fixed;
   inset: 0;
-  opacity: 0.04;
+  opacity: 0.03;
   pointer-events: none;
   z-index: 9999;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
@@ -224,18 +253,16 @@ body {
   background: var(--vignette);
 }
 
-/* Conflict pattern (never color-only) */
 .pattern-conflict {
   background-image: repeating-linear-gradient(
     -45deg,
     transparent,
     transparent 3px,
-    oklch(0.65 0.18 25 / 0.25) 3px,
-    oklch(0.65 0.18 25 / 0.25) 6px
+    oklch(0.55 0.18 25 / 0.15) 3px,
+    oklch(0.55 0.18 25 / 0.15) 6px
   );
 }
 
-/* Codrops / kinetic type helpers */
 .split-title {
   transform-style: preserve-3d;
 }

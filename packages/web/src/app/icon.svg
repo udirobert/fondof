@@ -1,0 +1,8 @@
+<svg width="512" height="512" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="120" height="120" rx="26" fill="#2a241c"/>
+  <path fill-rule="evenodd" fill="#c45a2a" d="
+    M 18 42 a 30 30 0 1 0 60 0 a 30 30 0 1 0 -60 0 Z
+    M 45 42 a 30 30 0 1 0 60 0 a 30 30 0 1 0 -60 0 Z
+    M 26 80 a 34 34 0 1 0 68 0 a 34 34 0 1 0 -68 0 Z
+  "/>
+</svg>

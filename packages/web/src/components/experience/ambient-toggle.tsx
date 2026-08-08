@@ -49,7 +49,7 @@ export function AmbientToggle({ progress, disabled }: AmbientToggleProps) {
       type="button"
       onClick={toggle}
       disabled={disabled}
-      className="fixed bottom-5 left-5 z-40 flex items-center gap-2 rounded-full border border-paper/10 bg-mist/90 px-3 py-2 text-xs font-medium text-paper backdrop-blur-md hover:border-ember/40 hover:text-ember disabled:opacity-40 transition-colors"
+      className="fixed bottom-5 left-5 z-40 flex items-center gap-2 rounded-full border border-ink/10 bg-paper/90 px-3 py-2 text-xs font-medium text-ink backdrop-blur-md hover:border-ember/40 hover:text-ember disabled:opacity-40 transition-colors shadow-sm"
       aria-pressed={on}
       aria-label={on ? "Mute ambient sound" : "Enable ambient sound"}
     >

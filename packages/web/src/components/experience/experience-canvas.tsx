@@ -101,7 +101,7 @@ export function ExperienceCanvas({
         }}
         style={{ width: "100%", height: "100%" }}
         onCreated={({ gl }) => {
-          gl.setClearColor(experienceColors.ink, 1);
+          gl.setClearColor(experienceColors.parchment, 1);
         }}
       >
         <Suspense fallback={null}>
