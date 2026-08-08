@@ -14,8 +14,6 @@ import { SelectionBar } from "@/components/selection-bar";
 import { ForgeMode } from "@/components/forge-mode";
 import { FitTarget } from "@/components/fit-target";
 import { FondofWordmark } from "@/components/fondof-wordmark";
-import { PipelineStrip } from "@/components/experience/pipeline-strip";
-import { WhyDrawer } from "@/components/why-drawer";
 import { useAppStore } from "@/lib/store";
 import { fondofPhrase } from "@/lib/fondof-phrase";
 import {
@@ -365,24 +363,22 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
   const composeHint = useMemo(() => {
     const n = selectedIdeaIds.size;
     if (n < 2) {
-      return n === 1
-        ? "Add another shard to compose a hallmark skill from multiple angles."
-        : undefined;
+      return n === 1 ? "Add another → hallmark skill from multiple angles" : undefined;
     }
     const selected = ideaInsights.filter((r) =>
       selectedIdeaIds.has(r.idea.id),
     );
     const types = new Set(selected.map((r) => r.idea.patternType));
     if (types.size >= 2) {
-      return `Combining ${n} shards across ${types.size} pattern types — your skill will be more distinctive.`;
+      return `${n} shards · ${types.size} pattern types → stronger skill`;
     }
     const repoHits = new Set(
       selected.flatMap((r) => r.repos.map((m) => m.name)),
     );
     if (repoHits.size > 0) {
-      return `These ${n} fit ${[...repoHits].join(" + ")} — forge once, reuse across that stack.`;
+      return `Fits ${[...repoHits].join(" + ")} — forge once`;
     }
-    return `Compose ${n} related ideas into one skill instead of forging each alone.`;
+    return `Compose ${n} into one skill — don’t forge each alone`;
   }, [ideaInsights, selectedIdeaIds]);
 
   const showPad = mode === "pad" && ideas.length === 0;
@@ -401,13 +397,15 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
             transition={{ duration: 0.28 }}
             className="flex min-h-[calc(100dvh-3.5rem)] flex-col"
           >
-            <div className="flex flex-1 flex-col items-center justify-center pb-8 pt-6">
+            <div className="flex flex-1 flex-col items-center justify-center px-4 pb-[max(2rem,env(safe-area-inset-bottom))] pt-6">
               {showFrame && (
-                <div className="mb-6 text-center px-4">
+                <div className="mb-5 text-center">
                   <FondofWordmark size="hero" />
-                  <p className="mx-auto mt-3 max-w-md text-sm text-foreground-secondary">
-                    fondof the pod. fond of the blog. Paste what you learn —
-                    forge a skill for your repo.
+                  <p className="mx-auto mt-3 max-w-sm text-sm text-foreground-secondary">
+                    Paste what you learn. See what exists. Forge for your repo.
+                  </p>
+                  <p className="mx-auto mt-2 font-mono text-[10px] tracking-wide text-muted">
+                    Extract → Fit → Signal on Monad
                   </p>
                 </div>
               )}
@@ -418,15 +416,13 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
                 onTrySample={loadInstantSample}
                 onExample={onExample}
               />
+              {showFrame && (
+                <p className="mt-8 max-w-xs text-center text-[11px] leading-relaxed text-muted">
+                  Not a marketplace — a forge. Quality signal grows with use;
+                  wallet optional (you = forger, else relayer).
+                </p>
+              )}
             </div>
-            {showFrame && (
-              <>
-                <div className="pb-10">
-                  <PipelineStrip />
-                </div>
-                <WhyDrawer />
-              </>
-            )}
           </motion.div>
         )}
 
@@ -524,9 +520,9 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
               <div className="mb-5 flex flex-col gap-3 sm:mb-6">
                 <div>
                   <FondofWordmark object={phrase.object} size="inline" />
-                  <p className="mt-2 max-w-md text-sm text-foreground-secondary">
-                    Pick shards from {phrase.object}. Selected ones fold into a
-                    skill fitted to your repo.
+                  <p className="mt-2 max-w-lg text-sm text-foreground-secondary">
+                    Select Forge-worthy shards from {phrase.object} — combine
+                    into one skill fitted to your repo.
                   </p>
                 </div>
                 <div className="lg:hidden">

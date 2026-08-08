@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Check,
-  ChevronDown,
   Copy,
   ExternalLink,
   Flame,
@@ -71,7 +70,6 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
   const [skillHash, setSkillHash] = useState<string | null>(null);
   const [sourceHashes, setSourceHashes] = useState<string[]>([]);
   const [publishing, setPublishing] = useState(false);
-  const [showChainDetail, setShowChainDetail] = useState(false);
   const [composing, setComposing] = useState(false);
   const [copied, setCopied] = useState(false);
   const [explorer, setExplorer] = useState<string | null>(null);
@@ -143,7 +141,6 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
       setHash("");
       setSkillHash(null);
       setSourceHashes([]);
-      setShowChainDetail(false);
       setComposing(false);
       setExplorer(null);
       setLiveSignal(null);
@@ -637,9 +634,9 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
                                 grows with adoption
                               </p>
                             </div>
-                            <p className="mb-3 text-xs leading-relaxed text-foreground-secondary">
-                              Share this skill — when others use it, your signal
-                              grows. Challenges can cut it if quality fails.
+                            <p className="mb-3 text-xs text-foreground-secondary">
+                              Share the link — signal grows with use, drops if
+                              challenged.
                             </p>
                             <code className="block break-all font-mono text-[11px] text-ink">
                               {hash}
@@ -715,30 +712,11 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
                               {publishNote}
                             </p>
                           )}
-                          <p className="px-1 text-[11px] leading-relaxed text-muted">
+                          <p className="px-1 font-mono text-[10px] leading-relaxed tracking-wide text-muted">
                             {walletReady
-                              ? `Sends ${FORGE_BACKING} MON backing from your wallet — you are the on-chain forger.`
-                              : "Copy is enough for most workflows — publish via relayer works without a wallet."}
+                              ? `${FORGE_BACKING} MON from you · signal grows with use`
+                              : "Relayer publishes if no wallet · signal = backing + use − challenges"}
                           </p>
-                          <button
-                            type="button"
-                            onClick={() => setShowChainDetail((v) => !v)}
-                            className="flex w-full items-center justify-between px-1 text-[11px] text-muted hover:text-ink"
-                          >
-                            What does publish do?
-                            <ChevronDown
-                              size={12}
-                              className={`transition-transform ${showChainDetail ? "rotate-180" : ""}`}
-                            />
-                          </button>
-                          {showChainDetail && (
-                            <p className="rounded-xl bg-mist/80 px-3 py-2.5 text-[11px] leading-relaxed text-foreground-secondary">
-                              Records source → ideas → skill on Monad SkillPool.
-                              Connect a wallet to forge as yourself; otherwise
-                              the fondof relayer publishes for the demo. Signal
-                              grows with usage; others can challenge quality.
-                            </p>
-                          )}
                         </div>
                       )}
 

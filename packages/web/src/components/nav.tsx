@@ -71,20 +71,13 @@ export function Nav() {
 
         <div className="flex items-center gap-3">
           <WalletButton variant="nav" />
-          {pathname !== "/" ? (
+          {pathname !== "/" && (
             <Link
               href="/"
               className="text-xs text-muted transition-colors hover:text-ink"
             >
               Home
             </Link>
-          ) : (
-            <a
-              href="#why"
-              className="text-xs text-muted transition-colors hover:text-ink"
-            >
-              Why
-            </a>
           )}
         </div>
       </div>

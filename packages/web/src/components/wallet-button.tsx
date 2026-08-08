@@ -10,14 +10,10 @@ import { Wallet } from "lucide-react";
 import { monadTestnet, shortAddress } from "@/lib/monad-chain";
 
 interface WalletButtonProps {
-  /** Compact for nav; fuller for forge panel */
   variant?: "nav" | "panel";
 }
 
-/**
- * Optional Monad wallet — never gates ingest/forge.
- * Connected → publish/challenge as you; disconnected → relayer.
- */
+/** Optional Monad wallet — never gates ingest. */
 export function WalletButton({ variant = "nav" }: WalletButtonProps) {
   const { address, isConnected, chainId, status } = useConnection();
   const { connect, connectors, isPending, error } = useConnect();
@@ -30,7 +26,7 @@ export function WalletButton({ variant = "nav" }: WalletButtonProps) {
   if (variant === "panel") {
     if (!isConnected) {
       return (
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           <button
             type="button"
             disabled={!injected || isPending}
@@ -38,11 +34,10 @@ export function WalletButton({ variant = "nav" }: WalletButtonProps) {
             className="flex min-h-10 w-full items-center justify-center gap-2 rounded-full border border-ink/12 bg-paper px-4 text-sm text-ink transition-colors hover:border-ember/35 disabled:opacity-40"
           >
             <Wallet size={14} />
-            {isPending ? "Connecting…" : "Connect wallet (optional)"}
+            {isPending ? "Connecting…" : "Connect to forge as you"}
           </button>
-          <p className="px-1 text-[11px] leading-relaxed text-muted">
-            Without a wallet, Publish still works via the fondof relayer on
-            Monad testnet.
+          <p className="px-1 font-mono text-[10px] tracking-wide text-muted">
+            Relayer = demo speed · Wallet = you are the forger
           </p>
           {error && (
             <p className="px-1 text-[11px] text-ember">{error.message}</p>
@@ -52,16 +47,11 @@ export function WalletButton({ variant = "nav" }: WalletButtonProps) {
     }
 
     return (
-      <div className="panel-sm space-y-2 p-3">
+      <div className="space-y-1.5 rounded-xl border border-ink/8 bg-paper/80 px-3 py-2.5">
         <div className="flex items-center justify-between gap-2">
-          <div className="min-w-0">
-            <p className="text-[11px] uppercase tracking-wider text-muted">
-              Publishing as
-            </p>
-            <p className="truncate font-mono text-sm text-ink">
-              {shortAddress(address!)}
-            </p>
-          </div>
+          <p className="min-w-0 truncate font-mono text-sm text-ink">
+            Forger {shortAddress(address!)}
+          </p>
           <button
             type="button"
             onClick={() => disconnect()}
@@ -75,20 +65,19 @@ export function WalletButton({ variant = "nav" }: WalletButtonProps) {
             type="button"
             disabled={switching}
             onClick={() => switchChain({ chainId: monadTestnet.id })}
-            className="w-full rounded-full bg-ember/15 px-3 py-2 text-xs font-medium text-ember"
+            className="w-full rounded-full bg-ember/15 px-3 py-1.5 text-xs font-medium text-ember"
           >
             {switching ? "Switching…" : "Switch to Monad Testnet"}
           </button>
         ) : (
-          <p className="text-[11px] text-muted">
-            Forge txs come from your address — you are the on-chain forger.
+          <p className="font-mono text-[10px] text-muted">
+            Publish & challenge sign from this address
           </p>
         )}
       </div>
     );
   }
 
-  // nav
   if (isConnected && address) {
     return (
       <div className="flex items-center gap-1.5">
@@ -99,14 +88,14 @@ export function WalletButton({ variant = "nav" }: WalletButtonProps) {
             onClick={() => switchChain({ chainId: monadTestnet.id })}
             className="hidden rounded-full bg-ember/12 px-2 py-1 text-[10px] font-medium text-ember sm:inline"
           >
-            Switch network
+            Monad
           </button>
         )}
         <button
           type="button"
           onClick={() => disconnect()}
           className="inline-flex items-center gap-1.5 rounded-full border border-ink/10 bg-paper px-2.5 py-1 font-mono text-[11px] text-ink transition-colors hover:border-ember/35"
-          title="Disconnect wallet"
+          title="Disconnect — publish falls back to relayer"
         >
           <span
             className={`h-1.5 w-1.5 rounded-full ${wrongChain ? "bg-ember" : "bg-steel"}`}
@@ -123,9 +112,10 @@ export function WalletButton({ variant = "nav" }: WalletButtonProps) {
       disabled={!injected || isPending || status === "connecting"}
       onClick={() => injected && connect({ connector: injected })}
       className="inline-flex items-center gap-1.5 rounded-full border border-ink/10 bg-paper px-2.5 py-1 text-[11px] text-muted transition-colors hover:border-ember/35 hover:text-ink disabled:opacity-40"
+      title="Optional — connect to forge as yourself; else relayer publishes"
     >
       <Wallet size={12} />
-      {isPending ? "…" : "Wallet"}
+      {isPending ? "…" : "Forger"}
     </button>
   );
 }

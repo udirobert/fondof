@@ -143,7 +143,7 @@ export function StartPad({
           Instant sample — no network
         </button>
         <p className="max-w-sm text-center text-[10px] text-muted/80">
-          YouTube captions · blogs · podcast RSS / direct mp3
+          YouTube · blog · podcast RSS
         </p>
       </div>
     </motion.div>
