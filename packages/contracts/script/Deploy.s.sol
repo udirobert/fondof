@@ -2,16 +2,18 @@
 pragma solidity ^0.8.20;
 
 import "forge-std/Script.sol";
-import "../src/FondofAttestation.sol";
+import "../src/SkillPool.sol";
 
 contract DeployScript is Script {
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
+        address resolver = vm.envAddress("RESOLVER_ADDRESS");
 
         vm.startBroadcast(deployerPrivateKey);
-        FondofAttestation attestation = new FondofAttestation();
+        SkillPool pool = new SkillPool(resolver);
         vm.stopBroadcast();
 
-        console.log("FondofAttestation deployed at:", address(attestation));
+        console.log("SkillPool deployed at:", address(pool));
+        console.log("Resolver set to:", resolver);
     }
 }

@@ -3,13 +3,13 @@ import {
   createWalletClient,
   http,
   defineChain,
+  parseEther,
   type Hex,
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import type { AttestationRequest, AttestationReceipt, Attestation } from "@fondof/shared";
-import { FONDOF_ATTESTATION_ABI } from "./abi.js";
+import { SKILL_POOL_ABI } from "./abi.js";
 
-// Define Monad chain (not yet in viem's built-in chains)
+// Monad testnet chain definition
 const monadTestnet = defineChain({
   id: 10143,
   name: "Monad Testnet",
@@ -22,35 +22,55 @@ const monadTestnet = defineChain({
   },
 });
 
-export interface RelayerConfig {
-  /** RPC URL for Monad (defaults to testnet) */
+export interface PoolConfig {
   rpcUrl: string;
-  /** Private key of the relayer wallet (hex, with 0x prefix) */
   privateKey: Hex;
-  /** Deployed contract address */
   contractAddress: Hex;
-  /** Chain ID (defaults to Monad testnet) */
-  chainId?: number;
+}
+
+export interface SkillOnChain {
+  skillHash: string;
+  sourceHashes: string[];
+  forger: string;
+  backing: bigint;
+  usageCount: bigint;
+  challengeLosses: bigint;
+  createdAt: number;
+  signal: bigint;
+}
+
+export interface ForgeReceipt {
+  txHash: string;
+  blockNumber: number;
+  skillHash: string;
+}
+
+export interface UseReceipt {
+  txHash: string;
+  blockNumber: number;
+}
+
+export interface ChallengeReceipt {
+  txHash: string;
+  challengeId: number;
 }
 
 /**
- * Load relayer config from environment variables.
+ * Load pool config from environment.
  */
-export function loadRelayerConfig(): RelayerConfig {
+export function loadPoolConfig(): PoolConfig {
   const rpcUrl = process.env.MONAD_RPC_URL ?? "https://testnet-rpc.monad.xyz";
   const privateKey = process.env.FONDOF_RELAYER_KEY ?? "";
   const contractAddress = process.env.FONDOF_CONTRACT_ADDRESS ?? "";
 
   if (!privateKey) {
     throw new Error(
-      "FONDOF_RELAYER_KEY environment variable is required for attestation.\n" +
-        "This is the relayer wallet's private key (never the user's)."
+      "FONDOF_RELAYER_KEY is required. This is the relayer wallet's private key."
     );
   }
   if (!contractAddress) {
     throw new Error(
-      "FONDOF_CONTRACT_ADDRESS environment variable is required.\n" +
-        "Deploy the contract first: cd packages/contracts && forge script script/Deploy.s.sol"
+      "FONDOF_CONTRACT_ADDRESS is required. Deploy SkillPool first."
     );
   }
 
@@ -61,121 +81,204 @@ export function loadRelayerConfig(): RelayerConfig {
   };
 }
 
-/**
- * Submit a skill attestation to Monad.
- * Uses viem for proper transaction signing — completely invisible to the user.
- */
-export async function attest(
-  request: AttestationRequest,
-  config: RelayerConfig
-): Promise<AttestationReceipt> {
-  const chain = config.chainId
-    ? defineChain({ ...monadTestnet, id: config.chainId })
-    : monadTestnet;
-
+function getClients(config: PoolConfig) {
+  const chain = monadTestnet;
   const account = privateKeyToAccount(config.privateKey);
-
   const walletClient = createWalletClient({
     account,
     chain,
     transport: http(config.rpcUrl),
   });
-
   const publicClient = createPublicClient({
     chain,
     transport: http(config.rpcUrl),
   });
-
-  // Convert hashes to bytes32
-  const skillHash = toBytes32(request.skillHash);
-  const sourceHashes = request.sourceHashes.map(toBytes32);
-
-  // Send the transaction
-  const txHash = await walletClient.writeContract({
-    address: config.contractAddress,
-    abi: FONDOF_ATTESTATION_ABI,
-    functionName: "attestSkill",
-    args: [
-      skillHash,
-      sourceHashes,
-      request.overlapScore,
-      request.benchmarkScore,
-    ],
-  });
-
-  // Wait for receipt
-  const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
-
-  return {
-    txHash,
-    blockNumber: Number(receipt.blockNumber),
-    attestation: {
-      skillHash: request.skillHash,
-      sourceHashes: request.sourceHashes,
-      overlapScore: request.overlapScore,
-      benchmarkScore: request.benchmarkScore,
-      creator: account.address,
-      timestamp: Math.floor(Date.now() / 1000),
-    },
-  };
+  return { walletClient, publicClient, account };
 }
 
-/**
- * Query an attestation from the chain (read-only, no gas needed).
- */
-export async function queryAttestation(
-  skillHash: string,
-  config: Pick<RelayerConfig, "rpcUrl" | "contractAddress">
-): Promise<Attestation | null> {
-  const chain = monadTestnet;
-
-  const publicClient = createPublicClient({
-    chain,
-    transport: http(config.rpcUrl),
-  });
-
-  // Check if attested
-  const isAttested = await publicClient.readContract({
-    address: config.contractAddress as Hex,
-    abi: FONDOF_ATTESTATION_ABI,
-    functionName: "isAttested",
-    args: [toBytes32(skillHash)],
-  });
-
-  if (!isAttested) return null;
-
-  // Get the full attestation
-  const result = await publicClient.readContract({
-    address: config.contractAddress as Hex,
-    abi: FONDOF_ATTESTATION_ABI,
-    functionName: "getAttestation",
-    args: [toBytes32(skillHash)],
-  }) as {
-    skillHash: Hex;
-    sourceHashes: Hex[];
-    overlapScore: number;
-    benchmarkScore: number;
-    creator: Hex;
-    timestamp: bigint;
-  };
-
-  return {
-    skillHash,
-    sourceHashes: result.sourceHashes.map((h) => h as string),
-    overlapScore: result.overlapScore,
-    benchmarkScore: result.benchmarkScore,
-    creator: result.creator,
-    timestamp: Number(result.timestamp),
-  };
-}
-
-/**
- * Convert a hex string to a proper bytes32 value.
- */
 function toBytes32(hex: string): Hex {
   const clean = hex.startsWith("0x") ? hex.slice(2) : hex;
   return `0x${clean.padStart(64, "0")}` as Hex;
 }
 
-// Re-export
-export { FONDOF_ATTESTATION_ABI } from "./abi.js";
+// --- Write Operations ---
+
+/**
+ * Forge a skill into the SkillPool with provenance and backing.
+ * Backing is sponsored by the relayer (invisible to user).
+ */
+export async function forgeSkill(
+  skillHash: string,
+  sourceHashes: string[],
+  config: PoolConfig,
+  backingEth = "0.001"
+): Promise<ForgeReceipt> {
+  const { walletClient, publicClient } = getClients(config);
+
+  const txHash = await walletClient.writeContract({
+    address: config.contractAddress,
+    abi: SKILL_POOL_ABI,
+    functionName: "forge",
+    args: [toBytes32(skillHash), sourceHashes.map(toBytes32)],
+    value: parseEther(backingEth),
+  });
+
+  const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+
+  return {
+    txHash,
+    blockNumber: Number(receipt.blockNumber),
+    skillHash,
+  };
+}
+
+/**
+ * Record that an agent used a skill. Increases signal.
+ * Designed to be called frequently (cheap on Monad).
+ */
+export async function recordUse(
+  skillHash: string,
+  config: PoolConfig
+): Promise<UseReceipt> {
+  const { walletClient, publicClient } = getClients(config);
+
+  const txHash = await walletClient.writeContract({
+    address: config.contractAddress,
+    abi: SKILL_POOL_ABI,
+    functionName: "use",
+    args: [toBytes32(skillHash)],
+  });
+
+  const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+
+  return {
+    txHash,
+    blockNumber: Number(receipt.blockNumber),
+  };
+}
+
+/**
+ * Challenge a skill's quality by staking against it.
+ */
+export async function challengeSkill(
+  skillHash: string,
+  config: PoolConfig,
+  stakeEth = "0.001"
+): Promise<ChallengeReceipt> {
+  const { walletClient, publicClient } = getClients(config);
+
+  const txHash = await walletClient.writeContract({
+    address: config.contractAddress,
+    abi: SKILL_POOL_ABI,
+    functionName: "challenge",
+    args: [toBytes32(skillHash)],
+    value: parseEther(stakeEth),
+  });
+
+  const _receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+
+  // Parse challengeId from event logs
+  const challengeId = 0; // TODO: decode from receipt logs
+
+  return {
+    txHash,
+    challengeId,
+  };
+}
+
+// --- Read Operations ---
+
+/**
+ * Get the quality signal for a skill.
+ */
+export async function getSignal(
+  skillHash: string,
+  config: Pick<PoolConfig, "rpcUrl" | "contractAddress">
+): Promise<bigint> {
+  const publicClient = createPublicClient({
+    chain: monadTestnet,
+    transport: http(config.rpcUrl),
+  });
+
+  const signal = await publicClient.readContract({
+    address: config.contractAddress as Hex,
+    abi: SKILL_POOL_ABI,
+    functionName: "getSignal",
+    args: [toBytes32(skillHash)],
+  });
+
+  return signal as bigint;
+}
+
+/**
+ * Get the top skills by signal.
+ */
+export async function getTopSkills(
+  limit: number,
+  config: Pick<PoolConfig, "rpcUrl" | "contractAddress">
+): Promise<string[]> {
+  const publicClient = createPublicClient({
+    chain: monadTestnet,
+    transport: http(config.rpcUrl),
+  });
+
+  const result = await publicClient.readContract({
+    address: config.contractAddress as Hex,
+    abi: SKILL_POOL_ABI,
+    functionName: "topSkills",
+    args: [BigInt(limit)],
+  });
+
+  return (result as Hex[]).map((h) => h as string);
+}
+
+/**
+ * Get full skill data from the pool.
+ */
+export async function getSkillOnChain(
+  skillHash: string,
+  config: Pick<PoolConfig, "rpcUrl" | "contractAddress">
+): Promise<SkillOnChain | null> {
+  const publicClient = createPublicClient({
+    chain: monadTestnet,
+    transport: http(config.rpcUrl),
+  });
+
+  try {
+    const result = await publicClient.readContract({
+      address: config.contractAddress as Hex,
+      abi: SKILL_POOL_ABI,
+      functionName: "getSkill",
+      args: [toBytes32(skillHash)],
+    }) as {
+      skillHash: Hex;
+      sourceHashes: Hex[];
+      forger: Hex;
+      backing: bigint;
+      usageCount: bigint;
+      challengeLosses: bigint;
+      createdAt: bigint;
+      exists: boolean;
+    };
+
+    if (!result.exists) return null;
+
+    const signal = await getSignal(skillHash, config);
+
+    return {
+      skillHash,
+      sourceHashes: result.sourceHashes.map((h) => h as string),
+      forger: result.forger,
+      backing: result.backing,
+      usageCount: result.usageCount,
+      challengeLosses: result.challengeLosses,
+      createdAt: Number(result.createdAt),
+      signal,
+    };
+  } catch {
+    return null;
+  }
+}
+
+// Re-export ABI
+export { SKILL_POOL_ABI } from "./abi.js";

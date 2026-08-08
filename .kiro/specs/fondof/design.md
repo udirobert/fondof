@@ -34,9 +34,12 @@ fondof is structured as a three-layer system:
                            │
 ┌──────────────────────────▼──────────────────────────┐
 │                   CHAIN LAYER                        │
-│  Monad Attestation Contract (Solidity)              │
-│  - attestSkill(sourceHashes, skillHash, metadata)   │
-│  - queryProvenance(skillHash) → attestation record  │
+│  SkillPool Contract (Solidity on Monad)             │
+│  - forge(skillHash, sourceHashes) payable           │
+│  - use(skillHash) — per-invocation receipt          │
+│  - challenge(skillHash) payable — dispute quality   │
+│  - resolve(challengeId, winner) — oracle settles    │
+│  - topSkills(limit) — ranked by signal              │
 │  Abstracted via server-side relayer (no user wallet)│
 └─────────────────────────────────────────────────────┘
 ```
@@ -225,68 +228,83 @@ provenance:
 - Compare outputs on correctness, style adherence, convention compliance
 - Score relative to existing alternatives
 
-### 6. Chain Layer (Monad Attestation)
+### 6. Chain Layer (SkillPool — Monad)
 
-**Responsibility:** Immutable provenance records, invisible to user.
+**Responsibility:** On-chain skill quality discovery, usage tracking, and challenge resolution. Not just provenance — an economic mechanism that surfaces skill quality through real usage and staking.
 
-**Smart Contract Design:**
+**Why Monad specifically:**
+- 10K TPS enables per-use tracking (every skill invocation is an on-chain receipt)
+- 300ms blocks mean signals update in real-time during a demo
+- Near-zero fees make micro-stakes and usage receipts economical
+- Parallel execution handles concurrent skill usage/signaling without bottlenecks
+
+**Design: The SkillPool**
+
+Unlike a static attestation registry, the SkillPool is a living quality oracle:
+
+1. **Forge** — publish a skill with provenance + initial backing stake
+2. **Use** — record on-chain when an agent invokes a skill (usage receipt)
+3. **Challenge** — dispute a skill's quality by staking against it
+4. **Resolve** — settle challenges via benchmark results (oracle)
+5. **Acquire** — weighted random selection for discovery (higher signal = higher probability of being served, but long tail still has a chance)
+
+The **signal** = backing + usage_count - challenge_losses. This is the quality oracle that discovery reads from.
+
 ```solidity
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-contract FondofAttestation {
-    struct Attestation {
-        bytes32 skillHash;          // SHA-256 of skill content
-        bytes32[] sourceHashes;     // hashes of source content
-        uint16 overlapScore;        // 0-10000 (basis points)
-        uint16 benchmarkScore;      // 0-10000 (basis points)
-        address creator;            // relayer address (on behalf of user)
-        uint64 timestamp;
+contract SkillPool {
+    struct Skill {
+        bytes32 skillHash;
+        bytes32[] sourceHashes;
+        address forger;
+        uint256 backing;
+        uint256 usageCount;
+        uint256 challengeLosses;
+        uint64 createdAt;
     }
 
-    mapping(bytes32 => Attestation) public attestations;
-    mapping(address => bytes32[]) public creatorSkills;
-
-    event SkillAttested(
-        bytes32 indexed skillHash,
-        address indexed creator,
-        uint64 timestamp
-    );
-
-    function attestSkill(
-        bytes32 skillHash,
-        bytes32[] calldata sourceHashes,
-        uint16 overlapScore,
-        uint16 benchmarkScore
-    ) external {
-        require(attestations[skillHash].timestamp == 0, "Already attested");
-        
-        attestations[skillHash] = Attestation({
-            skillHash: skillHash,
-            sourceHashes: sourceHashes,
-            overlapScore: overlapScore,
-            benchmarkScore: benchmarkScore,
-            creator: msg.sender,
-            timestamp: uint64(block.timestamp)
-        });
-        
-        creatorSkills[msg.sender].push(skillHash);
-        emit SkillAttested(skillHash, msg.sender, uint64(block.timestamp));
+    struct Challenge {
+        bytes32 skillHash;
+        address challenger;
+        uint256 stake;
+        bool resolved;
+        bool challengerWon;
     }
 
-    function getAttestation(bytes32 skillHash) 
-        external view returns (Attestation memory) 
-    {
-        return attestations[skillHash];
-    }
+    mapping(bytes32 => Skill) public skills;
+    mapping(uint256 => Challenge) public challenges;
+    uint256 public challengeCount;
+    bytes32[] public skillIndex;
+
+    event SkillForged(bytes32 indexed skillHash, address indexed forger, uint256 backing);
+    event SkillUsed(bytes32 indexed skillHash, address indexed user);
+    event SkillChallenged(uint256 indexed challengeId, bytes32 indexed skillHash, address challenger);
+    event ChallengeResolved(uint256 indexed challengeId, bool challengerWon);
+
+    function forge(bytes32 skillHash, bytes32[] calldata sourceHashes) external payable;
+    function use(bytes32 skillHash) external;
+    function challenge(bytes32 skillHash) external payable;
+    function resolve(uint256 challengeId, bool challengerWon) external; // oracle/admin
+    function getSignal(bytes32 skillHash) external view returns (uint256);
+    function topSkills(uint256 limit) external view returns (Skill[] memory);
 }
 ```
 
+**How the product reads from the pool:**
+
+- `fondof need "error handling"` → queries `topSkills()` → shows results ranked by on-chain signal
+- `fondof ingest` → after discovery, shows "existing skills with signal: Skill A (signal: 47), Skill B (signal: 12), Skill C (new, no signal)"
+- `fondof publish` → calls `forge()` with backing stake (sponsored by relayer, invisible)
+- When agents use a skill in practice → `use()` is called, signal increases in real-time
+
 **Relayer Design:**
-- Server-side wallet signs transactions on behalf of users
+- Server-side wallet signs all transactions on behalf of users
 - User never manages keys, gas, or approvals
 - Relayer is a Cloudflare Worker with a managed private key
-- Gas is sponsored (fondof pays, cost is negligible on Monad at scale)
+- Gas is sponsored (fondof pays, negligible on Monad at scale)
+- The relayer also acts as oracle for challenge resolution (runs benchmarks)
 
 ### 7. Data Flow (End-to-End)
 

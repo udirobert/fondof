@@ -26,7 +26,21 @@ export {
   type FondofConfig,
   type IngestSession,
 } from "./project/index.js";
-export { attest, queryAttestation, loadRelayerConfig, FONDOF_ATTESTATION_ABI, type RelayerConfig } from "./relayer/index.js";
+export {
+  forgeSkill,
+  recordUse,
+  challengeSkill,
+  getSignal,
+  getTopSkills,
+  getSkillOnChain,
+  loadPoolConfig,
+  SKILL_POOL_ABI,
+  type PoolConfig,
+  type SkillOnChain,
+  type ForgeReceipt,
+  type UseReceipt,
+  type ChallengeReceipt,
+} from "./relayer/index.js";
 export {
   createEmbeddingProvider,
   cosineSimilarity,
