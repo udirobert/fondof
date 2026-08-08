@@ -1,7 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
-import { ExternalLink } from "lucide-react";
+import { ChevronDown, ExternalLink } from "lucide-react";
 import type { ExistingSkillHit } from "@/lib/api";
 
 interface DiscoveryPanelProps {
@@ -12,7 +13,7 @@ interface DiscoveryPanelProps {
 }
 
 /**
- * One dense beat after ingest — overlap + fit + what to do next.
+ * Beat 2 — overlap + fit, collapsed by default so shards stay primary.
  */
 export function DiscoveryPanel({
   existingSkills,
@@ -20,6 +21,7 @@ export function DiscoveryPanel({
   forgeWorthyCount,
   totalIdeas,
 }: DiscoveryPanelProps) {
+  const [open, setOpen] = useState(false);
   const hasSkills = existingSkills.length > 0;
   const hasRepos = repoMatchSummary.length > 0;
   if (!hasSkills && !hasRepos && forgeWorthyCount === 0) return null;
@@ -39,49 +41,65 @@ export function DiscoveryPanel({
       className="discovery-strip mb-5 sm:mb-6"
       aria-label="Discovery"
     >
-      <p className="text-sm text-ink">
-        <span className="font-medium text-ember">{forgeWorthyCount}</span>
-        <span className="text-muted">/{totalIdeas}</span> worth forging
-        {repoLine && (
-          <>
-            {" "}
-            · fits <span className="font-medium">{repoLine}</span>
-          </>
-        )}
-        {hasSkills && (
-          <>
-            {" "}
-            · {existingSkills.length} similar skill
-            {existingSkills.length === 1 ? "" : "s"} exist — compose what&apos;s
-            missing
-          </>
-        )}
-      </p>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-baseline justify-between gap-3 text-left"
+        aria-expanded={open}
+      >
+        <p className="text-sm text-ink">
+          <span className="font-medium text-ember">{forgeWorthyCount}</span>
+          <span className="text-muted">/{totalIdeas}</span> worth forging
+          {repoLine && (
+            <>
+              {" "}
+              · fits <span className="font-medium">{repoLine}</span>
+            </>
+          )}
+          {hasSkills && (
+            <>
+              {" "}
+              · {existingSkills.length} similar
+            </>
+          )}
+        </p>
+        <span className="inline-flex shrink-0 items-center gap-1 text-[11px] text-muted">
+          Before forge
+          <ChevronDown
+            size={14}
+            className={`transition-transform ${open ? "rotate-180" : ""}`}
+          />
+        </span>
+      </button>
 
-      {hasSkills && (
-        <ul className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
-          {existingSkills.slice(0, 3).map((skill) => (
-            <li key={skill.url}>
-              <a
-                href={skill.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-[12px] text-muted transition-colors hover:text-ember"
-                title={skill.snippet || skill.title}
-              >
-                <ExternalLink size={11} className="shrink-0" />
-                <span className="max-w-[12rem] truncate underline-offset-2 hover:underline">
-                  {skill.title || skill.url}
-                </span>
-              </a>
-            </li>
-          ))}
-        </ul>
+      {open && (
+        <div className="mt-3 space-y-2">
+          {hasSkills && (
+            <ul className="flex flex-wrap gap-x-3 gap-y-1">
+              {existingSkills.slice(0, 3).map((skill) => (
+                <li key={skill.url}>
+                  <a
+                    href={skill.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-[12px] text-muted transition-colors hover:text-ember"
+                    title={skill.snippet || skill.title}
+                  >
+                    <ExternalLink size={11} className="shrink-0" />
+                    <span className="max-w-[12rem] truncate underline-offset-2 hover:underline">
+                      {skill.title || skill.url}
+                    </span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="text-[11px] text-muted">
+            Forge = reusable · Apply = once · Skip = not worth it. Compose
+            what&apos;s missing into your hallmark skill.
+          </p>
+        </div>
       )}
-
-      <p className="mt-2 text-[11px] text-muted">
-        Forge = reusable skill · Apply = use once · Skip = not worth it
-      </p>
     </motion.section>
   );
 }

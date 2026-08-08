@@ -4,12 +4,13 @@ import { motion } from "framer-motion";
 import { Podcast, FileText, File } from "lucide-react";
 
 interface SourceCardProps {
-  type: "podcast" | "blog" | "text";
+  type: "podcast" | "blog" | "text" | "youtube";
   title: string;
   author?: string;
   url: string;
   duration?: string;
   ideasCount?: number;
+  textLength?: number;
   isProcessing?: boolean;
 }
 
@@ -20,9 +21,17 @@ export function SourceCard({
   url,
   duration,
   ideasCount,
+  textLength,
   isProcessing,
 }: SourceCardProps) {
-  const Icon = type === "podcast" ? Podcast : type === "blog" ? FileText : File;
+  const Icon =
+    type === "podcast"
+      ? Podcast
+      : type === "youtube"
+        ? FileText
+        : type === "blog"
+          ? FileText
+          : File;
 
   return (
     <motion.article
@@ -60,13 +69,22 @@ export function SourceCard({
         ) : ideasCount !== undefined ? (
           <span className="text-xs text-ember font-medium">
             {ideasCount} idea{ideasCount !== 1 ? "s" : ""}
+            {textLength && textLength > 0
+              ? ` · ${(textLength / 1000).toFixed(0)}k chars`
+              : ""}
           </span>
         ) : null}
       </div>
 
-      <p className="mt-2 text-[10px] text-muted truncate font-mono opacity-60">
+      <a
+        href={url.startsWith("http") ? url : undefined}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mt-2 block truncate font-mono text-[10px] text-muted opacity-60 hover:text-ember hover:opacity-100"
+        onClick={(e) => e.stopPropagation()}
+      >
         {hostname(url)}
-      </p>
+      </a>
     </motion.article>
   );
 }

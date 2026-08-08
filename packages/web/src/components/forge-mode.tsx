@@ -748,7 +748,7 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
                             ) : (
                               <Copy size={14} />
                             )}
-                            {copied ? "Copied to clipboard" : "Copy draft"}
+                            {copied ? "Copied" : "Copy for Cursor / Claude"}
                           </button>
                           <button
                             type="button"

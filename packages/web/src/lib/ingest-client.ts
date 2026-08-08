@@ -63,6 +63,9 @@ export interface IngestResult {
   source: DemoSource;
   ideas: DemoIdea[];
   fromApi: boolean;
+  textLength?: number;
+  /** Raw API content type when available */
+  contentType?: string;
 }
 
 export type SourceKind = "youtube" | "podcast" | "article" | "need";
@@ -147,6 +150,8 @@ export async function resolveIngestStream(
   const ideas: DemoIdea[] = [];
   let title = hostnameTitle(value);
   let contentType = detectSourceKind(value, "content");
+  let textLength = 0;
+  let rawContentType = "";
   let sawDone = false;
   let streamError: string | null = null;
 
@@ -170,6 +175,8 @@ export async function resolveIngestStream(
         if (event.type === "done") {
           sawDone = true;
           title = event.title || title;
+          textLength = event.textLength ?? 0;
+          rawContentType = event.contentType;
           contentType =
             event.contentType === "youtube"
               ? "youtube"
@@ -189,13 +196,15 @@ export async function resolveIngestStream(
     if (sawDone && ideas.length > 0) {
       return {
         source: {
-          type: contentType === "podcast" ? "podcast" : contentType === "youtube" ? "blog" : "blog",
+          type: contentType === "podcast" ? "podcast" : "blog",
           title,
           url: value,
           ideasCount: ideas.length,
         },
         ideas,
         fromApi: true,
+        textLength,
+        contentType: rawContentType || contentType,
       };
     }
 
@@ -252,6 +261,8 @@ export async function resolveIngestStream(
         },
         ideas: mapped,
         fromApi: true,
+        textLength: res.textLength,
+        contentType: res.contentType,
       };
     }
   } catch (err) {

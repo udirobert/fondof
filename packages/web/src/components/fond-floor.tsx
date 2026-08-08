@@ -7,6 +7,8 @@ import { ChevronDown } from "lucide-react";
 import { SourceCard } from "@/components/source-card";
 import { IdeaShard } from "@/components/idea-shard";
 import { DiscoveryPanel } from "@/components/discovery-panel";
+import { SourceBrief } from "@/components/source-brief";
+import { AgentExportBar } from "@/components/agent-export-bar";
 import { IngestBar } from "@/components/ingest-bar";
 import { StartPad } from "@/components/start-pad";
 import { IngestStage, type IngestPhase } from "@/components/ingest-stage";
@@ -79,6 +81,7 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
     setIdeas,
     discoverySkills,
     setDiscoverySkills,
+    activeRepo,
   } = useAppStore();
 
   const phrase = useMemo(() => fondofPhrase(sources), [sources]);
@@ -188,6 +191,7 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
       const collected: IdeaFromAPI[] = [];
       let streamContentType = isNeed ? "text" : "article";
       let foundSkills: ExistingSkillHit[] = [];
+      let extractedChars = 0;
 
       try {
         const result = await resolveIngestStream(
@@ -248,17 +252,25 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
                 foundSkills = event.existingSkills ?? [];
                 setDiscoverySkills(foundSkills);
               }
+              if (event.type === "done") {
+                extractedChars = event.textLength ?? 0;
+              }
             },
           },
           controller.signal,
         );
 
+        extractedChars = result.textLength ?? extractedChars;
         updateSource(placeholderUrl, {
           title: result.source.title,
           contentType:
-            streamContentType === "youtube"
+            streamContentType === "youtube" ||
+            result.contentType === "youtube"
               ? "youtube"
-              : streamContentType === "podcast" || streamContentType === "audio"
+              : streamContentType === "podcast" ||
+                  streamContentType === "audio" ||
+                  result.contentType === "podcast" ||
+                  result.contentType === "audio"
                 ? "podcast"
                 : result.source.type === "text"
                   ? "text"
@@ -267,6 +279,7 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
           sourceHash: result.fromApi ? "api" : "local",
           isProcessing: false,
           url: result.source.url,
+          textLength: extractedChars || undefined,
         });
 
         const mapped = result.ideas.map((idea) =>
@@ -503,15 +516,17 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
                     >
                       <SourceCard
                         type={
-                          (source.contentType === "podcast" ||
-                          source.contentType === "blog" ||
-                          source.contentType === "text"
+                          source.contentType === "podcast" ||
+                          source.contentType === "youtube" ||
+                          source.contentType === "text" ||
+                          source.contentType === "blog"
                             ? source.contentType
-                            : "blog") as "podcast" | "blog" | "text"
+                            : "blog"
                         }
                         title={source.title}
                         url={source.url}
                         ideasCount={source.ideasCount}
+                        textLength={source.textLength}
                         isProcessing={source.isProcessing}
                       />
                     </div>
@@ -533,50 +548,69 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
             </aside>
 
             <div className="relative min-w-0 flex-1 overflow-auto p-4 pb-36 sm:p-6 lg:p-8">
-              <div className="mb-5 flex flex-col gap-3 sm:mb-6">
-                <div>
-                  <FondofWordmark object={phrase.object} size="inline" />
-                  <p className="mt-2 max-w-lg text-sm text-foreground-secondary">
-                    Select Forge-worthy shards from {phrase.object} — combine
-                    into one skill fitted to your repo.
-                  </p>
-                </div>
-                <div className="lg:hidden">
+              <div className="mx-auto max-w-2xl">
+                <FondofWordmark object={phrase.object} size="inline" />
+
+                {sources[0] && (
+                  <div className="mt-4">
+                    <SourceBrief
+                      title={sources[0].title}
+                      url={sources[0].url}
+                      contentType={sources[0].contentType}
+                      ideasCount={ideas.length}
+                      textLength={sources[0].textLength}
+                      fondObject={phrase.object}
+                    />
+                  </div>
+                )}
+
+                <div className="mb-4 lg:hidden">
                   <FitTarget
                     repos={demoRepos}
                     variant="strip"
                     selectedIdeaCount={selectedIdeaIds.size}
                   />
                 </div>
-              </div>
 
-              <div className="mx-auto max-w-2xl">
+                <AgentExportBar
+                  ideas={ideas}
+                  sourceTitle={sources[0]?.title}
+                  sourceUrl={sources[0]?.url}
+                  fondObject={phrase.object}
+                  repo={activeRepo}
+                  selectedIds={selectedIdeaIds}
+                />
+
                 <DiscoveryPanel
                   existingSkills={discoverySkills}
                   repoMatchSummary={repoMatchSummary}
                   forgeWorthyCount={forgeWorthyCount}
                   totalIdeas={ideas.length}
                 />
-              </div>
 
-              <div className="idea-shard-plane mx-auto flex max-w-2xl flex-col gap-3 pb-8 sm:gap-3.5">
-                {ideaInsights.map(({ idea, worth, repos }, i) => (
-                  <IdeaShard
-                    key={idea.id}
-                    id={idea.id}
-                    title={idea.title}
-                    description={idea.description}
-                    patternType={idea.patternType}
-                    domains={idea.domain}
-                    index={i}
-                    worthiness={worth.worthiness}
-                    worthinessReason={worth.reason}
-                    repoMatches={repos.map((r) => ({
-                      name: r.name,
-                      why: r.why,
-                    }))}
-                  />
-                ))}
+                <p className="mb-3 text-[11px] uppercase tracking-wider text-muted">
+                  Shards · select to forge
+                </p>
+
+                <div className="idea-shard-plane flex flex-col gap-3 pb-8 sm:gap-3.5">
+                  {ideaInsights.map(({ idea, worth, repos }, i) => (
+                    <IdeaShard
+                      key={idea.id}
+                      id={idea.id}
+                      title={idea.title}
+                      description={idea.description}
+                      patternType={idea.patternType}
+                      domains={idea.domain}
+                      index={i}
+                      worthiness={worth.worthiness}
+                      worthinessReason={worth.reason}
+                      repoMatches={repos.map((r) => ({
+                        name: r.name,
+                        why: r.why,
+                      }))}
+                    />
+                  ))}
+                </div>
               </div>
             </div>
 

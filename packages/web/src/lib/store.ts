@@ -8,6 +8,8 @@ export interface SourceEntry {
   ideasCount: number;
   sourceHash: string;
   isProcessing: boolean;
+  /** Characters extracted (transcript / article body) */
+  textLength?: number;
 }
 
 export interface AppState {

@@ -70,23 +70,65 @@ type IngestResult = {
 
 type Emit = (event: IngestStreamEvent) => void;
 
-function replayCachedIngest(cached: IngestResult, emit: Emit) {
+function sleep(ms: number) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+/**
+ * Cache hits still play the story — short beats so examples feel intentional,
+ * not instant teleport.
+ */
+async function replayCachedIngest(cached: IngestResult, emit: Emit) {
   emit({
     type: "kind",
     contentType: cached.contentType,
     fondObject: fondObjectFor(cached.contentType),
   });
-  emit({ type: "phase", phase: "cache", label: "Loaded from cache…" });
+  await sleep(320);
+
+  emit({
+    type: "phase",
+    phase: "resolve",
+    label: "Recognizing the source…",
+  });
+  await sleep(480);
   emit({ type: "meta", title: cached.title });
+
+  const materialPhase =
+    cached.contentType === "youtube"
+      ? { phase: "captions", label: "Replaying captions…" }
+      : cached.contentType === "podcast" || cached.contentType === "audio"
+        ? { phase: "transcribe", label: "Replaying the transcript…" }
+        : { phase: "read", label: "Replaying the piece…" };
+  emit({ type: "phase", ...materialPhase });
+  await sleep(520);
+
+  emit({
+    type: "phase",
+    phase: "extract",
+    label: "Settling discrete ideas…",
+  });
+  await sleep(400);
+
   for (const idea of cached.ideas) {
     emit({ type: "idea", idea });
+    await sleep(240);
   }
+
   if (cached.existingSkills?.length) {
+    emit({
+      type: "phase",
+      phase: "discover",
+      label: "Checking what already exists…",
+    });
+    await sleep(380);
     emit({
       type: "discovery",
       existingSkills: cached.existingSkills.slice(0, 3),
     });
   }
+
+  await sleep(220);
   emit({
     type: "done",
     sourceHash: cached.sourceHash,
@@ -118,7 +160,7 @@ async function runIngestPipeline(
   const cacheKey = `ingest:v1:${await sha256Hex(canonical)}`;
   const cached = await cacheGetJson<IngestResult>(cacheKey);
   if (cached?.ideas?.length) {
-    replayCachedIngest(cached, emit);
+    await replayCachedIngest(cached, emit);
     return { ...cached, cacheHit: true };
   }
 
