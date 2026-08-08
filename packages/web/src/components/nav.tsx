@@ -69,14 +69,24 @@ export function Nav() {
           ))}
         </ol>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <Link
+            href="/pool"
+            className={`rounded-full px-2.5 py-1 text-xs transition-colors ${
+              pathname === "/pool" || pathname?.startsWith("/s/")
+                ? "bg-ember/10 font-medium text-ember"
+                : "text-muted hover:text-ink"
+            }`}
+          >
+            Pool
+          </Link>
           <WalletButton variant="nav" />
-          {pathname !== "/" && (
+          {pathname !== "/" && pathname !== "/pool" && (
             <Link
               href="/"
-              className="text-xs text-muted transition-colors hover:text-ink"
+              className="hidden text-xs text-muted transition-colors hover:text-ink sm:inline"
             >
-              Home
+              Forge
             </Link>
           )}
         </div>

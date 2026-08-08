@@ -16,9 +16,8 @@ import { SelectionBar } from "@/components/selection-bar";
 import { ForgeMode } from "@/components/forge-mode";
 import { FitTarget } from "@/components/fit-target";
 import { FondofWordmark } from "@/components/fondof-wordmark";
-import { LiveSignalLine } from "@/components/live-signal-line";
-import { SignalPoolStrip } from "@/components/signal-pool-strip";
 import { WorkStages } from "@/components/work-stages";
+import { SkillPoolPulse } from "@/components/skill-pool-pulse";
 import { SourceTextDrawer } from "@/components/source-text-drawer";
 import { Tip } from "@/components/tip";
 import { useAppStore } from "@/lib/store";
@@ -597,7 +596,7 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
                     Paste what you learn. See what exists. Forge for your repo.
                   </p>
                   <p className="mx-auto mt-2 font-mono text-[10px] tracking-wide text-muted">
-                    Extract → Fit → Signal on Monad
+                    Extract → Forge → SkillPool on Monad
                   </p>
                 </div>
               )}
@@ -610,7 +609,7 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
               />
               {showFrame && (
                 <>
-                  <LiveSignalLine className="mt-6" />
+                  <SkillPoolPulse compact className="mt-6 w-full max-w-md" />
                   <p className="mt-4 max-w-xs text-center text-[11px] leading-relaxed text-muted">
                     Not a marketplace — a forge. Wallet optional (you = forger,
                     else relayer).
@@ -737,6 +736,8 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
                     />
                   </div>
                 )}
+
+                <SkillPoolPulse className="mb-5" />
 
                 <div className="mb-4 lg:hidden">
                   <FitTarget
@@ -907,7 +908,6 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
                     onSkillsUpdate={setDiscoverySkills}
                     onCompareNote={setCompareNote}
                   />
-                  <SignalPoolStrip embedded />
                   <AgentExportBar
                     className="mb-2"
                     ideas={ideas}
@@ -917,9 +917,6 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
                     repo={activeRepo}
                     selectedIds={selectedIdeaIds}
                   />
-                  <div className="border-t border-ink/8 pt-3 pb-1">
-                    <LiveSignalLine />
-                  </div>
                 </WorkStages>
               </div>
             </div>
