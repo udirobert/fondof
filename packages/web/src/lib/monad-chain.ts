@@ -62,3 +62,7 @@ export function shortAddress(addr: string): string {
 export function txExplorer(txHash: string): string {
   return `https://testnet.monadvision.com/tx/${txHash}`;
 }
+
+export function addressExplorer(address: string): string {
+  return `https://testnet.monadvision.com/address/${address}`;
+}

@@ -178,7 +178,16 @@ export async function getSkillSignal(hash: string): Promise<SkillOnChainResponse
   return res.json();
 }
 
-export async function recordUsage(hash: string): Promise<{ txHash: string }> {
+export async function getTopSkills(
+  limit = 5,
+): Promise<{ skills: SkillOnChainResponse[]; error?: string }> {
+  const res = await fetch(`${API_URL}/api/skills?limit=${limit}`);
+  return res.json();
+}
+
+export async function recordUsage(
+  hash: string,
+): Promise<{ success?: boolean; txHash?: string; error?: string }> {
   const res = await fetch(`${API_URL}/api/skills/${hash}/use`, {
     method: "POST",
   });

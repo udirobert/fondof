@@ -14,6 +14,7 @@ import { SelectionBar } from "@/components/selection-bar";
 import { ForgeMode } from "@/components/forge-mode";
 import { FitTarget } from "@/components/fit-target";
 import { FondofWordmark } from "@/components/fondof-wordmark";
+import { LiveSignalLine } from "@/components/live-signal-line";
 import { useAppStore } from "@/lib/store";
 import { fondofPhrase } from "@/lib/fondof-phrase";
 import {
@@ -53,6 +54,7 @@ interface FondFloorProps {
 export function FondFloor({ showFrame = false }: FondFloorProps) {
   const searchParams = useSearchParams();
   const abortRef = useRef<AbortController | null>(null);
+  const deepLinkRef = useRef<string | null>(null);
   const [sourcesOpen, setSourcesOpen] = useState(false);
   const [mode, setMode] = useState<FloorMode>("pad");
   const [phases, setPhases] = useState<IngestPhase[]>([]);
@@ -89,6 +91,7 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
   }, [ideas.length, mode]);
 
   useEffect(() => {
+    if (searchParams.get("url")) return;
     if (searchParams.get("sample") !== "1") return;
     if (ideas.length > 0) return;
     const pod = demoSources[0];
@@ -313,6 +316,16 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
     ],
   );
 
+  // Viral deep link: /?url=https://… → start ingest once
+  useEffect(() => {
+    const raw = searchParams.get("url");
+    if (!raw || ideas.length > 0 || isIngesting) return;
+    if (deepLinkRef.current === raw) return;
+    deepLinkRef.current = raw;
+    const url = raw.startsWith("http") ? raw : `https://${raw}`;
+    void runIngest({ url });
+  }, [searchParams, ideas.length, isIngesting, runIngest]);
+
   const onExample = (ex: LiveExample) => {
     void runIngest({ url: ex.url });
   };
@@ -417,10 +430,13 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
                 onExample={onExample}
               />
               {showFrame && (
-                <p className="mt-8 max-w-xs text-center text-[11px] leading-relaxed text-muted">
-                  Not a marketplace — a forge. Quality signal grows with use;
-                  wallet optional (you = forger, else relayer).
-                </p>
+                <>
+                  <LiveSignalLine />
+                  <p className="mt-4 max-w-xs text-center text-[11px] leading-relaxed text-muted">
+                    Not a marketplace — a forge. Wallet optional (you = forger,
+                    else relayer).
+                  </p>
+                </>
               )}
             </div>
           </motion.div>

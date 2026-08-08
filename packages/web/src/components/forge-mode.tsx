@@ -38,10 +38,16 @@ import {
   toBytes32,
   txExplorer,
 } from "@/lib/monad-chain";
+import {
+  skillPublicPath,
+  skillShareUrl,
+  skillTweetIntent,
+} from "@/lib/skill-share";
 import { OrigamiRitualCanvas } from "@/components/experience/origami-ritual-canvas";
 import { WalletButton } from "@/components/wallet-button";
 import { useAppStore } from "@/lib/store";
 import { fondofPhrase } from "@/lib/fondof-phrase";
+import Link from "next/link";
 
 type Phase = "ritual" | "compose" | "attested";
 
@@ -78,6 +84,7 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
   const [challenging, setChallenging] = useState(false);
   const [challengeNote, setChallengeNote] = useState<string | null>(null);
   const [publishNote, setPublishNote] = useState<string | null>(null);
+  const [linkCopied, setLinkCopied] = useState(false);
   const setPublished = useAppStore((s) => s.setPublished);
   const { address, isConnected, chainId } = useConnection();
   const { switchChainAsync } = useSwitchChain();
@@ -147,6 +154,7 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
       setUsageCount(null);
       setChallengeNote(null);
       setPublishNote(null);
+      setLinkCopied(false);
       setWalletTxHash(undefined);
       pendingMarkdown.current = null;
       streamCancel.current?.();
@@ -635,11 +643,11 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
                               </p>
                             </div>
                             <p className="mb-3 text-xs text-foreground-secondary">
-                              Share the link — signal grows with use, drops if
-                              challenged.
+                              Share — others use it, signal grows; challenges cut
+                              it.
                             </p>
                             <code className="block break-all font-mono text-[11px] text-ink">
-                              {hash}
+                              {skillHash ?? hash}
                             </code>
                             {publishNote && (
                               <p className="mt-2 text-[11px] text-muted">
@@ -648,15 +656,62 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
                             )}
                           </div>
                           <div className="flex flex-col gap-2">
+                            {skillHash && (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    try {
+                                      await navigator.clipboard.writeText(
+                                        skillShareUrl(skillHash),
+                                      );
+                                      setLinkCopied(true);
+                                      window.setTimeout(
+                                        () => setLinkCopied(false),
+                                        1600,
+                                      );
+                                    } catch {
+                                      // ignore
+                                    }
+                                  }}
+                                  className="flex min-h-10 items-center justify-center gap-2 rounded-full bg-ember px-4 text-sm font-medium text-paper hover:bg-ember-hot"
+                                >
+                                  {linkCopied ? (
+                                    <Check size={14} />
+                                  ) : (
+                                    <Copy size={14} />
+                                  )}
+                                  {linkCopied ? "Link copied" : "Copy skill link"}
+                                </button>
+                                <a
+                                  href={skillTweetIntent({
+                                    hash: skillHash,
+                                    title: ideas[0]?.title,
+                                  })}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex min-h-10 items-center justify-center gap-2 rounded-full border border-ink/12 bg-paper px-4 text-sm text-ink hover:border-ember/35"
+                                >
+                                  Post to X
+                                </a>
+                                <Link
+                                  href={skillPublicPath(skillHash)}
+                                  className="flex min-h-10 items-center justify-center gap-2 rounded-full border border-ink/12 bg-paper px-4 text-sm text-ink hover:border-ember/35"
+                                  onClick={onClose}
+                                >
+                                  Open public page
+                                </Link>
+                              </>
+                            )}
                             {explorer && (
                               <a
                                 href={explorer}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="flex min-h-10 items-center justify-center gap-2 rounded-full border border-ink/12 bg-paper px-4 text-sm text-ink hover:border-ember/35"
+                                className="flex min-h-10 items-center justify-center gap-2 text-xs text-muted hover:text-ink"
                               >
-                                <ExternalLink size={14} />
-                                View on Monad
+                                <ExternalLink size={12} />
+                                Tx on Monad
                               </a>
                             )}
                             <button
