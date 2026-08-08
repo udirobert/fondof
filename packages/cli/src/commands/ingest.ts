@@ -1,8 +1,8 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import ora from "ora";
-import { ingest, discover, loadRepoProfiles } from "@fondof/core";
-import { createClaudeLLM } from "../llm.js";
+import { ingest, discover, loadRepoProfiles, saveIdeas, saveSession } from "@fondof/core";
+import { createLLM } from "../llm.js";
 
 export const ingestCommand = new Command("ingest")
   .description("Ingest content from a podcast or blog URL")
@@ -18,7 +18,7 @@ export const ingestCommand = new Command("ingest")
       console.log(chalk.bold("\n  fondof ingest\n"));
       console.log(chalk.dim(`  Source: ${url}\n`));
 
-      const llm = createClaudeLLM();
+      const llm = createLLM();
       const keyterms = options.keyterms?.split(",").map((t) => t.trim());
 
       const spinner = ora("Resolving content type...").start();
@@ -48,6 +48,19 @@ export const ingestCommand = new Command("ingest")
           console.log(chalk.yellow("  No actionable ideas extracted.\n"));
           return;
         }
+
+        // Persist ideas and session
+        saveIdeas(result.ideas);
+        saveSession({
+          id: crypto.randomUUID(),
+          sourceUrl: url,
+          sourceHash: result.sourceHash,
+          contentType: result.contentType,
+          title: result.title,
+          author: result.author,
+          ideaIds: result.ideas.map((i) => i.id),
+          ingestedAt: new Date().toISOString(),
+        });
 
         console.log(chalk.bold(`  ${result.ideas.length} ideas extracted:\n`));
 

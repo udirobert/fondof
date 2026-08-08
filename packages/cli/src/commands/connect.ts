@@ -12,7 +12,7 @@ import {
   loadRepoProfiles,
   type GitHubRepo,
 } from "@fondof/core";
-import { createClaudeLLM } from "../llm.js";
+import { createLLM } from "../llm.js";
 
 // Default GitHub OAuth App client ID for fondof
 // Users can override with FONDOF_GITHUB_CLIENT_ID env var
@@ -96,7 +96,7 @@ connectCommand
 
     console.log(chalk.bold(`\n  Indexing ${repoFullName}...\n`));
 
-    const llm = createClaudeLLM();
+    const llm = createLLM();
     const spinner = ora("Fetching repo metadata...").start();
 
     try {

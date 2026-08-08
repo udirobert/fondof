@@ -11,3 +11,14 @@ export {
   removeRepoProfile,
   type FondofConfig,
 } from "./store.js";
+export {
+  loadIdeas,
+  saveIdeas,
+  getIdeasByIds,
+  getIdeasBySource,
+  getRecentIdeas,
+  loadSessions,
+  saveSession,
+  getLatestSession,
+  type IngestSession,
+} from "./idea-store.js";

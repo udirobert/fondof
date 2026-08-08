@@ -12,11 +12,19 @@ export {
   saveToken,
   loadRepoProfiles,
   saveRepoProfile,
+  loadIdeas,
+  saveIdeas,
+  getIdeasByIds,
+  getRecentIdeas,
+  loadSessions,
+  saveSession,
+  getLatestSession,
   type IndexRepoOptions,
   type GitHubRepo,
   type DeviceCodeResponse,
   type GitHubToken,
   type FondofConfig,
+  type IngestSession,
 } from "./project/index.js";
 export { attest, queryAttestation, loadRelayerConfig, FONDOF_ATTESTATION_ABI, type RelayerConfig } from "./relayer/index.js";
 export {
