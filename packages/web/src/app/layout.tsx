@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Fraunces, Outfit, Geist_Mono } from "next/font/google";
 import { Nav } from "@/components/nav";
+import { Providers } from "@/components/providers";
 import "./globals.css";
 
 const outfit = Outfit({
@@ -48,14 +49,16 @@ export default function RootLayout({
       <body
         className={`${outfit.variable} ${fraunces.variable} ${geistMono.variable} antialiased grain vignette`}
       >
-        <a
-          href="/canvas"
-          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-ember focus:px-3 focus:py-2 focus:text-sm focus:text-ink"
-        >
-          Skip to tool
-        </a>
-        <Nav />
-        <main id="main">{children}</main>
+        <Providers>
+          <a
+            href="/canvas"
+            className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-ember focus:px-3 focus:py-2 focus:text-sm focus:text-ink"
+          >
+            Skip to tool
+          </a>
+          <Nav />
+          <main id="main">{children}</main>
+        </Providers>
       </body>
     </html>
   );

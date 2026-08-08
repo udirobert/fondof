@@ -13,6 +13,13 @@ import {
   Swords,
   X,
 } from "lucide-react";
+import { parseEther } from "viem";
+import {
+  useConnection,
+  useSwitchChain,
+  useWaitForTransactionReceipt,
+  useWriteContract,
+} from "wagmi";
 import type { DemoIdea } from "@/lib/demo-data";
 import { skillDraftTemplate } from "@/lib/demo-data";
 import {
@@ -22,7 +29,18 @@ import {
   publishSkill,
 } from "@/lib/api";
 import { formatSignal } from "@/lib/idea-insights";
+import {
+  CHALLENGE_STAKE,
+  FORGE_BACKING,
+  SKILL_POOL_ABI,
+  SKILL_POOL_ADDRESS,
+  monadTestnet,
+  shortAddress,
+  toBytes32,
+  txExplorer,
+} from "@/lib/monad-chain";
 import { OrigamiRitualCanvas } from "@/components/experience/origami-ritual-canvas";
+import { WalletButton } from "@/components/wallet-button";
 import { useAppStore } from "@/lib/store";
 import { fondofPhrase } from "@/lib/fondof-phrase";
 
@@ -61,10 +79,20 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
   const [usageCount, setUsageCount] = useState<number | null>(null);
   const [challenging, setChallenging] = useState(false);
   const [challengeNote, setChallengeNote] = useState<string | null>(null);
+  const [publishNote, setPublishNote] = useState<string | null>(null);
   const setPublished = useAppStore((s) => s.setPublished);
+  const { address, isConnected, chainId } = useConnection();
+  const { switchChainAsync } = useSwitchChain();
+  const { writeContractAsync } = useWriteContract();
+  const [walletTxHash, setWalletTxHash] = useState<`0x${string}` | undefined>();
+  const { isSuccess: walletTxConfirmed } = useWaitForTransactionReceipt({
+    hash: walletTxHash,
+  });
   const pendingMarkdown = useRef<string | null>(null);
   const streamCancel = useRef<(() => void) | null>(null);
   const prevRepo = useRef(repo);
+  const walletReady =
+    isConnected && !!address && chainId === monadTestnet.id;
 
   useEffect(() => {
     if (!open) return;
@@ -121,6 +149,8 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
       setLiveSignal(null);
       setUsageCount(null);
       setChallengeNote(null);
+      setPublishNote(null);
+      setWalletTxHash(undefined);
       pendingMarkdown.current = null;
       streamCancel.current?.();
       streamCancel.current = null;
@@ -244,8 +274,60 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
     setPublished(hashToRead, "1.0");
   };
 
+  const ensureMonadChain = async () => {
+    if (chainId === monadTestnet.id) return true;
+    try {
+      await switchChainAsync({ chainId: monadTestnet.id });
+      return true;
+    } catch {
+      setPublishNote("Switch to Monad Testnet in your wallet to continue.");
+      return false;
+    }
+  };
+
   const publish = async () => {
     setPublishing(true);
+    setPublishNote(null);
+
+    // Connected wallet → forge on-chain as the user (you are the forger).
+    if (isConnected && skillHash && sourceHashes.length > 0) {
+      try {
+        if (!(await ensureMonadChain())) {
+          setPublishing(false);
+          return;
+        }
+        const txHash = await writeContractAsync({
+          address: SKILL_POOL_ADDRESS,
+          abi: SKILL_POOL_ABI,
+          functionName: "forge",
+          args: [toBytes32(skillHash), sourceHashes.map(toBytes32)],
+          value: parseEther(FORGE_BACKING),
+          chainId: monadTestnet.id,
+        });
+        setWalletTxHash(txHash);
+        setHash(txHash);
+        setExplorer(txExplorer(txHash));
+        setPublishNote(
+          address
+            ? `Forged as ${shortAddress(address)} — confirm in wallet if prompted.`
+            : "Forged from your wallet.",
+        );
+        setPhase("attested");
+        setPublishing(false);
+        void refreshSignal(skillHash);
+        return;
+      } catch (err) {
+        const msg =
+          err instanceof Error ? err.message : "Wallet publish failed";
+        setPublishNote(
+          msg.includes("User rejected") || msg.includes("rejected")
+            ? "Wallet rejected the transaction — try again or publish via relayer."
+            : msg.slice(0, 160),
+        );
+        // Fall through to relayer so the demo still completes
+      }
+    }
+
     try {
       if (skillHash) {
         const res = await Promise.race([
@@ -256,7 +338,12 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
         ]);
         if (!res.error && res.txHash) {
           setHash(res.txHash);
-          setExplorer(res.explorer ?? null);
+          setExplorer(res.explorer ?? txExplorer(res.txHash));
+          setPublishNote(
+            isConnected
+              ? "Published via fondof relayer (wallet forge unavailable)."
+              : "Published via fondof relayer on Monad.",
+          );
           setPhase("attested");
           setPublishing(false);
           void refreshSignal(skillHash);
@@ -276,6 +363,7 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
     setLiveSignal("1.0");
     setUsageCount(0);
     setPublished(localHash, "1.0");
+    setPublishNote("Local attest — chain unavailable.");
     setPhase("attested");
     setPublishing(false);
   };
@@ -289,16 +377,57 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
     return () => window.clearInterval(id);
   }, [phase, skillHash]);
 
+  useEffect(() => {
+    if (walletTxConfirmed && skillHash) {
+      void refreshSignal(skillHash);
+    }
+  }, [walletTxConfirmed, skillHash]);
+
   const onChallenge = async () => {
     if (!skillHash) return;
     setChallenging(true);
     setChallengeNote(null);
+
+    if (isConnected) {
+      try {
+        if (!(await ensureMonadChain())) {
+          setChallenging(false);
+          return;
+        }
+        const txHash = await writeContractAsync({
+          address: SKILL_POOL_ADDRESS,
+          abi: SKILL_POOL_ABI,
+          functionName: "challenge",
+          args: [toBytes32(skillHash)],
+          value: parseEther(CHALLENGE_STAKE),
+          chainId: monadTestnet.id,
+        });
+        setExplorer(txExplorer(txHash));
+        setChallengeNote(
+          address
+            ? `Challenge from ${shortAddress(address)} submitted.`
+            : "Challenge submitted from your wallet.",
+        );
+        void refreshSignal(skillHash);
+        setChallenging(false);
+        return;
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Challenge failed";
+        if (msg.includes("User rejected") || msg.includes("rejected")) {
+          setChallengeNote("Wallet rejected the challenge.");
+          setChallenging(false);
+          return;
+        }
+        // fall through to API
+      }
+    }
+
     try {
       const res = await challengeSkill(skillHash);
       if (res.error) {
         setChallengeNote(res.error);
       } else if (res.txHash) {
-        setChallengeNote("Challenge submitted on Monad.");
+        setChallengeNote("Challenge submitted on Monad (relayer).");
         if (res.explorer) setExplorer(res.explorer);
         void refreshSignal(skillHash);
       }
@@ -478,6 +607,8 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
                         </select>
                       </div>
 
+                      <WalletButton variant="panel" />
+
                       {phase === "attested" ? (
                         <motion.div
                           initial={{ opacity: 0, y: 4 }}
@@ -513,6 +644,11 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
                             <code className="block break-all font-mono text-[11px] text-ink">
                               {hash}
                             </code>
+                            {publishNote && (
+                              <p className="mt-2 text-[11px] text-muted">
+                                {publishNote}
+                              </p>
+                            )}
                           </div>
                           <div className="flex flex-col gap-2">
                             {explorer && (
@@ -533,7 +669,11 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
                               className="flex min-h-10 items-center justify-center gap-2 rounded-full border border-ink/12 bg-paper px-4 text-sm text-ink hover:border-ember/35 disabled:opacity-40"
                             >
                               <Swords size={14} />
-                              {challenging ? "Challenging…" : "Challenge quality"}
+                              {challenging
+                                ? "Challenging…"
+                                : walletReady
+                                  ? "Challenge from wallet"
+                                  : "Challenge quality"}
                             </button>
                             {challengeNote && (
                               <p className="px-1 text-[11px] text-muted">
@@ -559,16 +699,26 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
                           </button>
                           <button
                             type="button"
-                            onClick={publish}
+                            onClick={() => void publish()}
                             disabled={!ready || publishing}
                             className="flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-ember px-4 py-2.5 text-sm font-medium text-paper transition-colors hover:bg-ember-hot disabled:opacity-30"
                           >
                             <Shield size={14} />
-                            {publishing ? "Publishing…" : "Publish skill"}
+                            {publishing
+                              ? "Publishing…"
+                              : walletReady
+                                ? `Publish as ${shortAddress(address!)}`
+                                : "Publish skill"}
                           </button>
+                          {publishNote && (
+                            <p className="px-1 text-[11px] text-ember">
+                              {publishNote}
+                            </p>
+                          )}
                           <p className="px-1 text-[11px] leading-relaxed text-muted">
-                            Copy is enough for most workflows — publish is
-                            optional.
+                            {walletReady
+                              ? `Sends ${FORGE_BACKING} MON backing from your wallet — you are the on-chain forger.`
+                              : "Copy is enough for most workflows — publish via relayer works without a wallet."}
                           </p>
                           <button
                             type="button"
@@ -584,8 +734,9 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
                           {showChainDetail && (
                             <p className="rounded-xl bg-mist/80 px-3 py-2.5 text-[11px] leading-relaxed text-foreground-secondary">
                               Records source → ideas → skill on Monad SkillPool.
-                              Signal grows with usage; others can challenge
-                              quality. No wallet UI required here.
+                              Connect a wallet to forge as yourself; otherwise
+                              the fondof relayer publishes for the demo. Signal
+                              grows with usage; others can challenge quality.
                             </p>
                           )}
                         </div>

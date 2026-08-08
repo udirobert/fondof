@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useAppStore } from "@/lib/store";
 import { fondofPhrase } from "@/lib/fondof-phrase";
 import { FondofWordmark } from "@/components/fondof-wordmark";
+import { WalletButton } from "@/components/wallet-button";
 
 export function Nav() {
   const pathname = usePathname();
@@ -68,21 +69,24 @@ export function Nav() {
           ))}
         </ol>
 
-        {pathname !== "/" ? (
-          <Link
-            href="/"
-            className="text-xs text-muted transition-colors hover:text-ink"
-          >
-            Home
-          </Link>
-        ) : (
-          <a
-            href="#why"
-            className="text-xs text-muted transition-colors hover:text-ink"
-          >
-            Why
-          </a>
-        )}
+        <div className="flex items-center gap-3">
+          <WalletButton variant="nav" />
+          {pathname !== "/" ? (
+            <Link
+              href="/"
+              className="text-xs text-muted transition-colors hover:text-ink"
+            >
+              Home
+            </Link>
+          ) : (
+            <a
+              href="#why"
+              className="text-xs text-muted transition-colors hover:text-ink"
+            >
+              Why
+            </a>
+          )}
+        </div>
       </div>
     </nav>
   );

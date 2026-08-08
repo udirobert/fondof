@@ -41,7 +41,7 @@ const chapters = [
     anchor: "gl-settle",
     eyebrow: "SkillPool",
     title: "Quality becomes signal",
-    body: "Publish on Monad. Signal = backing + usage − challenge losses. Stake against weak skills — benchmarks settle it. No wallet UI in your way.",
+    body: "Publish on Monad. Signal = backing + usage − challenge losses. Connect a wallet to forge as yourself — or use the relayer for a frictionless demo.",
   },
 ] as const;
 
