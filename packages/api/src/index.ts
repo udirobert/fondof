@@ -5,6 +5,7 @@ import { forgeRoute } from "./routes/forge.js";
 import { publishRoute } from "./routes/publish.js";
 import { skillsRoute } from "./routes/skills.js";
 import { challengeRoute } from "./routes/challenge.js";
+import { searchRoute } from "./routes/search.js";
 
 export interface Env {
   AI: Ai;
@@ -12,9 +13,12 @@ export interface Env {
   FONDOF_CONTRACT_ADDRESS: string;
   FONDOF_RELAYER_KEY: string;
   CF_API_TOKEN?: string;
-  NVIDIA_API_KEY?: string;
   VENICE_API_KEY?: string;
+  NVIDIA_API_KEY?: string;
   ANTHROPIC_API_KEY?: string;
+  EXA_API_KEY?: string;
+  FIRECRAWL_API_KEY?: string;
+  ELEVENLABS_API_KEY?: string;
 }
 
 const app = new Hono<{ Bindings: Env }>();
@@ -23,14 +27,26 @@ const app = new Hono<{ Bindings: Env }>();
 app.use(
   "*",
   cors({
-    origin: ["http://localhost:3000", "https://fondof.netlify.app", "https://fondof.vercel.app"],
+    origin: "*",
     allowMethods: ["GET", "POST", "OPTIONS"],
     allowHeaders: ["Content-Type"],
   })
 );
 
 // Health check
-app.get("/", (c) => c.json({ name: "fondof-api", version: "0.1.0", status: "ok" }));
+app.get("/", (c) =>
+  c.json({
+    name: "fondof-api",
+    version: "0.1.0",
+    status: "ok",
+    features: {
+      firecrawl: !!c.env.FIRECRAWL_API_KEY,
+      elevenlabs: !!c.env.ELEVENLABS_API_KEY,
+      exa: !!c.env.EXA_API_KEY,
+      venice: !!c.env.VENICE_API_KEY,
+    },
+  })
+);
 
 // API routes
 app.route("/api", ingestRoute);
@@ -38,5 +54,6 @@ app.route("/api", forgeRoute);
 app.route("/api", publishRoute);
 app.route("/api", skillsRoute);
 app.route("/api", challengeRoute);
+app.route("/api", searchRoute);
 
 export default app;

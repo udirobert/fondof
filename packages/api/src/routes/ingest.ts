@@ -1,6 +1,8 @@
 import { Hono } from "hono";
 import type { Env } from "../index.js";
 import { chat, embed } from "../lib/llm.js";
+import { extractContent } from "../lib/extract.js";
+import { transcribeAudio, isAudioUrl, resolveAudioUrl } from "../lib/transcribe.js";
 
 const EXTRACT_SYSTEM = `You are a JSON-only response bot. You extract actionable technical ideas from content.
 
@@ -18,19 +20,45 @@ ingestRoute.post("/ingest", async (c) => {
   if (!url) return c.json({ error: "url is required" }, 400);
 
   try {
-    // Step 1: Fetch and extract article text
-    const text = await fetchArticleText(url);
-    if (!text) return c.json({ error: "Could not extract content from URL" }, 400);
+    let text: string;
+    let title: string;
+    let contentType: "audio" | "article";
 
-    // Step 2: Hash the source
+    // Detect content type and extract text
+    if (isAudioUrl(url)) {
+      // Audio: resolve URL → transcribe via ElevenLabs
+      contentType = "audio";
+      const audioUrl = (await resolveAudioUrl(url)) ?? url;
+      const transcript = await transcribeAudio(audioUrl, c.env);
+
+      if (!transcript || !transcript.text) {
+        return c.json({ error: "Could not transcribe audio. Check the URL or ElevenLabs API key." }, 400);
+      }
+
+      text = transcript.text;
+      title = url.split("/").pop()?.replace(/\.[^.]+$/, "") ?? "Podcast";
+    } else {
+      // Article: extract via Firecrawl → fallback to basic
+      contentType = "article";
+      const extracted = await extractContent(url, c.env);
+
+      if (!extracted) {
+        return c.json({ error: "Could not extract content from URL" }, 400);
+      }
+
+      text = extracted.text;
+      title = extracted.title || new URL(url).hostname;
+    }
+
+    // Hash the source content
     const encoder = new TextEncoder();
     const hashBuffer = await crypto.subtle.digest("SHA-256", encoder.encode(text));
     const sourceHash = Array.from(new Uint8Array(hashBuffer))
       .map((b) => b.toString(16).padStart(2, "0"))
       .join("");
 
-    // Step 3: Extract ideas via LLM
-    const truncated = text.slice(0, 12000); // Stay within context
+    // Extract ideas via LLM
+    const truncated = text.slice(0, 12000);
     const llmResponse = await chat(
       c.env.AI,
       EXTRACT_SYSTEM,
@@ -41,7 +69,7 @@ ingestRoute.post("/ingest", async (c) => {
     const responseStr = typeof llmResponse === "string" ? llmResponse : JSON.stringify(llmResponse);
     const ideas = parseIdeas(responseStr, url, sourceHash);
 
-    // Step 4: Generate embeddings
+    // Generate embeddings for ideas
     if (ideas.length > 0) {
       const texts = ideas.map((i) => `${i.title}: ${i.description}`);
       const embeddings = await embed(c.env.AI, texts);
@@ -51,9 +79,9 @@ ingestRoute.post("/ingest", async (c) => {
     }
 
     return c.json({
-      contentType: "article",
+      contentType,
       sourceHash,
-      title: extractTitle(text),
+      title,
       ideas,
       textLength: text.length,
     });
@@ -62,41 +90,6 @@ ingestRoute.post("/ingest", async (c) => {
     return c.json({ error: msg }, 500);
   }
 });
-
-async function fetchArticleText(url: string): Promise<string | null> {
-  try {
-    const response = await fetch(url, {
-      headers: { "User-Agent": "fondof/0.1 (skill forge)" },
-    });
-    if (!response.ok) return null;
-
-    const html = await response.text();
-    // Simple extraction: strip tags, collapse whitespace
-    const text = html
-      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
-      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
-      .replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, "")
-      .replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, "")
-      .replace(/<header[^>]*>[\s\S]*?<\/header>/gi, "")
-      .replace(/<[^>]+>/g, " ")
-      .replace(/&nbsp;/g, " ")
-      .replace(/&amp;/g, "&")
-      .replace(/&lt;/g, "<")
-      .replace(/&gt;/g, ">")
-      .replace(/\s+/g, " ")
-      .trim();
-
-    return text.length > 100 ? text : null;
-  } catch {
-    return null;
-  }
-}
-
-function extractTitle(text: string): string {
-  // Take first meaningful line as title
-  const lines = text.split(/[.\n]/).filter((l) => l.trim().length > 5);
-  return lines[0]?.trim().slice(0, 100) ?? "Untitled";
-}
 
 interface IdeaOutput {
   id: string;
@@ -111,7 +104,6 @@ interface IdeaOutput {
 }
 
 function parseIdeas(response: string, sourceUrl: string, sourceHash: string): IdeaOutput[] {
-  // Extract JSON from response (handle code fences)
   const fenceMatch = response.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
   const jsonStr = fenceMatch ? fenceMatch[1] : response.trim();
 
