@@ -13,6 +13,26 @@ The blockchain layer (Monad) provides verifiable provenance and attribution but 
 3. **Multi-source composition** — The best skills weave ideas from multiple sources, not single-source extraction.
 4. **Invisible blockchain** — No wallets, no gas, no confirmations. The chain is infrastructure, not UX.
 5. **Skill-worthiness** — Not everything should be a skill. The system actively distinguishes one-time fixes from repeatable patterns.
+6. **Not a marketplace** — We don't host, list, sell, or aggregate pre-made skills. We forge new ones from source material.
+7. **Not a registry** — We don't index the ecosystem. We search it (via Exa) to inform the user what already exists before they forge.
+8. **Not a tokenization protocol** — The chain layer is for provenance and attribution, not pricing, trading, or bonding curves.
+
+## Positioning: What fondof is NOT
+
+When building features, always ask: "Does this make us look like a marketplace/aggregator/registry?" If yes, reconsider.
+
+- **No browsing UI for existing skills** — We show existing skills only in context of a user's specific need or ingested content. Never as a standalone catalog.
+- **No "install this skill" flow** — We link to where skills live (ClawHub, GitHub) but don't host or distribute them. Our output is always a NEW skill, fitted to the user.
+- **No pricing/monetization of skills** — The attestation layer proves provenance, not price. No tokens, no fees, no subscriptions for skill access.
+- **No generic skill templates** — Every skill output is fitted to a specific repo. There is no "generate a generic error handling skill" path.
+- **No ecosystem dashboard** — We don't show "trending skills" or "most used." We show what's relevant to YOUR repos and YOUR content.
+
+Alternatives to redirect users toward:
+- Marketplaces: ClawHub, LobeHub, SkillsMP, skills.sh
+- Aggregators: VoltAgent/awesome-agent-skills, AmazingAng/skilldb
+- Official repos: anthropics/skills, openai/skills
+- Crypto/DeFi skills: OKX OnchainOS, Allium AgentHub
+- Skill economics: x402 Protocol, ERC-8239, Torch Market
 
 ## Tech Stack
 
@@ -22,6 +42,8 @@ The blockchain layer (Monad) provides verifiable provenance and attribution but 
 - **Database:** D1 (SQLite) for structured data
 - **Vectors:** Cloudflare Vectorize for embeddings/semantic matching
 - **Transcription:** ElevenLabs Scribe API
+- **Search:** Exa (semantic skill discovery), TinyFish (web search fallback)
+- **Content extraction:** Firecrawl (primary), Mozilla Readability (fallback)
 - **LLM:** Workers AI / Claude API
 - **Blockchain:** Monad (EVM L1, Solidity contracts)
 - **Contract Tooling:** Foundry (forge, cast, anvil)

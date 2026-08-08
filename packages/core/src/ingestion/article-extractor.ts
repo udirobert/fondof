@@ -1,5 +1,6 @@
 import { Readability } from "@mozilla/readability";
 import { JSDOM } from "jsdom";
+import { firecrawlExtract } from "../search/firecrawl.js";
 
 export interface ExtractedArticle {
   /** Article title */
@@ -18,9 +19,30 @@ export interface ExtractedArticle {
 
 /**
  * Fetch a URL and extract its readable article content.
- * Uses Mozilla's Readability algorithm (same as Firefox Reader View).
+ * Tries Firecrawl first (handles JS-heavy sites), falls back to local Readability.
  */
 export async function extractArticle(url: string): Promise<ExtractedArticle> {
+  // Try Firecrawl first (more robust, handles JS rendering)
+  const firecrawlResult = await firecrawlExtract(url);
+  if (firecrawlResult) {
+    return {
+      title: firecrawlResult.title,
+      author: null, // Firecrawl doesn't extract author separately
+      textContent: firecrawlResult.markdown,
+      excerpt: firecrawlResult.description ?? null,
+      siteName: null,
+      publishedDate: null,
+    };
+  }
+
+  // Fallback: local Readability extraction
+  return extractWithReadability(url);
+}
+
+/**
+ * Local article extraction using Mozilla Readability + jsdom.
+ */
+async function extractWithReadability(url: string): Promise<ExtractedArticle> {
   const response = await fetch(url, {
     headers: {
       "User-Agent":

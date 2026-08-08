@@ -19,3 +19,13 @@ export {
   type FondofConfig,
 } from "./project/index.js";
 export { attest, queryAttestation, loadRelayerConfig, FONDOF_ATTESTATION_ABI, type RelayerConfig } from "./relayer/index.js";
+export {
+  searchSkills,
+  searchSourceMaterial,
+  firecrawlExtract,
+  tinyFishSearch,
+  tinyFishFetch,
+  type ExaSearchResult,
+  type FirecrawlResult,
+  type TinyFishSearchResult,
+} from "./search/index.js";

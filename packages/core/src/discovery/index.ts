@@ -1,7 +1,7 @@
 import type { IdeaRecord, RepoProfile, DiscoveryResult } from "@fondof/shared";
 import type { LLMProvider } from "../ingestion/idea-extractor.js";
 import { matchIdeaToRepos } from "./matcher.js";
-import { searchExistingSkills } from "./skill-search.js";
+import { searchExistingSkills, searchExistingSkillsLive } from "./skill-search.js";
 import { assessWorthiness } from "./worthiness.js";
 
 export interface DiscoverOptions {
@@ -13,6 +13,8 @@ export interface DiscoverOptions {
   llm: LLMProvider;
   /** Skip LLM-based worthiness (use heuristic only) for speed */
   skipLlmWorthiness?: boolean;
+  /** Use live web search for existing skill discovery (requires Exa/TinyFish API keys) */
+  liveSearch?: boolean;
 }
 
 /**
@@ -21,7 +23,7 @@ export interface DiscoverOptions {
  * and skill-worthiness assessments.
  */
 export async function discover(options: DiscoverOptions): Promise<DiscoveryResult[]> {
-  const { ideas, repos, llm, skipLlmWorthiness } = options;
+  const { ideas, repos, llm, skipLlmWorthiness, liveSearch } = options;
   const results: DiscoveryResult[] = [];
 
   for (const idea of ideas) {
@@ -29,7 +31,9 @@ export async function discover(options: DiscoverOptions): Promise<DiscoveryResul
     const matchedRepos = matchIdeaToRepos(idea, repos);
 
     // 2. Search for existing skills that cover this idea
-    const existingSkills = searchExistingSkills(idea);
+    const existingSkills = liveSearch
+      ? await searchExistingSkillsLive(idea)
+      : searchExistingSkills(idea);
 
     // 3. Assess skill-worthiness
     let skillWorthiness;

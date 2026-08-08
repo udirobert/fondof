@@ -1,4 +1,6 @@
 import type { IdeaRecord, ExistingSkillMatch } from "@fondof/shared";
+import { searchSkills } from "../search/exa.js";
+import { tinyFishSearch } from "../search/tinyfish.js";
 
 /**
  * Known skill catalogs to search against.
@@ -87,7 +89,65 @@ const SEED_CATALOG: SkillCatalogEntry[] = [
 
 /**
  * Search for existing skills that overlap with an extracted idea.
- * Uses keyword/tag matching in v1; will use vector similarity post-Blitz.
+ * Combines local seed catalog with live Exa/TinyFish search.
+ */
+export async function searchExistingSkillsLive(idea: IdeaRecord): Promise<ExistingSkillMatch[]> {
+  // Run local catalog and live search in parallel
+  const [localMatches, liveMatches] = await Promise.all([
+    Promise.resolve(searchExistingSkills(idea)),
+    searchLiveSkills(idea),
+  ]);
+
+  // Merge and deduplicate (prefer live results for same skill)
+  const seen = new Set<string>();
+  const merged: ExistingSkillMatch[] = [];
+
+  for (const match of [...liveMatches, ...localMatches]) {
+    if (!seen.has(match.name.toLowerCase())) {
+      seen.add(match.name.toLowerCase());
+      merged.push(match);
+    }
+  }
+
+  return merged.sort((a, b) => b.overlapScore - a.overlapScore);
+}
+
+/**
+ * Search live web for existing skills using Exa (primary) + TinyFish (fallback).
+ */
+async function searchLiveSkills(idea: IdeaRecord): Promise<ExistingSkillMatch[]> {
+  const query = `${idea.idea.title} ${idea.idea.domain.join(" ")} ${idea.idea.applicability.join(" ")}`;
+
+  // Try Exa first (semantic search)
+  const exaResults = await searchSkills(query, { numResults: 5 });
+
+  if (exaResults.length > 0) {
+    return exaResults.map((r) => ({
+      skillId: `exa:${r.url}`,
+      name: r.title,
+      overlapScore: Math.min(0.9, r.score * 0.8), // Scale Exa scores
+      fitScore: 0.5, // Unknown fit without analyzing the skill content
+      source: r.url,
+    }));
+  }
+
+  // Fallback to TinyFish
+  const tfResults = await tinyFishSearch(`AI agent skill ${query}`, {
+    intent: "Find existing AI agent skills that handle this capability",
+  });
+
+  return tfResults.slice(0, 5).map((r, i) => ({
+    skillId: `tinyfish:${r.url}`,
+    name: r.title,
+    overlapScore: Math.max(0.2, 0.6 - i * 0.1), // Rank-based scoring
+    fitScore: 0.4,
+    source: r.url,
+  }));
+}
+
+/**
+ * Search for existing skills that overlap with an extracted idea.
+ * Local catalog only (synchronous, no network).
  */
 export function searchExistingSkills(idea: IdeaRecord): ExistingSkillMatch[] {
   const matches: ExistingSkillMatch[] = [];
