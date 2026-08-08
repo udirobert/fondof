@@ -2,29 +2,44 @@
 
 ## What is fondof?
 
-fondof is the bridge between what you learn and what your agents do. It connects content you consume (podcasts, blogs) with the projects you're building — helping you discover existing skills, identify where ideas apply to your work, and craft best-in-class skills fitted to your specific coding environment.
+fondof forges **customised, personalised skills** for a specific coding environment — from what you learn (podcasts, blogs) or a concrete need. The hero job is a short fitted skill you can hand to Cursor / Claude / Kiro. **SkillPool** on Monad records provenance and a contestable quality signal (backing, uses, challenge losses).
 
-The blockchain layer (Monad **SkillPool**) records provenance and a **quality signal** (backing, uses, challenge losses). Relayer can publish without a wallet; connecting a wallet lets you forge as yourself. Chain details stay secondary to the craft UX — not a gas theater, but not pretend-invisible either.
+**North star:** skills that are *specifically useful for my repo*, with growing proof that they helped (near: signal + use receipts; next: outcome attachments — PR / UI / repo delta).
+
+**Not a security product:** directories are full of slop, clones, and occasionally hostile skills; stars lag. That context motivates contestability — it does not make fondof a scanner, sandbox, or injection firewall.
+
+The blockchain layer stays secondary to craft UX — not gas theater, not pretend-invisible. Relayer can publish without a wallet; connecting a wallet lets you forge as yourself.
+
+## Product hierarchy (build against this)
+
+1. **Craft** — Fitted, personalised skill (primary).
+2. **Hand-off** — Copy into an agent; apply to a real repo.
+3. **Proof (near)** — SkillPool signal + disputes.
+4. **Outcomes (next)** — Attach what the skill resulted in; do not fake this until a thin path exists.
 
 ## Core Principles
 
-1. **Need-first, not publish-first** — The user's workflow starts from either "I consumed something interesting" or "I have a problem." Discovery and matching come before creation. Need path requires no GitHub OAuth.
-2. **Environment-fitted** — Skills are never generic. They're always crafted for a specific repo's stack, conventions, and patterns.
-3. **Multi-source composition** — The best skills weave ideas from multiple sources, not single-source extraction.
-4. **Craft hero, Proof secondary** — First job is a short fitted skill you can copy into Cursor / Claude / Kiro. SkillPool signal, disputes, and wallets support that story; they do not own the title card. Prefer relayer so publish works without wallet setup. Never fake “published” when chain is down.
-5. **Skill-worthiness** — Not everything should be a skill. The system actively distinguishes one-time fixes from repeatable patterns.
-6. **Not a marketplace** — We don't list or sell pre-made skills. SkillPool desk is a *quality loop* (draw / use / dispute), not a catalog of products for sale.
-7. **Not a registry of the ecosystem** — We search existing skills (via Exa Compare) to inform forge decisions — we don't index the whole ecosystem as a product.
-8. **Not a tokenization protocol** — Stakes police quality; they are not bonding curves or per-call pricing.
+1. **Need-first, not publish-first** — Workflow starts from “I consumed something” or “I have a problem.” Discovery before creation. Need path requires no GitHub OAuth.
+2. **Environment-fitted / personalised** — Skills are never generic templates. Always crafted for a specific repo’s stack, conventions, and patterns.
+3. **Specifically useful** — Prefer short, actionable skills over long generic dumps. Fit check + Where it lands are craft aids, not live agent CI.
+4. **Multi-source composition** — Best skills weave ideas from multiple sources, not single-source extraction.
+5. **Craft hero, Proof secondary** — Copy for agents owns the title card. SkillPool, disputes, and wallets support the story. Prefer relayer. Never fake “published” when chain is down.
+6. **Skill-worthiness** — Not everything should be a skill. Distinguish one-time fixes from repeatable patterns.
+7. **Not a marketplace** — We don’t list or sell pre-made skills. `/pool` is a quality desk (draw / use / dispute), not a catalog of SKUs.
+8. **Not a registry of the ecosystem** — Compare/search informs forge; we don’t index the whole ecosystem as the product.
+9. **Not a tokenization protocol** — Stakes police quality; they are not bonding curves or per-call pricing.
+10. **Not a security scanner** — Challenges and signal are reputation under fire, not malware detection guarantees.
 
 ## Positioning: What fondof is NOT
 
-When building features, always ask: "Does this make us look like a marketplace/aggregator/registry?" If yes, reconsider.
+When building features, ask: "Does this make us look like a marketplace / aggregator / registry / security scanner?" If yes, reconsider.
 
-- **No install-from-catalog flow** — We link out to where skills live elsewhere; our output is a NEW skill fitted to the user.
-- **No pricing/monetization of skill access** — Escrow and challenge stakes are signaling / policing, not listing fees you earn back as yield.
+- **No install-from-catalog flow** — Link out elsewhere; our output is a NEW skill fitted to the user.
+- **No pricing/monetization of skill access** — Escrow and challenge stakes are signaling / policing, not listing fees or yield.
 - **No generic skill templates** — Every skill output is fitted to a specific repo (demo repos count for the OAuth-free path).
+- **No fake security guarantees** — Do not claim injection-proof or malware-scanned skills.
 - **SkillPool desk is allowed** — `/pool` shows live proven skills for agents to draw; that is quality discovery, not a marketplace homepage of SKUs.
+- **Outcome receipts are the next craft layer** — Prefer thin, honest attachments (PR link, screenshot note) over inventing an eval dashboard.
 
 Alternatives to redirect users toward:
 - Marketplaces: ClawHub, LobeHub, SkillsMP, skills.sh
@@ -93,6 +108,7 @@ fondof/
 - **Hashes on-chain, titles + skill body at the edge:** SkillPool stores hashes; title, blurb, landing map, and capped markdown live in Worker edge cache so `/s/[hash]` is a real artifact for any judge browser — not localStorage-only.
 - **Re-attach draft:** If a live skill hash has no edge markdown (or after a pool reset), `/s/[hash]` offers paste-to-attach so any browser gets sections + copy without republishing on-chain.
 - **Fit check ≠ FR6 benchmark:** Forge shows a structural fit strip (sections, citations, repo tokens, length) plus a **Where it lands** path map. That is not a live agent eval on the user’s repo. Real Validation Engine stays deferred. Post-publish **Proof** = SkillPool signal (uses, escrow, losses) with sparkline motion — secondary to copying the skill for an agent.
+- **Outcomes next:** Quality should grow toward “what this skill resulted in” (repo/UI/PR). Ship only with honest, optional attachments — never invent fake before/after metrics.
 - **One product surface:** `/` is the floor; `/canvas` redirects there. Nav is Fond + Pool.
 - **Agent-agnostic skill format:** Markdown skills work with Kiro, Claude, Cursor, etc. UI uses progressive section disclosure so long files aren’t a wall.
 - **Web-first for Ready Spec Ship:** Hosted Netlify + Worker is the judge path; CLI is secondary.

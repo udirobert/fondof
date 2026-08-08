@@ -1,8 +1,10 @@
 # fondof
 
-**The bridge between what you learn and what your agents do.**
+**Forge skills fitted to *your* code — then prove they helped.**
 
-fondof connects the content you consume (podcasts, blogs, technical talks) with the projects you're building — helping you discover existing skills, identify where new ideas apply to your work, and craft best-in-class skills fitted to your specific coding environment. Provenance and quality signal settle on Monad via **SkillPool**.
+fondof turns what you learn (or a concrete need) into a **customised, personalised skill** for a specific repo — not another generic clone from a directory. Copy it into Cursor / Claude / Kiro; publish to **SkillPool** on Monad when you want provenance and a contestable quality signal.
+
+**Why this exists:** agent-skill directories are flooded with slop and clones; stars lag; some skills are actively untrustworthy. fondof is **not** a security scanner — it is a craft forge + quality surface so *your* useful skills can be discovered, used, and challenged.
 
 ## Built with Kiro
 
@@ -19,6 +21,13 @@ fondof was specified and steered in [Kiro](https://kiro.dev), then shipped as a 
 **Spec → ship:** the live product is the web floor (extract → forge → SkillPool) backed by a Cloudflare Worker API and `SkillPool.sol` on Monad testnet — built under that Kiro spec, not a separate rewrite.
 
 This repo also targets **Ready, Spec, Ship** (Kiro) and Monad demo contexts. See [`.kiro/`](.kiro/) for the full steering + specs package required by the hackathon.
+
+## Product hierarchy
+
+1. **Craft (primary)** — A short skill fitted to *your* stack, conventions, and paths — personalised and specifically useful.
+2. **Hand-off** — Copy into Cursor / Claude / Kiro; use it on a real repo.
+3. **Proof (near)** — SkillPool signal (backing + uses − challenge losses); disputes police junk and malice without becoming a scanner product.
+4. **Outcomes (next)** — Attach what the skill *resulted in* (PR, UI delta, repo improvement) so quality is “did it help?” not only “did people stake/use it?”
 
 ## What fondof does
 
@@ -68,14 +77,18 @@ We're domain-agnostic. If you need pre-built DeFi/crypto agent capabilities:
 - [CoinMarketCap AI Agent Hub](https://coinmarketcap.com) — Market reports and token research
 - [Binance AI Agent Skills](https://binance.com) — Market discovery and execution
 
+### Not an AI security / malware scanner
+
+We don’t claim prompt-injection detection, sandboxing, or audited skill binaries. Contestable reputation (backing, uses, challenges) is social/economic filter — not a guarantee that a skill is safe. Treat agent skills like untrusted software; forge ones you understand for *your* repo.
+
 ### fondof IS for when you...
 
-- Listen to a podcast and want to turn insights into skills for YOUR specific project
-- Have a need and want to know if something already covers it — or if you should forge something new
-- Want **provenance** — know exactly where a skill's thinking came from
-- Want **environment-fitted** skills that respect your stack, conventions, and existing patterns
-- Want to compose skills from **multiple sources**, not just copy one file
-- Want a **quality loop** — uses raise score; honest disputes police fakes
+- Want a **personalised** skill for YOUR repo — not a directory clone
+- Listen to a podcast (or state a need) and want insights turned into something **specifically useful**
+- Want **provenance** — know where a skill’s thinking came from
+- Want to **compose** from multiple sources, then copy into your agent
+- Want a **quality loop** — uses raise score; disputes police slop and bad actors
+- (Soon) Want to **show outcomes** — better UI, cleaner PR, measurable repo delta attached to the skill
 
 ## Quick start (judges — hosted first)
 

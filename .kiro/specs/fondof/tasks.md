@@ -158,3 +158,13 @@ Unchecked items are deferred or partial — not abandoned.
 - Demo video recorded from `docs/demo-video.md`
 - More durable meta than Cache API if titles evaporate
 - CLI parity only if time left
+
+## Direction (post–craft-first)
+
+**Product hierarchy:** personalised craft → agent hand-off → SkillPool proof → **outcome receipts** (what the skill resulted in).
+
+### Task 10.1: Outcome attachments (next build)
+- [ ] Optional outcome on skill page / meta: PR URL, short “what improved” note, optional screenshot URL
+- [ ] Persist via edge meta (same path as markdown) — no fake metrics
+- [ ] Surface lightly on `/s/[hash]` and pool cards when present
+- [ ] Do **not** rebrand as security scanner; keep untrusted-supply as problem context only

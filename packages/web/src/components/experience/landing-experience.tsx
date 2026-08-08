@@ -18,9 +18,9 @@ const chapters = [
   {
     id: "enter",
     anchor: "gl-enter",
-    eyebrow: "Skill quality discovery on Monad",
+    eyebrow: "Personal skills for your repo",
     title: "fondof",
-    body: "fondof the pod. fond of the blog. Paste what you learn — the name wears it — then forge a skill for your repo.",
+    body: "fondof the pod. fond of the blog. Paste what you learn — then forge a skill fitted to your codebase, not a directory clone.",
   },
   {
     id: "arrival",
@@ -34,14 +34,14 @@ const chapters = [
     anchor: "gl-fold",
     eyebrow: "Forge",
     title: "Fitted to your code",
-    body: "Skills respect YOUR stack, conventions, and dependencies. Multi-source composition with a provenance trail from segment to skill.",
+    body: "Customised to YOUR stack, conventions, and paths. Multi-source composition with a provenance trail from segment to skill.",
   },
   {
     id: "settle",
     anchor: "gl-settle",
     eyebrow: "SkillPool",
-    title: "Quality becomes signal",
-    body: "Publish on Monad. Signal = backing + usage − challenge losses. Connect a wallet to forge as yourself — or use the relayer for a frictionless demo.",
+    title: "Useful becomes proven",
+    body: "Publish on Monad when you’re ready. Signal = backing + usage − challenge losses. Next: attach what the skill resulted in — better UI, cleaner PR, real repo delta.",
   },
 ] as const;
 
@@ -59,8 +59,12 @@ const STANCE = [
     is: "No tokens, no bonding curves. Provenance + economic quality — not pricing theater.",
   },
   {
+    not: "An AI security scanner",
+    is: "Contestable reputation, not injection firewalls. Forge skills you understand for your repo.",
+  },
+  {
     not: "Generic skill templates",
-    is: "Every output is forged from source material and fitted to a specific repo.",
+    is: "Every output is personalised — forged from source material and fitted to a specific repo.",
   },
 ];
 
@@ -344,13 +348,13 @@ export function LandingExperience() {
               Start forging
             </p>
             <SplitTitle
-              text="Bring a source. Leave with signal."
+              text="Bring a source. Leave with a skill for your repo."
               as="h2"
               className="font-serif text-3xl sm:text-5xl text-ink leading-tight"
             />
             <p className="mt-5 text-foreground-secondary">
-              Paste a source, pick ideas, forge a skill. Publish to SkillPool when
-              you’re ready — quality without marketplace noise.
+              Paste a source or state a need. Forge something personalised.
+              Publish when you want proof on SkillPool — outcomes come next.
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
               <Link

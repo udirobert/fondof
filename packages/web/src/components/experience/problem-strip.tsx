@@ -4,21 +4,21 @@ const PAINS = [
   {
     stat: "20,000+",
     label: "agent skills exist",
-    detail: "Most are hard to trust at a glance.",
+    detail: "Directories full of clones and slop — hard to tell useful from noise.",
   },
   {
-    stat: "75%",
-    label: "are clones",
-    detail: "Copy-paste with no provenance trail.",
+    stat: "Stars",
+    label: "lag as a signal",
+    detail: "Popularity is late. It doesn’t prove a skill fits your repo — or is safe to paste into an agent.",
   },
   {
-    stat: "0",
-    label: "shared quality score",
-    detail: "Usage and challenges don’t settle into signal.",
+    stat: "Yours",
+    label: "is what’s missing",
+    detail: "Personalised skills for your stack, with a path to show what they actually improved.",
   },
 ];
 
-/** Problem framing — numbers from product brief only. */
+/** Problem framing — supply distrust as context; personalised craft as desire. */
 export function ProblemStrip() {
   return (
     <div className="mx-auto max-w-5xl px-4">
@@ -27,8 +27,8 @@ export function ProblemStrip() {
           The problem
         </p>
         <p className="font-serif text-2xl sm:text-3xl text-ink leading-snug max-w-2xl">
-          Skills flood the ecosystem. Quality is unmeasured. You can&apos;t trace
-          where a skill&apos;s thinking came from.
+          Generic skills don’t fit your code. Stars don’t prove quality. You
+          need something forged for your repo — and a way to show it helped.
         </p>
       </div>
       <div className="grid gap-3 sm:grid-cols-3">
