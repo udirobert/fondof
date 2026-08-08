@@ -19,6 +19,8 @@ import { FondofWordmark } from "@/components/fondof-wordmark";
 import { LiveSignalLine } from "@/components/live-signal-line";
 import { SignalPoolStrip } from "@/components/signal-pool-strip";
 import { WorkStages } from "@/components/work-stages";
+import { SourceTextDrawer } from "@/components/source-text-drawer";
+import { Tip } from "@/components/tip";
 import { useAppStore } from "@/lib/store";
 import { fondofPhrase } from "@/lib/fondof-phrase";
 import {
@@ -73,6 +75,7 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
   const [fitFilterActive, setFitFilterActive] = useState(false);
   const [focusShardId, setFocusShardId] = useState<string | null>(null);
   const focusClearRef = useRef<number | null>(null);
+  const [textDrawerUrl, setTextDrawerUrl] = useState<string | null>(null);
 
   const {
     sources,
@@ -258,6 +261,13 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
               if (event.type === "meta") {
                 setLiveTitle(event.title);
                 updateSource(placeholderUrl, { title: event.title });
+              }
+              if (event.type === "sourceText") {
+                extractedChars = event.text.length;
+                updateSource(placeholderUrl, {
+                  bodyText: event.text,
+                  textLength: event.text.length,
+                });
               }
               if (event.type === "idea") {
                 const idea: IdeaFromAPI = {
@@ -684,6 +694,12 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
                         ideasCount={source.ideasCount}
                         textLength={source.textLength}
                         isProcessing={source.isProcessing}
+                        hasBodyText={!!source.bodyText}
+                        onViewText={
+                          source.isProcessing
+                            ? undefined
+                            : () => setTextDrawerUrl(source.url)
+                        }
                       />
                     </div>
                   ))}
@@ -740,7 +756,17 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
                 <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                   <div>
                     <p className="text-[11px] uppercase tracking-wider text-muted">
-                      Shards · select to forge
+                      <Tip tip="shard">
+                        <span className="cursor-help border-b border-dotted border-muted/50">
+                          Shards
+                        </span>
+                      </Tip>
+                      {" · select to "}
+                      <Tip tip="forge">
+                        <span className="cursor-help border-b border-dotted border-muted/50">
+                          forge
+                        </span>
+                      </Tip>
                       {fitFilterActive && activeRepoObj
                         ? ` · showing fits for ${activeRepoObj.name}`
                         : activeRepoObj
@@ -776,13 +802,15 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {activeFitCount > 0 && !fitFilterActive && (
-                      <button
-                        type="button"
-                        onClick={selectFitShards}
-                        className="inline-flex min-h-9 items-center justify-center rounded-full border border-ink/12 bg-mist px-3.5 text-[12px] font-medium text-ink hover:border-ember/35"
-                      >
-                        Select {activeFitCount} fits
-                      </button>
+                      <Tip tip="fit">
+                        <button
+                          type="button"
+                          onClick={selectFitShards}
+                          className="inline-flex min-h-9 items-center justify-center rounded-full border border-ink/12 bg-mist px-3.5 text-[12px] font-medium text-ink hover:border-ember/35"
+                        >
+                          Select {activeFitCount} fits
+                        </button>
+                      </Tip>
                     )}
                     {idleComposeHint && (
                       <button
@@ -927,6 +955,19 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
         ideas={selectedIdeas}
         repos={allRepos}
         onClose={() => setForgeOpen(false)}
+      />
+
+      <SourceTextDrawer
+        open={!!textDrawerUrl}
+        onClose={() => setTextDrawerUrl(null)}
+        title={
+          sources.find((s) => s.url === textDrawerUrl)?.title ?? "Source"
+        }
+        url={textDrawerUrl ?? ""}
+        text={sources.find((s) => s.url === textDrawerUrl)?.bodyText}
+        contentType={
+          sources.find((s) => s.url === textDrawerUrl)?.contentType
+        }
       />
     </div>
   );

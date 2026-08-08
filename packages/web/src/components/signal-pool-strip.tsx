@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Dices, Flame, Loader2, Swords, Zap } from "lucide-react";
+import { Tip } from "@/components/tip";
 import {
   acquireSkill,
   getTopSkills,
@@ -13,6 +14,7 @@ import { formatSignal } from "@/lib/idea-insights";
 import { identityLabel, resolveIdentities } from "@/lib/identity";
 import { shortAddress } from "@/lib/monad-chain";
 import { skillPublicPath } from "@/lib/skill-share";
+import { stashAcquireNote } from "@/lib/acquire-note";
 
 interface SignalPoolStripProps {
   /** Nested under WorkStages — drop outer chrome */
@@ -20,7 +22,7 @@ interface SignalPoolStripProps {
 }
 
 /**
- * Live SkillPool — acquire by signal, use / challenge loop.
+ * Live SkillPool — draw by proven quality, use / challenge loop.
  */
 export function SignalPoolStrip({ embedded = false }: SignalPoolStripProps) {
   const router = useRouter();
@@ -29,9 +31,7 @@ export function SignalPoolStrip({ embedded = false }: SignalPoolStripProps) {
   const [loading, setLoading] = useState(true);
   const [acquiring, setAcquiring] = useState(false);
   const [acquireNote, setAcquireNote] = useState<string | null>(null);
-  const shell = embedded
-    ? "mb-4 pb-3"
-    : "mb-5 border-b border-ink/8 pb-4";
+  const shell = embedded ? "mb-4 pb-3" : "mb-5 border-b border-ink/8 pb-4";
 
   useEffect(() => {
     let cancelled = false;
@@ -75,12 +75,13 @@ export function SignalPoolStrip({ embedded = false }: SignalPoolStripProps) {
         setAcquireNote(res.error || "Pool empty — forge first");
         return;
       }
-      setAcquireNote(
-        `Acquired by signal · ${formatSignal(res.skill?.signal)}`,
-      );
+      const sig = formatSignal(res.skill?.signal);
+      const note = `Drawn for your agent because this skill has high proven quality (signal ${sig}, weighted random — not search rank).`;
+      stashAcquireNote(note);
+      setAcquireNote(note);
       router.push(skillPublicPath(res.skillHash));
     } catch {
-      setAcquireNote("Acquire unavailable");
+      setAcquireNote("Draw unavailable right now");
     } finally {
       setAcquiring(false);
     }
@@ -90,9 +91,11 @@ export function SignalPoolStrip({ embedded = false }: SignalPoolStripProps) {
     return (
       <section className={shell} aria-label="SkillPool">
         <p className="font-mono text-[10px] uppercase tracking-wider text-muted">
-          SkillPool on Monad
+          SkillPool
         </p>
-        <p className="mt-1 text-[12px] text-muted">Reading live signal…</p>
+        <p className="mt-1 text-[12px] text-muted">
+          Checking which skills agents are proving…
+        </p>
       </section>
     );
   }
@@ -100,11 +103,23 @@ export function SignalPoolStrip({ embedded = false }: SignalPoolStripProps) {
   if (skills.length === 0) {
     return (
       <section className={shell} aria-label="SkillPool">
-        <p className="font-mono text-[10px] uppercase tracking-wider text-muted">
-          SkillPool on Monad
+        <p className="mb-1 font-mono text-[10px] uppercase tracking-wider text-muted">
+          <Tip tip="skillpool">
+            <span className="cursor-help border-b border-dotted border-muted/40">
+              SkillPool
+            </span>
+          </Tip>
         </p>
-        <p className="mt-1 text-sm text-ink">
-          No skills live yet — forge and publish to open the signal loop.
+        <p className="text-sm text-ink">The quality loop hasn’t started yet</p>
+        <ol className="mt-2 list-decimal space-y-1 pl-4 text-[12px] leading-snug text-foreground-secondary">
+          <li>Forge a skill from a source and publish it</li>
+          <li>Agents use it — each use grows the score</li>
+          <li>Challenges police quality; the best skills rise</li>
+          <li>Draw the next skill for your agent by proven score</li>
+        </ol>
+        <p className="mt-2 flex items-center gap-1 text-[10px] text-muted">
+          <Flame size={10} className="text-ember" />
+          Be the first forger
         </p>
       </section>
     );
@@ -113,25 +128,36 @@ export function SignalPoolStrip({ embedded = false }: SignalPoolStripProps) {
   return (
     <section className={shell} aria-label="SkillPool">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-        <p className="font-mono text-[10px] uppercase tracking-wider text-muted">
-          Live SkillPool
-        </p>
-        <button
-          type="button"
-          onClick={() => void onAcquire()}
-          disabled={acquiring}
-          className="inline-flex min-h-8 items-center gap-1.5 rounded-full border border-ember/30 bg-ember/5 px-2.5 text-[11px] text-ember hover:bg-ember/10 disabled:opacity-40"
-        >
-          {acquiring ? (
-            <Loader2 size={12} className="animate-spin" />
-          ) : (
-            <Dices size={12} />
-          )}
-          {acquiring ? "Acquiring…" : "Acquire for agent"}
-        </button>
+        <div>
+          <p className="font-mono text-[10px] uppercase tracking-wider text-muted">
+            <Tip tip="skillpool">
+              <span className="cursor-help border-b border-dotted border-muted/40">
+                Live SkillPool
+              </span>
+            </Tip>
+          </p>
+          <p className="mt-0.5 text-[11px] text-muted">
+            Skills agents are proving in the wild
+          </p>
+        </div>
+        <Tip tip="acquire">
+          <button
+            type="button"
+            onClick={() => void onAcquire()}
+            disabled={acquiring}
+            className="inline-flex min-h-8 items-center gap-1.5 rounded-full border border-ember/30 bg-ember/5 px-2.5 text-[11px] text-ember hover:bg-ember/10 disabled:opacity-40"
+          >
+            {acquiring ? (
+              <Loader2 size={12} className="animate-spin" />
+            ) : (
+              <Dices size={12} />
+            )}
+            {acquiring ? "Drawing…" : "Draw skill for my agent"}
+          </button>
+        </Tip>
       </div>
       {acquireNote && (
-        <p className="mb-2 text-[11px] text-muted">{acquireNote}</p>
+        <p className="mb-2 text-[11px] leading-snug text-ember">{acquireNote}</p>
       )}
       <ul className="space-y-2">
         {skills.map((s) => {
@@ -148,10 +174,19 @@ export function SignalPoolStrip({ embedded = false }: SignalPoolStripProps) {
                   href={path}
                   className="font-medium text-ink underline-offset-2 hover:text-ember hover:underline"
                 >
-                  sig {formatSignal(s.signal)}
+                  Proven score{" "}
+                  <Tip tip="signal">
+                    <span className="cursor-help border-b border-dotted border-ink/20">
+                      {formatSignal(s.signal)}
+                    </span>
+                  </Tip>
                 </Link>
-                <p className="truncate font-mono text-[10px] text-muted">
-                  {label} · {s.usageCount} uses · {s.challengeLosses} losses
+                <p className="truncate text-[11px] text-muted">
+                  {label} · {s.usageCount} agent use
+                  {s.usageCount === 1 ? "" : "s"}
+                  {s.challengeLosses > 0
+                    ? ` · ${s.challengeLosses} lost challenge${s.challengeLosses === 1 ? "" : "s"}`
+                    : ""}
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-1.5">
@@ -174,9 +209,8 @@ export function SignalPoolStrip({ embedded = false }: SignalPoolStripProps) {
           );
         })}
       </ul>
-      <p className="mt-2 flex items-center gap-1 text-[10px] text-muted">
-        <Flame size={10} className="text-ember" />
-        Weighted by on-chain signal
+      <p className="mt-2 text-[10px] text-muted">
+        Drawn by proven quality — not SEO ranking
       </p>
     </section>
   );

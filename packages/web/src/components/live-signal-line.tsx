@@ -8,7 +8,7 @@ import { identityLabel, resolveIdentities } from "@/lib/identity";
 import { shortAddress } from "@/lib/monad-chain";
 import { skillPublicPath } from "@/lib/skill-share";
 
-/** One-liner social proof — ENS names when available. */
+/** Ambient proof — agents are using skills right now. */
 export function LiveSignalLine({ className = "" }: { className?: string }) {
   const [skills, setSkills] = useState<SkillOnChainResponse[]>([]);
   const [names, setNames] = useState<Map<string, string>>(new Map());
@@ -40,8 +40,8 @@ export function LiveSignalLine({ className = "" }: { className?: string }) {
 
   return (
     <div className={`mx-auto max-w-md text-center ${className}`}>
-      <p className="font-mono text-[10px] leading-relaxed tracking-wide text-muted">
-        Live signal on Monad
+      <p className="text-[11px] leading-relaxed text-muted">
+        Agents are proving skills now
         {skills.map((s) => {
           const key = s.forger.toLowerCase();
           const label = names.get(key) || shortAddress(s.forger);
@@ -50,9 +50,9 @@ export function LiveSignalLine({ className = "" }: { className?: string }) {
               {" · "}
               <Link
                 href={skillPublicPath(s.skillHash)}
-                className="text-ink/70 underline-offset-2 hover:text-ember hover:underline"
+                className="text-ink/80 underline-offset-2 hover:text-ember hover:underline"
               >
-                {label} · {formatSignal(s.signal)}
+                {label} · score {formatSignal(s.signal)}
                 {s.usageCount > 0 ? ` · ${s.usageCount} uses` : ""}
               </Link>
             </span>
@@ -60,7 +60,7 @@ export function LiveSignalLine({ className = "" }: { className?: string }) {
         })}
       </p>
       <p className="mt-1 text-[10px] text-muted">
-        Use grows signal · challenges cut it · open a skill to join the loop
+        Use grows the score · challenges cut it · open a skill to join
       </p>
     </div>
   );

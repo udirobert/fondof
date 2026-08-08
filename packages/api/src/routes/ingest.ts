@@ -52,6 +52,11 @@ export type IngestStreamEvent =
   | { type: "phase"; phase: string; label: string }
   | { type: "meta"; title: string }
   | {
+      type: "sourceText";
+      text: string;
+      contentType: IngestContentType;
+    }
+  | {
       type: "idea";
       idea: IdeaOutput;
     }
@@ -93,6 +98,8 @@ type IngestResult = {
   title: string;
   ideas: IdeaOutput[];
   textLength: number;
+  /** Source body for verify / copy — may be absent on legacy cache entries */
+  text?: string;
   /** Kept empty on extract — compare is a separate Exa stage */
   existingSkills: Array<{ title: string; url: string; snippet: string }>;
   cacheHit?: boolean;
@@ -130,6 +137,14 @@ async function replayCachedIngest(cached: IngestResult, emit: Emit) {
   });
   await sleep(480);
   emit({ type: "meta", title: cached.title });
+
+  if (cached.text) {
+    emit({
+      type: "sourceText",
+      text: cached.text,
+      contentType: cached.contentType,
+    });
+  }
 
   const materialPhase =
     cached.contentType === "youtube"
@@ -194,7 +209,7 @@ async function runIngestPipeline(
   emit: Emit,
 ): Promise<IngestResult> {
   const canonical = normalizeSourceUrl(url);
-  const cacheKey = `ingest:v2:${await sha256Hex(canonical)}`;
+  const cacheKey = `ingest:v3:${await sha256Hex(canonical)}`;
   const cached = await cacheGetJson<IngestResult>(cacheKey);
   if (cached?.ideas?.length) {
     await replayCachedIngest(cached, emit);
@@ -340,6 +355,12 @@ async function runIngestPipeline(
     .join("");
 
   emit({
+    type: "sourceText",
+    text,
+    contentType,
+  });
+
+  emit({
     type: "phase",
     phase: "extract",
     label: "Pulling discrete ideas…",
@@ -401,6 +422,7 @@ async function runIngestPipeline(
     title,
     ideas,
     textLength: text.length,
+    text,
     existingSkills: [],
     cacheHit: false,
     providers,
@@ -425,7 +447,7 @@ ingestRoute.post("/ingest/stream", rateLimit("ingest"), async (c) => {
 
   const canonical = normalizeSourceUrl(url);
   const peek = await cacheGetJson<IngestResult>(
-    `ingest:v2:${await sha256Hex(canonical)}`,
+    `ingest:v3:${await sha256Hex(canonical)}`,
   );
   const cacheStatus = peek?.ideas?.length ? "HIT" : "MISS";
 
@@ -469,6 +491,7 @@ ingestRoute.post("/ingest", rateLimit("ingest"), async (c) => {
       title: result.title,
       ideas: result.ideas,
       textLength: result.textLength,
+      text: result.text,
       existingSkills: [],
       cached: !!result.cacheHit,
       providers: result.providers,

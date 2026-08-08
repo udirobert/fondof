@@ -726,6 +726,7 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
                               skillHash={skillHash}
                               count={12}
                               variant="panel"
+                              gated
                               onComplete={(r) => {
                                 if (r.signal) setLiveSignal(r.signal);
                                 if (typeof r.usageCount === "number") {

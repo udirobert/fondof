@@ -6,6 +6,7 @@ import { ExternalLink, Layers, Loader2, Search } from "lucide-react";
 import type { ExistingSkillHit, IdeaFromAPI } from "@/lib/api";
 import { searchExistingSkills } from "@/lib/api";
 import { bestOverlapSummary } from "@/lib/skill-overlap";
+import { Tip } from "@/components/tip";
 
 interface DiscoveryPanelProps {
   existingSkills: ExistingSkillHit[];
@@ -103,7 +104,11 @@ export function DiscoveryPanel({
     >
       <div className="mb-1.5 flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-muted">
         <Layers size={12} />
-        Compare
+        <Tip tip="compare">
+          <span className="cursor-help border-b border-dotted border-muted/50">
+            Compare
+          </span>
+        </Tip>
       </div>
 
       <p className="text-sm text-ink">

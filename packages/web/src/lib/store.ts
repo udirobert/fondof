@@ -16,6 +16,8 @@ export interface SourceEntry {
   isProcessing: boolean;
   /** Characters extracted (transcript / article body) */
   textLength?: number;
+  /** Full source body for view / copy / download (session) */
+  bodyText?: string;
   extractProvider?: string;
   cacheHit?: boolean;
 }

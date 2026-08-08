@@ -85,6 +85,7 @@ export interface SkillOnChainResponse {
   challengeLosses: number;
   createdAt: number;
   signal: string;
+  sourceHashes?: string[];
   error?: string;
 }
 
@@ -109,6 +110,11 @@ export type IngestStreamEvent =
     }
   | { type: "phase"; phase: string; label: string }
   | { type: "meta"; title: string }
+  | {
+      type: "sourceText";
+      text: string;
+      contentType: string;
+    }
   | { type: "idea"; idea: IdeaFromAPI }
   | { type: "value"; value: IngestValue }
   | {

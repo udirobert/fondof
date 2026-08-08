@@ -7,7 +7,6 @@ import {
   Check,
   Copy,
   Dices,
-  ExternalLink,
   Flame,
   Loader2,
   Swords,
@@ -25,15 +24,27 @@ import {
   type SkillOnChainResponse,
 } from "@/lib/api";
 import { formatSignal } from "@/lib/idea-insights";
-import { addressExplorer, shortAddress } from "@/lib/monad-chain";
+import {
+  addressExplorer,
+  CHALLENGE_STAKE,
+  SKILL_POOL_ADDRESS,
+  shortAddress,
+} from "@/lib/monad-chain";
 import { skillPublicPath, skillShareUrl, skillTweetIntent } from "@/lib/skill-share";
 import { FondofWordmark } from "@/components/fondof-wordmark";
 import { IdentityLabel } from "@/components/identity-label";
-import { SignalCountUp } from "@/components/experience/signal-count-up";
-import { SignalPulse } from "@/components/experience/signal-pulse";
 import { ReceiptStormButton } from "@/components/receipt-storm-button";
+import { SignalStory } from "@/components/signal-story";
+import { ProvenanceTree } from "@/components/provenance-tree";
+import { ChallengeQueue } from "@/components/challenge-queue";
+import { OnChainDetails } from "@/components/on-chain-details";
+import {
+  stashAcquireNote,
+  takeAcquireNote,
+} from "@/lib/acquire-note";
+import { Tip } from "@/components/tip";
 
-/** Public skill identity — share, use, challenge, resolve, acquire. */
+/** Public skill identity — quality story first, chain as detail. */
 export default function SkillPublicPage() {
   const params = useParams<{ hash: string }>();
   const router = useRouter();
@@ -82,6 +93,8 @@ export default function SkillPublicPage() {
 
   useEffect(() => {
     setShareUrl(skillShareUrl(hash));
+    const acquireStory = takeAcquireNote();
+    if (acquireStory) setNote(acquireStory);
     void refresh();
     void getTopSkills(4)
       .then((res) => {
@@ -112,7 +125,7 @@ export default function SkillPublicPage() {
       const res = await recordUsage(hash);
       if (res.error) setNote(res.error);
       else {
-        setNote("Usage recorded — signal ticks up.");
+        setNote("Recorded — an agent use just bumped this skill’s proven score.");
         setPulseBeat((b) => b + 1);
         setSignalPlayKey((k) => k + 1);
         void refresh();
@@ -135,9 +148,7 @@ export default function SkillPublicPage() {
           setLastChallengeId(res.challengeId);
         }
         setNote(
-          typeof res.challengeId === "number"
-            ? `Challenge #${res.challengeId} on Monad — resolve to settle signal.`
-            : "Challenge submitted on Monad — resolve to settle signal.",
+          `You staked ${CHALLENGE_STAKE} MON to dispute quality — resolve to settle the score.`,
         );
         void refresh();
       }
@@ -157,8 +168,8 @@ export default function SkillPublicPage() {
       else {
         setNote(
           challengerWon
-            ? `Resolved #${challengeId}: challenger won — signal cut.`
-            : `Resolved #${challengeId}: forger wins — stake adds to backing.`,
+            ? `Challenge #${challengeId} upheld — skill lost; score cut.`
+            : `Challenge #${challengeId} dismissed — skill stands; stake adds to backing.`,
         );
         setLastChallengeId(null);
         setPulseBeat((b) => b + 1);
@@ -181,9 +192,13 @@ export default function SkillPublicPage() {
         setNote(res.error || "Pool empty");
         return;
       }
+      const sig = formatSignal(res.skill?.signal);
+      stashAcquireNote(
+        `Drawn for your agent because this skill has high proven quality (signal ${sig}, weighted random — not search rank).`,
+      );
       router.push(skillPublicPath(res.skillHash));
     } catch {
-      setNote("Acquire unavailable");
+      setNote("Draw unavailable");
     } finally {
       setAcquiring(false);
     }
@@ -206,76 +221,87 @@ export default function SkillPublicPage() {
           ]
         : [];
 
+  const sourceHashes = skill?.sourceHashes ?? [];
+
   return (
     <div className="atmosphere relative min-h-[calc(100dvh-3.5rem)] pt-14">
       <div className="mx-auto flex w-full max-w-lg flex-col gap-8 px-4 py-10 pb-20">
         <div className="text-center">
           <FondofWordmark size="inline" />
-          <p className="mt-2 font-mono text-[10px] tracking-wide text-muted">
-            SkillPool · Monad · live{tick > 0 ? ` · refreshed` : ""}
+          <p className="mt-2 text-[11px] text-muted">
+            Live skill · agents prove what works
+            {tick > 0 ? " · updating" : ""}
           </p>
         </div>
 
-        <section className="relative text-center">
-          <SignalPulse beat={pulseBeat} />
-          <p className="text-[11px] uppercase tracking-wider text-muted">
-            Signal
-          </p>
-          <p className="mt-1 font-serif text-5xl text-ink">
-            {loading ? (
-              "…"
-            ) : (
-              <SignalCountUp
-                value={skill?.signal}
-                playKey={`${hash}-${signalPlayKey}`}
-              />
-            )}
-          </p>
-          <p className="mt-3 text-sm text-foreground-secondary">
-            {skill
-              ? "Backing + uses − challenge losses"
-              : loading
-                ? "Reading chain…"
-                : "Not on SkillPool yet — share the link, forge to mint."}
-          </p>
-          {skill && (
-            <dl className="mx-auto mt-4 grid max-w-xs grid-cols-3 gap-2 text-center font-mono text-[10px]">
-              <div className="rounded-lg border border-ink/8 bg-paper/60 px-2 py-2">
-                <dt className="text-muted">Backing</dt>
-                <dd className="mt-0.5 text-ink tabular-nums">
-                  {formatSignal(skill.backing)}
-                </dd>
-              </div>
-              <div className="rounded-lg border border-ink/8 bg-paper/60 px-2 py-2">
-                <dt className="text-muted">Uses</dt>
-                <dd className="mt-0.5 text-ink tabular-nums">
-                  {skill.usageCount}
-                </dd>
-              </div>
-              <div className="rounded-lg border border-ink/8 bg-paper/60 px-2 py-2">
-                <dt className="text-muted">Losses</dt>
-                <dd className="mt-0.5 text-ink tabular-nums">
-                  {skill.challengeLosses}
-                </dd>
-              </div>
-            </dl>
-          )}
-          {skill?.forger && (
-            <p className="mt-3 flex items-center justify-center gap-1.5 font-mono text-[11px] text-muted">
-              Forger <IdentityLabel address={skill.forger} avatar />
-            </p>
-          )}
-        </section>
+        <SignalStory
+          signal={skill?.signal}
+          backing={skill?.backing}
+          usageCount={skill?.usageCount}
+          challengeLosses={skill?.challengeLosses}
+          loading={loading}
+          playKey={`${hash}-${signalPlayKey}`}
+          pulseBeat={pulseBeat}
+        />
 
-        <code className="block break-all rounded-xl border border-ink/8 bg-paper/80 px-3 py-2.5 text-center font-mono text-[11px] text-ink">
-          {hash}
-        </code>
+        {skill?.forger && (
+          <p className="flex items-center justify-center gap-1.5 text-[12px] text-muted">
+            Forged by <IdentityLabel address={skill.forger} avatar />
+          </p>
+        )}
+
+        {!loading && !skill && (
+          <p className="text-center text-sm text-foreground-secondary">
+            Not on SkillPool yet — share the link, or forge and publish to mint.
+          </p>
+        )}
+
+        {(skill || sourceHashes.length > 0) && (
+          <ProvenanceTree
+            sourceHashes={sourceHashes}
+            verifiedHref={
+              skill
+                ? addressExplorer(SKILL_POOL_ADDRESS)
+                : undefined
+            }
+            verifiedLabel="Verified on Monad · SkillPool"
+          />
+        )}
+
+        <ChallengeQueue
+          challenges={openChallenges}
+          resolvingId={resolvingId}
+          onResolve={(id, won) => void onResolve(id, won)}
+          losses={skill?.challengeLosses}
+        />
 
         <div className="flex flex-col gap-2">
           <button
             type="button"
+            onClick={() => void onUse()}
+            disabled={using || !skill}
+            className="flex min-h-11 items-center justify-center gap-2 rounded-full bg-ember px-4 text-sm font-medium text-paper hover:bg-ember-hot disabled:opacity-40"
+          >
+            <Zap size={14} />
+            {using ? "Recording…" : "I used this — grow the score"}
+          </button>
+          <Tip tip="challenge" className="w-full">
+            <button
+              type="button"
+              onClick={() => void onChallenge()}
+              disabled={challenging || !skill}
+              className="flex min-h-11 w-full items-center justify-center gap-2 rounded-full border border-ink/12 bg-paper px-4 text-sm text-ink hover:border-ember/35 disabled:opacity-40"
+            >
+              <Swords size={14} />
+              {challenging
+                ? "Staking…"
+                : `Challenge quality · stake ${CHALLENGE_STAKE} MON`}
+            </button>
+          </Tip>
+          <button
+            type="button"
             onClick={() => void onCopy()}
-            className="flex min-h-11 items-center justify-center gap-2 rounded-full bg-ember px-4 text-sm font-medium text-paper hover:bg-ember-hot"
+            className="flex min-h-11 items-center justify-center gap-2 rounded-full border border-ink/12 bg-paper px-4 text-sm text-ink hover:border-ember/35"
           >
             {copied ? <Check size={14} /> : <Copy size={14} />}
             {copied ? "Link copied" : "Copy share link"}
@@ -288,115 +314,73 @@ export default function SkillPublicPage() {
           >
             Post to X
           </a>
-          <button
-            type="button"
-            onClick={() => void onUse()}
-            disabled={using || !skill}
-            className="flex min-h-11 items-center justify-center gap-2 rounded-full border border-ink/12 bg-paper px-4 text-sm text-ink hover:border-ember/35 disabled:opacity-40"
-          >
-            <Zap size={14} />
-            {using ? "Recording…" : "I used this — grow signal"}
-          </button>
-          {skill && (
-            <ReceiptStormButton
-              skillHash={hash}
-              count={12}
-              onComplete={() => {
-                setPulseBeat((b) => b + 1);
-                setSignalPlayKey((k) => k + 1);
-                void refresh();
-              }}
-            />
-          )}
-          <button
-            type="button"
-            onClick={() => void onChallenge()}
-            disabled={challenging || !skill}
-            className="flex min-h-11 items-center justify-center gap-2 rounded-full border border-ink/12 bg-paper px-4 text-sm text-ink hover:border-ember/35 disabled:opacity-40"
-          >
-            <Swords size={14} />
-            {challenging ? "Challenging…" : "Challenge quality"}
-          </button>
-          <button
-            type="button"
-            onClick={() => void onAcquire()}
-            disabled={acquiring}
-            className="flex min-h-11 items-center justify-center gap-2 rounded-full border border-ember/25 bg-ember/5 px-4 text-sm text-ember hover:bg-ember/10 disabled:opacity-40"
-          >
-            {acquiring ? (
-              <Loader2 size={14} className="animate-spin" />
-            ) : (
-              <Dices size={14} />
-            )}
-            {acquiring ? "Acquiring…" : "Acquire another by signal"}
-          </button>
-          {skill?.forger && (
-            <a
-              href={addressExplorer(skill.forger)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex min-h-10 items-center justify-center gap-2 text-xs text-muted hover:text-ink"
+          <Tip tip="acquire" className="w-full">
+            <button
+              type="button"
+              onClick={() => void onAcquire()}
+              disabled={acquiring}
+              className="flex min-h-11 w-full items-center justify-center gap-2 rounded-full border border-ember/25 bg-ember/5 px-4 text-sm text-ember hover:bg-ember/10 disabled:opacity-40"
             >
-              <ExternalLink size={12} />
-              Forger on Monad
-            </a>
-          )}
+              {acquiring ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <Dices size={14} />
+              )}
+              {acquiring ? "Drawing…" : "Draw next skill for my agent"}
+            </button>
+          </Tip>
         </div>
 
-        {openChallenges.length > 0 && (
-          <section className="rounded-xl border border-ink/10 bg-paper/70 p-4">
-            <p className="text-[11px] uppercase tracking-wider text-muted">
-              Open challenges · resolve to settle
-            </p>
-            <ul className="mt-3 space-y-3">
-              {openChallenges.map((ch) => (
-                <li key={ch.challengeId} className="space-y-2">
-                  <p className="font-mono text-[11px] text-ink">
-                    #{ch.challengeId}
-                    {ch.challenger
-                      ? ` · ${shortAddress(ch.challenger)}`
-                      : ""}
-                    {ch.stake
-                      ? ` · stake ${formatSignal(ch.stake)}`
-                      : ""}
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      disabled={resolvingId === ch.challengeId}
-                      onClick={() => void onResolve(ch.challengeId, true)}
-                      className="inline-flex min-h-9 flex-1 items-center justify-center gap-1 rounded-full border border-ink/12 px-3 text-[11px] text-ink hover:border-ember/35 disabled:opacity-40"
-                    >
-                      {resolvingId === ch.challengeId ? (
-                        <Loader2 size={12} className="animate-spin" />
-                      ) : null}
-                      Challenger wins
-                    </button>
-                    <button
-                      type="button"
-                      disabled={resolvingId === ch.challengeId}
-                      onClick={() => void onResolve(ch.challengeId, false)}
-                      className="inline-flex min-h-9 flex-1 items-center justify-center gap-1 rounded-full border border-ink/12 px-3 text-[11px] text-ink hover:border-ember/35 disabled:opacity-40"
-                    >
-                      Forger wins
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-            <p className="mt-2 text-[10px] text-muted">
-              Demo resolve via relayer (contract resolver). Challenger win →
-              losses++ and signal drops.
-            </p>
-          </section>
+        {skill && (
+          <ReceiptStormButton
+            skillHash={hash}
+            count={12}
+            gated
+            onComplete={() => {
+              setNote(
+                "Burst of agent uses landed — watch the proven score climb.",
+              );
+              setPulseBeat((b) => b + 1);
+              setSignalPlayKey((k) => k + 1);
+              void refresh();
+            }}
+          />
         )}
 
-        {note && <p className="text-center text-[11px] text-muted">{note}</p>}
+        <OnChainDetails
+          skillHash={hash}
+          forger={skill?.forger}
+          sourceHashes={sourceHashes}
+          createdAt={skill?.createdAt}
+          explorerLinks={[
+            {
+              label: "SkillPool contract",
+              href: addressExplorer(SKILL_POOL_ADDRESS),
+            },
+            ...(skill?.forger
+              ? [
+                  {
+                    label: `Forger ${shortAddress(skill.forger)}`,
+                    href: addressExplorer(skill.forger),
+                  },
+                ]
+              : []),
+          ]}
+        />
+
+        {note && (
+          <p
+            className="rounded-lg bg-mist/60 px-3 py-2 text-center text-[12px] leading-snug text-ink"
+            role="status"
+          >
+            {note}
+          </p>
+        )}
 
         {peers.length > 0 && (
           <section className="border-t border-ink/8 pt-6">
             <p className="text-center text-[11px] uppercase tracking-wider text-muted">
-              Also live on SkillPool
+              Also proven on SkillPool
             </p>
             <ul className="mt-3 space-y-2">
               {peers.map((p) => (
@@ -406,10 +390,13 @@ export default function SkillPublicPage() {
                     className="flex items-center justify-between gap-2 rounded-lg border border-ink/8 bg-paper/60 px-3 py-2 text-sm hover:border-ember/30"
                   >
                     <span className="font-medium text-ink">
-                      sig {formatSignal(p.signal)}
+                      Score {formatSignal(p.signal)}
                     </span>
-                    <span className="font-mono text-[10px] text-muted">
-                      {p.usageCount} uses · challenge
+                    <span className="text-[11px] text-muted">
+                      {p.usageCount} uses
+                      {p.challengeLosses > 0
+                        ? ` · ${p.challengeLosses} losses`
+                        : ""}
                     </span>
                   </Link>
                 </li>
@@ -424,7 +411,7 @@ export default function SkillPublicPage() {
             className="inline-flex items-center gap-2 text-sm text-ember hover:text-ember-hot"
           >
             <Flame size={14} />
-            Forge your own · extract → compare → attest
+            Forge your own · extract → select → publish
           </Link>
           <p className="text-center text-[10px] text-muted">
             Viral ingest:{" "}

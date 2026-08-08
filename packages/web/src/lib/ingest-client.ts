@@ -120,6 +120,11 @@ export async function resolveIngestStream(
       id: `${idea.id}-${Date.now()}-${i}`,
     }));
     onEvent?.({ type: "meta", title: value.slice(0, 64) || "Stated need" });
+    onEvent?.({
+      type: "sourceText",
+      text: value,
+      contentType: "text",
+    });
     for (const idea of ideas) {
       onEvent?.({
         type: "idea",

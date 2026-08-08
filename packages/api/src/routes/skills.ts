@@ -46,7 +46,7 @@ skillsRoute.post("/skills/acquire", rateLimit("acquire"), async (c) => {
 // Get skill data + signal from chain (short edge cache — protects RPC)
 skillsRoute.get("/skills/:hash", async (c) => {
   const hash = c.req.param("hash");
-  const cacheKey = `skill:v1:${hash.toLowerCase()}`;
+  const cacheKey = `skill:v2:${hash.toLowerCase()}`;
 
   const hit = await cacheGetJson<Record<string, unknown>>(cacheKey);
   if (hit) {
@@ -129,7 +129,7 @@ skillsRoute.post("/skills/:hash/use", rateLimit("use"), async (c) => {
     try {
       await caches.default.delete(
         new Request(
-          `https://fondof-cache.internal/skill:v1:${hash.toLowerCase()}`,
+          `https://fondof-cache.internal/skill:v2:${hash.toLowerCase()}`,
         ),
       );
     } catch {
@@ -174,7 +174,7 @@ skillsRoute.post("/skills/:hash/storm", rateLimit("storm"), async (c) => {
     try {
       await caches.default.delete(
         new Request(
-          `https://fondof-cache.internal/skill:v1:${hash.toLowerCase()}`,
+          `https://fondof-cache.internal/skill:v2:${hash.toLowerCase()}`,
         ),
       );
     } catch {

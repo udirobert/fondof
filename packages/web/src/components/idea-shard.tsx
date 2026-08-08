@@ -7,6 +7,7 @@ import { useAppStore } from "@/lib/store";
 import type { Worthiness } from "@/lib/idea-insights";
 import { buildApplyPack } from "@/lib/apply-pack";
 import type { ConnectedRepo } from "@/lib/github-repo";
+import { Tip } from "@/components/tip";
 
 interface IdeaShardProps {
   id: string;
@@ -215,29 +216,32 @@ export function IdeaShard({
         <div className="relative min-w-0 flex-1 py-1 pr-2">
           <div className="mb-1 flex flex-wrap items-center gap-1.5">
             {worthiness && (
-              <span
-                className={`idea-shard__worth idea-shard__worth--${worthiness}`}
-              >
-                {WORTH_LABEL[worthiness]}
-                {expanded && typeof worthinessConfidence === "number" && (
-                  <span className="ml-1 opacity-70">
-                    {Math.round(worthinessConfidence * 100)}%
-                  </span>
-                )}
-              </span>
+              <Tip tip={worthiness}>
+                <span
+                  className={`idea-shard__worth idea-shard__worth--${worthiness}`}
+                >
+                  {WORTH_LABEL[worthiness]}
+                  {expanded && typeof worthinessConfidence === "number" && (
+                    <span className="ml-1 opacity-70">
+                      {Math.round(worthinessConfidence * 100)}%
+                    </span>
+                  )}
+                </span>
+              </Tip>
             )}
             {similarSkill && (
-              <span
-                className={`idea-shard__overlap idea-shard__overlap--${similarSkill.label}`}
-                title={similarSkill.why}
-              >
-                {similarSkill.label === "covers" ? "Exists" : "Partial"}
-              </span>
+              <Tip tip={similarSkill.label === "covers" ? "exists" : "partial"}>
+                <span
+                  className={`idea-shard__overlap idea-shard__overlap--${similarSkill.label}`}
+                >
+                  {similarSkill.label === "covers" ? "Exists" : "Partial"}
+                </span>
+              </Tip>
             )}
             {!expanded && activeChip && (
-              <span className="idea-shard__repo" title={activeChip.why}>
-                {activeChip.name}
-              </span>
+              <Tip tip={activeChip.why}>
+                <span className="idea-shard__repo">{activeChip.name}</span>
+              </Tip>
             )}
           </div>
           <h3 className="font-serif text-[1.05rem] leading-snug tracking-tight text-ink sm:text-[1.12rem]">

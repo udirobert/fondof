@@ -2,6 +2,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { Flame, X } from "lucide-react";
+import { Tip } from "@/components/tip";
 
 interface SelectionBarProps {
   count: number;
@@ -79,14 +80,16 @@ export function SelectionBar({
               >
                 <X size={16} />
               </button>
-              <button
-                type="button"
-                onClick={onForge}
-                className="flex min-h-10 flex-1 items-center justify-center gap-2 rounded-full bg-ember px-4 py-2 text-sm font-medium text-paper transition-colors hover:bg-ember-hot sm:flex-none"
-              >
-                <Flame size={14} />
-                Forge
-              </button>
+              <Tip tip="forge" className="min-w-0 flex-1 sm:flex-none">
+                <button
+                  type="button"
+                  onClick={onForge}
+                  className="flex min-h-10 w-full items-center justify-center gap-2 rounded-full bg-ember px-4 py-2 text-sm font-medium text-paper transition-colors hover:bg-ember-hot"
+                >
+                  <Flame size={14} />
+                  Forge
+                </button>
+              </Tip>
             </div>
           </div>
         </motion.div>

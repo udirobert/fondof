@@ -18,6 +18,7 @@ import {
   setGitHubToken,
 } from "@/lib/github-repo";
 import { useAppStore } from "@/lib/store";
+import { Tip } from "@/components/tip";
 
 export interface FitPreview {
   id: string;
@@ -115,31 +116,35 @@ export function FitTarget({
         <span className="font-medium">{active?.name}</span>
       </p>
       <div className="mt-2 flex flex-wrap gap-1.5">
-        <button
-          type="button"
-          onClick={() => (fitFilterActive ? onClearFit?.() : onShowFit?.())}
-          className="inline-flex min-h-8 items-center gap-1 rounded-full border border-ember/35 bg-ember/8 px-2.5 text-[11px] font-medium text-ember hover:bg-ember/14"
-        >
-          {fitFilterActive ? (
-            <>
-              <EyeOff size={11} />
-              Show all
-            </>
-          ) : (
-            <>
-              <Eye size={11} />
-              Show fits
-            </>
-          )}
-        </button>
-        <button
-          type="button"
-          onClick={() => onSelectFit?.()}
-          className="inline-flex min-h-8 items-center gap-1 rounded-full border border-ink/10 bg-mist px-2.5 text-[11px] text-ink hover:border-ember/30"
-        >
-          <Flame size={11} className="text-ember" />
-          Select fits
-        </button>
+        <Tip tip="fit">
+          <button
+            type="button"
+            onClick={() => (fitFilterActive ? onClearFit?.() : onShowFit?.())}
+            className="inline-flex min-h-8 items-center gap-1 rounded-full border border-ember/35 bg-ember/8 px-2.5 text-[11px] font-medium text-ember hover:bg-ember/14"
+          >
+            {fitFilterActive ? (
+              <>
+                <EyeOff size={11} />
+                Show all
+              </>
+            ) : (
+              <>
+                <Eye size={11} />
+                Show fits
+              </>
+            )}
+          </button>
+        </Tip>
+        <Tip tip="forge">
+          <button
+            type="button"
+            onClick={() => onSelectFit?.()}
+            className="inline-flex min-h-8 items-center gap-1 rounded-full border border-ink/10 bg-mist px-2.5 text-[11px] text-ink hover:border-ember/30"
+          >
+            <Flame size={11} className="text-ember" />
+            Select fits
+          </button>
+        </Tip>
       </div>
       {fitPreviews.length > 0 && (
         <ul className="mt-2.5 space-y-2 border-t border-ink/6 pt-2">
