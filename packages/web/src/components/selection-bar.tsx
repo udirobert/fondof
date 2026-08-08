@@ -1,45 +1,92 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { Flame, X } from "lucide-react";
 
 interface SelectionBarProps {
   count: number;
   onForge: () => void;
   onClear: () => void;
+  /** e.g. "the pod" — brand object from sources */
+  fondObject?: string;
+  /** Titles of selected shards for the tray */
+  selectedTitles?: string[];
+  /** Why combining these shards is useful */
+  composeHint?: string;
 }
 
-export function SelectionBar({ count, onForge, onClear }: SelectionBarProps) {
+/** Forge tray — selected shards gather here before composition. */
+export function SelectionBar({
+  count,
+  onForge,
+  onClear,
+  fondObject,
+  selectedTitles = [],
+  composeHint,
+}: SelectionBarProps) {
   return (
     <AnimatePresence>
       {count > 0 && (
         <motion.div
-          initial={{ y: 24, opacity: 0 }}
+          initial={{ y: 28, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          exit={{ y: 24, opacity: 0 }}
+          exit={{ y: 28, opacity: 0 }}
           transition={{ type: "spring", stiffness: 320, damping: 28 }}
-          className="fixed bottom-6 left-1/2 z-40 -translate-x-1/2"
+          className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
         >
-          <div className="panel-float flex items-center gap-3 border border-ink/8 px-3 py-2.5 pl-4">
-            <p className="text-sm text-ink">
-              <span className="font-medium text-ember">{count}</span> selected
-            </p>
-            <button
-              type="button"
-              onClick={onClear}
-              className="rounded-full p-1.5 text-muted hover:text-ink hover:bg-mist transition-colors"
-              aria-label="Clear selection"
-            >
-              <X size={14} />
-            </button>
-            <button
-              type="button"
-              onClick={onForge}
-              className="flex items-center gap-2 rounded-full bg-ember px-4 py-2 text-sm font-medium text-paper hover:bg-ember-hot transition-colors"
-            >
-              <Flame size={14} />
-              Forge skill
-            </button>
+          <div className="pointer-events-auto forge-tray flex w-full max-w-lg flex-col gap-2.5 px-3.5 py-3 sm:max-w-xl">
+            <div className="flex items-center gap-2 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {selectedTitles.slice(0, 4).map((title, i) => (
+                <motion.span
+                  key={`${title}-${i}`}
+                  initial={{ opacity: 0, y: 6, rotate: i % 2 === 0 ? -2 : 2 }}
+                  animate={{ opacity: 1, y: 0, rotate: i % 2 === 0 ? -1 : 1 }}
+                  className="forge-tray__chip shrink-0"
+                >
+                  {title}
+                </motion.span>
+              ))}
+              {count > 4 && (
+                <span className="shrink-0 text-[11px] text-muted">
+                  +{count - 4}
+                </span>
+              )}
+            </div>
+
+            {composeHint && (
+              <p className="text-[11px] leading-snug text-muted">{composeHint}</p>
+            )}
+
+            <div className="flex items-center gap-2">
+              <p className="min-w-0 flex-1 text-sm text-ink">
+                <span className="font-medium text-ember">{count}</span>
+                {fondObject ? (
+                  <>
+                    {" "}
+                    from{" "}
+                    <span className="font-serif text-ember/90">{fondObject}</span>
+                  </>
+                ) : (
+                  " selected"
+                )}
+              </p>
+              <button
+                type="button"
+                onClick={onClear}
+                className="rounded-full p-2 text-muted transition-colors hover:bg-mist hover:text-ink"
+                aria-label="Clear selection"
+              >
+                <X size={16} />
+              </button>
+              <button
+                type="button"
+                onClick={onForge}
+                className="flex min-h-10 flex-1 items-center justify-center gap-2 rounded-full bg-ember px-4 py-2 text-sm font-medium text-paper transition-colors hover:bg-ember-hot sm:flex-none"
+              >
+                <Flame size={14} />
+                Forge
+              </button>
+            </div>
           </div>
         </motion.div>
       )}

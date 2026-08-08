@@ -22,19 +22,19 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://fondof.netlify.app"),
   title: "fondof — Skill quality discovery on Monad",
   description:
-    "Paste a podcast or blog → extract ideas → forge a skill fitted to your codebase → publish to the SkillPool where quality is measured on-chain.",
+    "fondof the pod. fond of the blog. Paste what you learn, forge a skill for your repo, publish quality on Monad.",
   openGraph: {
     type: "website",
     siteName: "fondof",
     title: "fondof — Skill quality discovery on Monad",
     description:
-      "Ingest, discover, forge, and attest agent skills with verifiable provenance on Monad.",
+      "fondof the pod. fond of the blog. Forge agent skills with verifiable provenance on Monad.",
   },
   twitter: {
     card: "summary_large_image",
     title: "fondof — Skill quality discovery on Monad",
     description:
-      "Ingest, discover, forge, and attest agent skills with verifiable provenance on Monad.",
+      "fondof the pod. fond of the blog. Forge agent skills with verifiable provenance on Monad.",
   },
 };
 

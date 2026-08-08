@@ -188,6 +188,48 @@ export function hostnameTitle(url: string): string {
   }
 }
 
+/** Verified live examples for the Fond Floor (one-click ingest). */
+export interface LiveExample {
+  id: string;
+  label: string;
+  /** fondof object noun */
+  fondObject: string;
+  url: string;
+  kind: "youtube" | "blog" | "podcast";
+}
+
+export const liveExamples: LiveExample[] = [
+  {
+    id: "ai-company-economics",
+    label: "AI company economics",
+    fondObject: "the talk",
+    url: "https://www.youtube.com/watch?v=mtFvUGTCDBE&t=3s",
+    kind: "youtube",
+  },
+  {
+    id: "viem-docs",
+    label: "viem docs",
+    fondObject: "the piece",
+    url: "https://viem.sh/docs/introduction",
+    kind: "blog",
+  },
+  {
+    id: "next-blog",
+    label: "Next.js blog",
+    fondObject: "the blog",
+    // Short titles map to fondof · the blog / piece via content type
+    url: "https://nextjs.org/blog/next-16-3",
+    kind: "blog",
+  },
+  {
+    id: "fireship-talk",
+    label: "Fireship talk",
+    fondObject: "the talk",
+    url: "https://www.youtube.com/watch?v=rZ41y93P2Qo",
+    kind: "youtube",
+  },
+];
+
 export const skillDraftTemplate = (ideas: DemoIdea[], repo: string) => {
   const primary = ideas[0]?.title ?? "Composed Skill";
   return `# ${primary}

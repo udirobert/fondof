@@ -20,7 +20,7 @@ const chapters = [
     anchor: "gl-enter",
     eyebrow: "Skill quality discovery on Monad",
     title: "fondof",
-    body: "Paste a source. Extract ideas. Forge a skill for your repo. Publish when you want quality on-chain — not before.",
+    body: "fondof the pod. fond of the blog. Paste what you learn — the name wears it — then forge a skill for your repo.",
   },
   {
     id: "arrival",

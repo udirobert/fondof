@@ -14,12 +14,20 @@ export interface IdeaFromAPI {
   embedding: number[];
 }
 
+export interface ExistingSkillHit {
+  title: string;
+  url: string;
+  snippet: string;
+  score?: number;
+}
+
 export interface IngestResponse {
   contentType: string;
   sourceHash: string;
   title: string;
   ideas: IdeaFromAPI[];
   textLength: number;
+  existingSkills?: ExistingSkillHit[];
   error?: string;
 }
 
@@ -53,13 +61,92 @@ export interface SkillOnChainResponse {
   error?: string;
 }
 
-export async function ingestURL(url: string): Promise<IngestResponse> {
+export async function ingestURL(
+  url: string,
+  signal?: AbortSignal,
+): Promise<IngestResponse> {
   const res = await fetch(`${API_URL}/api/ingest`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ url }),
+    signal,
   });
   return res.json();
+}
+
+export type IngestStreamEvent =
+  | {
+      type: "kind";
+      contentType: string;
+      fondObject: string;
+    }
+  | { type: "phase"; phase: string; label: string }
+  | { type: "meta"; title: string }
+  | { type: "idea"; idea: IdeaFromAPI }
+  | {
+      type: "discovery";
+      existingSkills: ExistingSkillHit[];
+    }
+  | {
+      type: "done";
+      sourceHash: string;
+      contentType: string;
+      title: string;
+      textLength: number;
+      ideaCount: number;
+    }
+  | { type: "error"; error: string };
+
+/** NDJSON ingest progress stream. */
+export async function ingestURLStream(
+  url: string,
+  onEvent: (event: IngestStreamEvent) => void,
+  signal?: AbortSignal,
+): Promise<void> {
+  const res = await fetch(`${API_URL}/api/ingest/stream`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ url }),
+    signal,
+  });
+
+  if (!res.ok || !res.body) {
+    const err = await res.json().catch(() => ({ error: "Stream failed" }));
+    onEvent({
+      type: "error",
+      error: (err as { error?: string }).error || `HTTP ${res.status}`,
+    });
+    return;
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() ?? "";
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      try {
+        onEvent(JSON.parse(trimmed) as IngestStreamEvent);
+      } catch {
+        // skip malformed line
+      }
+    }
+  }
+
+  if (buffer.trim()) {
+    try {
+      onEvent(JSON.parse(buffer.trim()) as IngestStreamEvent);
+    } catch {
+      // ignore
+    }
+  }
 }
 
 export async function forgeSkill(
@@ -100,11 +187,28 @@ export async function recordUsage(hash: string): Promise<{ txHash: string }> {
 
 export async function challengeSkill(
   skillHash: string
-): Promise<{ txHash: string; explorer: string }> {
+): Promise<{
+  success?: boolean;
+  txHash?: string;
+  explorer?: string;
+  error?: string;
+}> {
   const res = await fetch(`${API_URL}/api/challenge`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ skillHash }),
+  });
+  return res.json();
+}
+
+/** Search SkillPool-adjacent catalogs for skills that already cover a topic. */
+export async function searchExistingSkills(
+  query: string
+): Promise<{ results: ExistingSkillHit[]; error?: string }> {
+  const res = await fetch(`${API_URL}/api/search/skills`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ query }),
   });
   return res.json();
 }

@@ -13,6 +13,8 @@ export interface Env {
   FONDOF_CONTRACT_ADDRESS: string;
   FONDOF_RELAYER_KEY: string;
   CF_API_TOKEN?: string;
+  /** Alias some envs use instead of CF_API_TOKEN */
+  CLOUDFLARE_API_TOKEN?: string;
   VENICE_API_KEY?: string;
   NVIDIA_API_KEY?: string;
   ANTHROPIC_API_KEY?: string;

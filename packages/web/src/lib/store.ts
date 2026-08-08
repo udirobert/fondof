@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { IdeaFromAPI, ForgeResponse } from "./api";
+import type { IdeaFromAPI, ForgeResponse, ExistingSkillHit } from "./api";
 
 export interface SourceEntry {
   url: string;
@@ -15,6 +15,11 @@ export interface AppState {
   sources: SourceEntry[];
   addSource: (source: SourceEntry) => void;
   updateSource: (url: string, update: Partial<SourceEntry>) => void;
+  removeSource: (url: string) => void;
+
+  // Fit target (repo the skill is composed for)
+  activeRepo: string;
+  setActiveRepo: (fullName: string) => void;
 
   // Ideas
   ideas: IdeaFromAPI[];
@@ -24,6 +29,9 @@ export interface AppState {
   toggleIdeaSelection: (id: string) => void;
   selectIdeas: (ids: string[]) => void;
   clearSelection: () => void;
+  /** Existing skills that overlap the latest ingest (Exa / SkillPool search) */
+  discoverySkills: ExistingSkillHit[];
+  setDiscoverySkills: (skills: ExistingSkillHit[]) => void;
   /** Instant path: seed sources + ideas + optional preselection */
   loadSample: (
     sources: SourceEntry[],
@@ -61,6 +69,11 @@ export const useAppStore = create<AppState>((set) => ({
         src.url === url ? { ...src, ...update } : src,
       ),
     })),
+  removeSource: (url) =>
+    set((s) => ({ sources: s.sources.filter((src) => src.url !== url) })),
+
+  activeRepo: "udirobert/fondof",
+  setActiveRepo: (fullName) => set({ activeRepo: fullName }),
 
   // Ideas
   ideas: [],
@@ -76,11 +89,27 @@ export const useAppStore = create<AppState>((set) => ({
     }),
   selectIdeas: (ids) => set({ selectedIdeaIds: new Set(ids) }),
   clearSelection: () => set({ selectedIdeaIds: new Set() }),
+  discoverySkills: [],
+  setDiscoverySkills: (skills) => set({ discoverySkills: skills }),
   loadSample: (sources, ideas, selectIds = []) =>
     set({
       sources,
       ideas,
       selectedIdeaIds: new Set(selectIds),
+      discoverySkills: [
+        {
+          title: "agent-skills/reliability-patterns",
+          url: "https://github.com/agentskills/reliability-patterns",
+          snippet:
+            "Circuit breakers, retry budgets, and timeout composition for agent tooling.",
+        },
+        {
+          title: "skills.sh/compose-from-sources",
+          url: "https://skills.sh/compose-from-sources",
+          snippet:
+            "Combine overlapping techniques into one fitted skill markdown.",
+        },
+      ],
       forgedSkill: null,
       publishedTxHash: null,
       publishedSignal: null,
