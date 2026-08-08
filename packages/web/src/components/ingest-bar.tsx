@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Link2, Loader2 } from "lucide-react";
 
 export function IngestBar() {
   const [url, setUrl] = useState("");
@@ -12,23 +14,35 @@ export function IngestBar() {
 
     setIsLoading(true);
     // TODO: Call ingest API
-    setTimeout(() => setIsLoading(false), 2000);
+    setTimeout(() => {
+      setIsLoading(false);
+      setUrl("");
+    }, 2000);
   };
 
   return (
-    <form onSubmit={handleSubmit} className="relative">
-      <input
-        type="url"
-        value={url}
-        onChange={(e) => setUrl(e.target.value)}
-        placeholder="Paste podcast or blog URL..."
-        className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted focus:outline-none focus:border-accent/50 transition-colors"
-      />
-      {isLoading && (
-        <div className="absolute right-3 top-1/2 -translate-y-1/2">
-          <div className="h-3 w-3 rounded-full border-2 border-accent border-t-transparent animate-spin" />
-        </div>
-      )}
+    <form onSubmit={handleSubmit} className="relative mb-2">
+      <div className="paper-sm px-3 py-2.5 flex items-center gap-2">
+        <Link2 size={14} className="text-muted flex-shrink-0" />
+        <input
+          type="url"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          placeholder="Paste a podcast or blog URL..."
+          className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted/60 focus:outline-none"
+        />
+        <AnimatePresence>
+          {isLoading && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+            >
+              <Loader2 size={14} className="text-accent animate-spin" />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </form>
   );
 }

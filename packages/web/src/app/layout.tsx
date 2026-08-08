@@ -1,10 +1,16 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter, Instrument_Serif, Geist_Mono } from "next/font/google";
 import { Nav } from "@/components/nav";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const inter = Inter({
+  variable: "--font-inter",
+  subsets: ["latin"],
+});
+
+const instrumentSerif = Instrument_Serif({
+  variable: "--font-instrument-serif",
+  weight: "400",
   subsets: ["latin"],
 });
 
@@ -25,12 +31,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-background text-foreground`}
+        className={`${inter.variable} ${instrumentSerif.variable} ${geistMono.variable} antialiased grain`}
       >
         <Nav />
-        <main className="pt-16">{children}</main>
+        <main className="pt-14">{children}</main>
       </body>
     </html>
   );

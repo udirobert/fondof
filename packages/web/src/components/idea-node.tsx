@@ -1,5 +1,8 @@
 "use client";
 
+import { motion } from "framer-motion";
+import { Zap, Brain, AlertTriangle, Building2 } from "lucide-react";
+
 interface IdeaNodeProps {
   title: string;
   description: string;
@@ -7,7 +10,21 @@ interface IdeaNodeProps {
   domains: string[];
   worthiness: "forge-skill" | "apply-directly" | "skip";
   worthinessScore: number;
+  index?: number;
 }
+
+const typeConfig = {
+  technique: { icon: Zap, label: "Technique" },
+  "mental-model": { icon: Brain, label: "Mental model" },
+  "anti-pattern": { icon: AlertTriangle, label: "Anti-pattern" },
+  architecture: { icon: Building2, label: "Architecture" },
+};
+
+const worthinessConfig = {
+  "forge-skill": { color: "text-forge", bg: "bg-forge/8", label: "Forge" },
+  "apply-directly": { color: "text-apply", bg: "bg-apply/8", label: "Apply" },
+  skip: { color: "text-skip", bg: "bg-skip/8", label: "Skip" },
+};
 
 export function IdeaNode({
   title,
@@ -16,79 +33,72 @@ export function IdeaNode({
   domains,
   worthiness,
   worthinessScore,
+  index = 0,
 }: IdeaNodeProps) {
-  const glowClass =
-    worthiness === "forge-skill"
-      ? "glow-high"
-      : worthiness === "apply-directly"
-        ? "glow-medium"
-        : "glow-low";
-
-  const badgeColor =
-    worthiness === "forge-skill"
-      ? "bg-success/20 text-success border-success/30"
-      : worthiness === "apply-directly"
-        ? "bg-warning/20 text-warning border-warning/30"
-        : "bg-muted/20 text-muted border-muted/30";
-
-  const badgeLabel =
-    worthiness === "forge-skill"
-      ? "FORGE"
-      : worthiness === "apply-directly"
-        ? "APPLY"
-        : "SKIP";
-
-  const typeIcon =
-    patternType === "technique"
-      ? "⚡"
-      : patternType === "mental-model"
-        ? "🧠"
-        : patternType === "anti-pattern"
-          ? "⚠️"
-          : "🏗️";
+  const { icon: TypeIcon, label: typeLabel } = typeConfig[patternType];
+  const { color, bg, label: worthLabel } = worthinessConfig[worthiness];
 
   return (
-    <div
-      className={`w-56 rounded-xl border border-border bg-surface-raised p-4 ${glowClass} transition-all hover:scale-105 cursor-pointer`}
+    <motion.div
+      initial={{ opacity: 0, scale: 0.92, y: 12 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      transition={{
+        type: "spring",
+        stiffness: 260,
+        damping: 24,
+        delay: index * 0.08,
+      }}
+      whileHover={{ scale: 1.03, y: -3 }}
+      className="paper p-5 cursor-pointer max-w-[240px] relative"
     >
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-lg">{typeIcon}</span>
-        <span
-          className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border ${badgeColor}`}
-        >
-          {badgeLabel}
-        </span>
-      </div>
+      {/* Worthiness ink mark */}
+      <div
+        className={`absolute left-0 top-4 bottom-4 w-[3px] rounded-full ${
+          worthiness === "forge-skill"
+            ? "bg-forge"
+            : worthiness === "apply-directly"
+              ? "bg-apply"
+              : "bg-muted/30"
+        }`}
+        style={{ opacity: worthinessScore }}
+      />
 
-      <h3 className="text-sm font-semibold leading-tight mb-1">{title}</h3>
-      <p className="text-xs text-muted line-clamp-2">{description}</p>
-
-      <div className="mt-3 flex flex-wrap gap-1">
-        {domains.slice(0, 3).map((domain) => (
-          <span
-            key={domain}
-            className="text-[10px] px-1.5 py-0.5 rounded bg-accent/10 text-accent border border-accent/20"
-          >
-            {domain}
+      <div className="pl-2">
+        {/* Type + Worthiness */}
+        <div className="flex items-center justify-between mb-2.5">
+          <span className="flex items-center gap-1 text-[11px] text-muted">
+            <TypeIcon size={11} />
+            {typeLabel}
           </span>
-        ))}
-      </div>
+          <span
+            className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${bg} ${color}`}
+          >
+            {worthLabel}
+          </span>
+        </div>
 
-      {/* Worthiness bar */}
-      <div className="mt-3">
-        <div className="h-1 w-full rounded-full bg-border overflow-hidden">
-          <div
-            className={`h-full rounded-full transition-all ${
-              worthiness === "forge-skill"
-                ? "bg-success"
-                : worthiness === "apply-directly"
-                  ? "bg-warning"
-                  : "bg-muted"
-            }`}
-            style={{ width: `${worthinessScore * 100}%` }}
-          />
+        {/* Title */}
+        <h3 className="text-[13px] font-semibold leading-snug text-foreground mb-1.5">
+          {title}
+        </h3>
+
+        {/* Description */}
+        <p className="text-[11px] text-foreground-secondary leading-relaxed line-clamp-3">
+          {description}
+        </p>
+
+        {/* Domain tags */}
+        <div className="mt-3 flex flex-wrap gap-1">
+          {domains.slice(0, 3).map((domain) => (
+            <span
+              key={domain}
+              className="text-[10px] px-1.5 py-0.5 rounded-full bg-background-subtle text-muted"
+            >
+              {domain}
+            </span>
+          ))}
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
