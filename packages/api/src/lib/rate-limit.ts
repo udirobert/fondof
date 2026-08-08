@@ -21,6 +21,8 @@ export const RATE_BUDGETS = {
   resolve: { limit: 20, windowSec: 3600 },
   acquire: { limit: 60, windowSec: 3600 },
   use: { limit: 40, windowSec: 3600 },
+  /** Few storms per hour — each storm is many use() txs */
+  storm: { limit: 8, windowSec: 3600 },
   search: { limit: 30, windowSec: 3600 },
 } as const satisfies Record<string, RateBucket>;
 

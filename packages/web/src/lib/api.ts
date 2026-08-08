@@ -225,6 +225,29 @@ export async function recordUsage(
   return res.json();
 }
 
+/** Burst of on-chain use() receipts — Monad per-agent quality demo. */
+export async function stormUsage(
+  hash: string,
+  count = 12,
+): Promise<{
+  success?: boolean;
+  count?: number;
+  submittedMs?: number;
+  confirmedMs?: number;
+  signal?: string;
+  usageCount?: number;
+  explorer?: string;
+  note?: string;
+  error?: string;
+}> {
+  const res = await fetch(`${API_URL}/api/skills/${encodeURIComponent(hash)}/storm`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ count }),
+  });
+  return res.json();
+}
+
 export async function challengeSkill(
   skillHash: string
 ): Promise<{

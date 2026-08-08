@@ -5,6 +5,7 @@ import {
   getSkillFromChain,
   getTopSkillsFromChain,
   useOnChain,
+  useStormOnChain,
 } from "../lib/monad.js";
 import { cacheGetJson, cachePutJson } from "../lib/edge-cache.js";
 import { rateLimit } from "../lib/rate-limit-mw.js";
@@ -139,6 +140,64 @@ skillsRoute.post("/skills/:hash/use", rateLimit("use"), async (c) => {
       success: true,
       txHash: receipt.txHash,
       blockNumber: receipt.blockNumber,
+    });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Unknown error";
+    return c.json({ error: msg }, 500);
+  }
+});
+
+/**
+ * Agent receipt storm — N use() txs back-to-back.
+ * Demo: quality signals at Monad speed (not viable as per-use receipts on L1).
+ */
+skillsRoute.post("/skills/:hash/storm", rateLimit("storm"), async (c) => {
+  const hash = c.req.param("hash");
+  const body = (await c.req
+    .json<{ count?: number }>()
+    .catch(() => ({ count: 12 }))) as { count?: number };
+  const count = body.count ?? 12;
+
+  if (!c.env.FONDOF_RELAYER_KEY) {
+    return c.json({ error: "Relayer not configured" }, 500);
+  }
+
+  try {
+    const storm = await useStormOnChain(
+      c.env.MONAD_RPC_URL,
+      c.env.FONDOF_RELAYER_KEY,
+      c.env.FONDOF_CONTRACT_ADDRESS,
+      hash,
+      count,
+    );
+
+    try {
+      await caches.default.delete(
+        new Request(
+          `https://fondof-cache.internal/skill:v1:${hash.toLowerCase()}`,
+        ),
+      );
+    } catch {
+      // ignore
+    }
+
+    const skill = await getSkillFromChain(
+      c.env.MONAD_RPC_URL,
+      c.env.FONDOF_CONTRACT_ADDRESS,
+      hash,
+    );
+
+    return c.json({
+      success: true,
+      count: storm.count,
+      submittedMs: storm.submittedMs,
+      confirmedMs: storm.confirmedMs,
+      txHashes: storm.txHashes,
+      blockNumber: storm.blockNumber,
+      signal: skill?.signal,
+      usageCount: skill?.usageCount,
+      explorer: `https://testnet.monadexplorer.com/tx/${storm.txHashes[storm.txHashes.length - 1]}`,
+      note: `${storm.count} agent receipts on Monad in ${storm.confirmedMs}ms — per-use quality tracking`,
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Unknown error";

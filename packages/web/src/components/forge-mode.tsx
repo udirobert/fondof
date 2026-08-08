@@ -45,6 +45,7 @@ import {
 import { OrigamiRitualCanvas } from "@/components/experience/origami-ritual-canvas";
 import { AttestationBurst } from "@/components/experience/attestation-burst";
 import { SignalCountUp } from "@/components/experience/signal-count-up";
+import { ReceiptStormButton } from "@/components/receipt-storm-button";
 import { IdentityLabel } from "@/components/identity-label";
 import { WalletButton } from "@/components/wallet-button";
 import { useAppStore } from "@/lib/store";
@@ -713,6 +714,21 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
                               </p>
                             )}
                           </div>
+                          {skillHash && (
+                            <ReceiptStormButton
+                              skillHash={skillHash}
+                              count={12}
+                              variant="panel"
+                              onComplete={(r) => {
+                                if (r.signal) setLiveSignal(r.signal);
+                                if (typeof r.usageCount === "number") {
+                                  setUsageCount(r.usageCount);
+                                }
+                                setAttestKey((k) => k + 1);
+                                void refreshSignal(skillHash);
+                              }}
+                            />
+                          )}
                           <div className="flex flex-col gap-2">
                             {skillHash && (
                               <>

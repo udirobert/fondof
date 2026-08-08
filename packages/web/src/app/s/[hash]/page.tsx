@@ -31,6 +31,7 @@ import { FondofWordmark } from "@/components/fondof-wordmark";
 import { IdentityLabel } from "@/components/identity-label";
 import { SignalCountUp } from "@/components/experience/signal-count-up";
 import { SignalPulse } from "@/components/experience/signal-pulse";
+import { ReceiptStormButton } from "@/components/receipt-storm-button";
 
 /** Public skill identity — share, use, challenge, resolve, acquire. */
 export default function SkillPublicPage() {
@@ -296,6 +297,17 @@ export default function SkillPublicPage() {
             <Zap size={14} />
             {using ? "Recording…" : "I used this — grow signal"}
           </button>
+          {skill && (
+            <ReceiptStormButton
+              skillHash={hash}
+              count={12}
+              onComplete={() => {
+                setPulseBeat((b) => b + 1);
+                setSignalPlayKey((k) => k + 1);
+                void refresh();
+              }}
+            />
+          )}
           <button
             type="button"
             onClick={() => void onChallenge()}

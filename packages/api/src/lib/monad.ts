@@ -212,6 +212,58 @@ export async function useOnChain(
   return { txHash, blockNumber: Number(receipt.blockNumber) };
 }
 
+/**
+ * Burst of use() receipts — Monad thesis demo (cheap per-agent quality signals).
+ * Sends txs back-to-back with explicit nonces; waits on the last confirmation.
+ */
+export async function useStormOnChain(
+  rpcUrl: string,
+  privateKey: string,
+  contract: string,
+  skillHash: string,
+  count: number,
+) {
+  const n = Math.min(25, Math.max(2, Math.floor(count)));
+  const wallet = getWalletClient(rpcUrl, privateKey);
+  const pub = getPublicClient(rpcUrl);
+  const account = wallet.account;
+  if (!account) throw new Error("No relayer account");
+
+  const hashArg = toBytes32(skillHash);
+  const t0 = Date.now();
+
+  let nonce = await pub.getTransactionCount({
+    address: account.address,
+    blockTag: "pending",
+  });
+
+  const txHashes: Hex[] = [];
+  for (let i = 0; i < n; i++) {
+    const txHash = await wallet.writeContract({
+      address: contract as Hex,
+      abi: SKILL_POOL_ABI,
+      functionName: "use",
+      args: [hashArg],
+      nonce: nonce++,
+    });
+    txHashes.push(txHash);
+  }
+  const submittedMs = Date.now() - t0;
+
+  const last = await pub.waitForTransactionReceipt({
+    hash: txHashes[txHashes.length - 1]!,
+  });
+  const confirmedMs = Date.now() - t0;
+
+  return {
+    count: n,
+    txHashes,
+    submittedMs,
+    confirmedMs,
+    blockNumber: Number(last.blockNumber),
+  };
+}
+
 export async function challengeOnChain(
   rpcUrl: string,
   privateKey: string,
