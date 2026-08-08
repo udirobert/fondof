@@ -1,6 +1,7 @@
 [build]
-  command = "pnpm build"
-  publish = ".next"
+  # Run from repo root (Netlify base). Output lands in packages/web/.next.
+  command = "pnpm --filter @fondof/web... build"
+  publish = "packages/web/.next"
 
 [build.environment]
   NODE_VERSION = "20"
