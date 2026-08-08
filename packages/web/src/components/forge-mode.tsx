@@ -48,6 +48,8 @@ import { SignalCountUp } from "@/components/experience/signal-count-up";
 import { ReceiptStormButton } from "@/components/receipt-storm-button";
 import { IdentityLabel } from "@/components/identity-label";
 import { WalletButton } from "@/components/wallet-button";
+import { SkillPoolLoop } from "@/components/skill-pool-loop";
+import { Tip } from "@/components/tip";
 import { useAppStore } from "@/lib/store";
 import { fondofPhrase } from "@/lib/fondof-phrase";
 import Link from "next/link";
@@ -82,7 +84,6 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
   const [phase, setPhase] = useState<Phase>("ritual");
   const [repo, setRepo] = useState(activeRepo || repos[0]?.fullName || "");
   const [draft, setDraft] = useState("");
-  const [hash, setHash] = useState("");
   const [skillHash, setSkillHash] = useState<string | null>(null);
   const [sourceHashes, setSourceHashes] = useState<string[]>([]);
   const [publishing, setPublishing] = useState(false);
@@ -175,7 +176,6 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
         clearGaps();
         setPhase("ritual");
         setDraft("");
-        setHash("");
         setSkillHash(null);
         setSourceHashes([]);
         setComposing(false);
@@ -345,7 +345,6 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
           chainId: monadTestnet.id,
         });
         setWalletTxHash(txHash);
-        setHash(txHash);
         setExplorer(txExplorer(txHash));
         setPublishNote(
           address
@@ -377,7 +376,6 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
           }),
         ]);
         if (!res.error && res.txHash) {
-          setHash(res.txHash);
           setExplorer(res.explorer ?? txExplorer(res.txHash));
           setPublishNote(
             isConnected
@@ -397,9 +395,6 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
       skillHash ??
       `0x${Math.random().toString(16).slice(2)}${Date.now().toString(16)}`;
     if (!skillHash) setSkillHash(localHash);
-    setHash(
-      `0x${localHash.replace(/^0x/, "").slice(0, 10)}…${Date.now().toString(16).slice(-4)}`,
-    );
     setLiveSignal("1.0");
     setUsageCount(0);
     setPublished(localHash, "1.0");
@@ -625,14 +620,20 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
                       </div>
                       <div className="min-h-[40vh] flex-1 overflow-auto px-4 py-4 pb-6 sm:px-5 lg:min-h-0">
                         <div className="mb-3 flex items-center justify-between gap-2">
-                          <p className="text-[11px] uppercase tracking-wider text-muted">
-                            Your skill draft
-                          </p>
+                          <div>
+                            <p className="text-[11px] uppercase tracking-wider text-muted">
+                              Your skill draft
+                            </p>
+                            <p className="mt-0.5 text-[11px] text-muted">
+                              Edit by re-forging · publish puts it in the scored
+                              pool
+                            </p>
+                          </div>
                           <button
                             type="button"
                             onClick={copyDraft}
                             disabled={!draft}
-                            className="inline-flex min-h-9 items-center gap-1.5 rounded-full px-2.5 text-xs text-muted transition-colors hover:bg-mist hover:text-ink disabled:opacity-30"
+                            className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-full px-2.5 text-xs text-muted transition-colors hover:bg-mist hover:text-ink disabled:opacity-30"
                           >
                             {copied ? (
                               <Check size={13} className="text-ember" />
@@ -687,14 +688,16 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
                             <div className="mb-2 flex items-center gap-2 text-steel">
                               <Check size={16} className="text-ember" />
                               <span className="text-sm font-medium">
-                                Published to SkillPool
+                                Live on SkillPool
                               </span>
                             </div>
                             <div className="mb-3 flex items-end justify-between gap-3">
                               <div>
-                                <p className="text-[11px] uppercase tracking-wider text-muted">
-                                  Signal
-                                </p>
+                                <Tip tip="signal">
+                                  <p className="cursor-help text-[11px] uppercase tracking-wider text-muted">
+                                    Proven score
+                                  </p>
+                                </Tip>
                                 <p className="font-serif text-3xl text-ink">
                                   <SignalCountUp
                                     value={liveSignal}
@@ -703,41 +706,32 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
                                 </p>
                               </div>
                               <p className="pb-1 text-right text-[11px] text-muted">
-                                {usageCount ?? 0} uses
+                                {usageCount ?? 0} agent use
+                                {(usageCount ?? 0) === 1 ? "" : "s"}
                                 <br />
-                                grows with adoption
+                                disputes cut fakes
                               </p>
                             </div>
-                            <p className="mb-3 text-xs text-foreground-secondary">
-                              Skin in the game so agents can score this skill —
-                              not a marketplace listing. Share it; uses grow the
-                              score; successful challenges cut it.
-                            </p>
-                            <code className="block break-all font-mono text-[11px] text-ink">
-                              {skillHash ?? hash}
-                            </code>
                             {publishNote && (
-                              <p className="mt-2 text-[11px] text-muted">
+                              <p className="mb-2 text-[11px] text-muted">
                                 {publishNote}
                               </p>
                             )}
                           </div>
+
+                          <SkillPoolLoop stage="live" />
+
                           {skillHash && (
-                            <ReceiptStormButton
-                              skillHash={skillHash}
-                              count={12}
-                              variant="panel"
-                              gated
-                              onComplete={(r) => {
-                                if (r.signal) setLiveSignal(r.signal);
-                                if (typeof r.usageCount === "number") {
-                                  setUsageCount(r.usageCount);
-                                }
-                                setAttestKey((k) => k + 1);
-                                void refreshSignal(skillHash);
-                              }}
-                            />
+                            <Link
+                              href={skillPublicPath(skillHash)}
+                              className="flex min-h-11 items-center justify-center gap-2 rounded-full bg-ember px-4 text-sm font-medium text-paper hover:bg-ember-hot"
+                              onClick={onClose}
+                            >
+                              <Flame size={14} />
+                              Open skill · join the loop
+                            </Link>
                           )}
+
                           <div className="flex flex-col gap-2">
                             {skillHash && (
                               <>
@@ -757,14 +751,16 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
                                       // ignore
                                     }
                                   }}
-                                  className="flex min-h-10 items-center justify-center gap-2 rounded-full bg-ember px-4 text-sm font-medium text-paper hover:bg-ember-hot"
+                                  className="flex min-h-10 items-center justify-center gap-2 rounded-full border border-ink/12 bg-paper px-4 text-sm text-ink hover:border-ember/35"
                                 >
                                   {linkCopied ? (
                                     <Check size={14} />
                                   ) : (
                                     <Copy size={14} />
                                   )}
-                                  {linkCopied ? "Link copied" : "Copy skill link"}
+                                  {linkCopied
+                                    ? "Link copied"
+                                    : "Copy skill link"}
                                 </button>
                                 <a
                                   href={skillTweetIntent({
@@ -777,13 +773,6 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
                                 >
                                   Post to X
                                 </a>
-                                <Link
-                                  href={skillPublicPath(skillHash)}
-                                  className="flex min-h-10 items-center justify-center gap-2 rounded-full border border-ink/12 bg-paper px-4 text-sm text-ink hover:border-ember/35"
-                                  onClick={onClose}
-                                >
-                                  Open public page
-                                </Link>
                               </>
                             )}
                             {explorer && (
@@ -805,7 +794,7 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
                             >
                               <Swords size={14} />
                               {challenging
-                                ? "Challenging…"
+                                ? "Staking…"
                                 : walletReady
                                   ? "Dispute from wallet"
                                   : "Dispute quality"}
@@ -816,22 +805,28 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
                               </p>
                             )}
                           </div>
+
+                          {skillHash && (
+                            <ReceiptStormButton
+                              skillHash={skillHash}
+                              count={12}
+                              variant="panel"
+                              gated
+                              onComplete={(r) => {
+                                if (r.signal) setLiveSignal(r.signal);
+                                if (typeof r.usageCount === "number") {
+                                  setUsageCount(r.usageCount);
+                                }
+                                setAttestKey((k) => k + 1);
+                                void refreshSignal(skillHash);
+                              }}
+                            />
+                          )}
                         </motion.div>
                       ) : (
                         <div className="space-y-3">
-                          <button
-                            type="button"
-                            onClick={copyDraft}
-                            disabled={!draft}
-                            className="flex min-h-11 w-full items-center justify-center gap-2 rounded-full border border-ink/12 bg-paper px-4 py-2.5 text-sm font-medium text-ink transition-colors hover:border-ember/35 disabled:opacity-30"
-                          >
-                            {copied ? (
-                              <Check size={14} className="text-ember" />
-                            ) : (
-                              <Copy size={14} />
-                            )}
-                            {copied ? "Copied" : "Copy for Cursor / Claude"}
-                          </button>
+                          <SkillPoolLoop stage="compose" />
+
                           <button
                             type="button"
                             onClick={() => void publish()}
@@ -843,14 +838,14 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
                               "Publishing…"
                             ) : walletReady ? (
                               <span className="inline-flex items-center gap-1.5">
-                                Publish as{" "}
+                                Publish & stake{" "}
                                 <IdentityLabel
                                   address={address!}
                                   className="text-paper"
                                 />
                               </span>
                             ) : (
-                              "Publish skill"
+                              `Publish · stake ${FORGE_BACKING} MON skin`
                             )}
                           </button>
                           {publishNote && (
@@ -858,10 +853,23 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
                               {publishNote}
                             </p>
                           )}
-                          <p className="px-1 text-[11px] leading-snug text-muted">
-                            {walletReady
-                              ? `${FORGE_BACKING} MON skin in escrow (no withdraw) — quality signaling, not earnings.`
-                              : `Relayer can publish · ${FORGE_BACKING} MON backing stays in the contract as skin, not a vault.`}
+                          <button
+                            type="button"
+                            onClick={copyDraft}
+                            disabled={!draft}
+                            className="flex min-h-10 w-full items-center justify-center gap-2 rounded-full border border-ink/12 bg-paper px-4 py-2 text-sm text-ink transition-colors hover:border-ember/35 disabled:opacity-30"
+                          >
+                            {copied ? (
+                              <Check size={14} className="text-ember" />
+                            ) : (
+                              <Copy size={14} />
+                            )}
+                            {copied ? "Copied" : "Copy for Cursor / Claude"}
+                          </button>
+                          <p className="px-1 text-[10px] leading-snug text-muted">
+                            Publishing puts skin in escrow so the pool can score
+                            this skill — quality signaling, not a listing fee
+                            you earn back.
                           </p>
                         </div>
                       )}
