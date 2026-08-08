@@ -11,8 +11,8 @@ interface WorkStagesProps {
 }
 
 /**
- * Secondary tools after extract — Compare + agent export.
- * SkillPool stays always-on via SkillPoolPulse / nav Pool.
+ * Secondary tools after extract — agent export.
+ * Compare stays visible on the floor; SkillPool via pulse / nav.
  */
 export function WorkStages({ forceOpen = false, children }: WorkStagesProps) {
   const [open, setOpen] = useState(false);
@@ -30,7 +30,7 @@ export function WorkStages({ forceOpen = false, children }: WorkStagesProps) {
         aria-expanded={open}
       >
         <span className="font-mono text-[10px] uppercase tracking-wider text-muted">
-          More · compare · agent export
+          More · agent export
         </span>
         <ChevronDown
           size={14}

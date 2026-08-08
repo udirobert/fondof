@@ -1,6 +1,7 @@
 "use client";
 
-import { Loader2, Swords } from "lucide-react";
+import { useState } from "react";
+import { ChevronDown, Loader2, Swords } from "lucide-react";
 import { Tip } from "@/components/tip";
 import { formatSignal } from "@/lib/idea-insights";
 import { IdentityLabel } from "@/components/identity-label";
@@ -16,6 +17,7 @@ interface ChallengeQueueProps {
 
 /**
  * Community policing — stake in plain terms, honest payouts.
+ * Resolve is a demo oracle, not something every visitor can do.
  */
 export function ChallengeQueue({
   challenges,
@@ -23,6 +25,8 @@ export function ChallengeQueue({
   onResolve,
   losses = 0,
 }: ChallengeQueueProps) {
+  const [showOracle, setShowOracle] = useState(false);
+
   return (
     <section className="space-y-3" aria-label="Challenges">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -78,7 +82,44 @@ export function ChallengeQueue({
                       </span>
                     ) : null}
                   </p>
-                  <div className="mt-3 flex flex-wrap gap-2">
+                  <p className="mt-2 text-[11px] leading-snug text-muted">
+                    Waiting on the demo oracle to settle — visitors can’t
+                    adjudicate; only the fondof relayer can resolve in this
+                    build.
+                  </p>
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {challenges.length > 0 && (
+        <div className="rounded-xl border border-ink/8 bg-mist/40 px-3 py-2">
+          <button
+            type="button"
+            onClick={() => setShowOracle((v) => !v)}
+            className="flex w-full items-center justify-between gap-2 text-left text-[11px] text-muted hover:text-ink"
+            aria-expanded={showOracle}
+          >
+            <span>Demo oracle controls (relayer)</span>
+            <ChevronDown
+              size={13}
+              className={`shrink-0 transition-transform ${showOracle ? "rotate-180" : ""}`}
+            />
+          </button>
+          {showOracle && (
+            <div className="mt-3 space-y-3 border-t border-ink/8 pt-3">
+              <p className="text-[10px] leading-snug text-muted">
+                Not decentralized adjudication — for demo settlement only.
+                Reward is capped at the challenger’s stake.
+              </p>
+              {challenges.map((ch) => (
+                <div key={`oracle-${ch.challengeId}`} className="space-y-2">
+                  <p className="text-[11px] text-ink">
+                    Challenge #{ch.challengeId}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
                     <button
                       type="button"
                       disabled={resolvingId === ch.challengeId}
@@ -88,7 +129,7 @@ export function ChallengeQueue({
                       {resolvingId === ch.challengeId ? (
                         <Loader2 size={12} className="animate-spin" />
                       ) : null}
-                      Challenger wins · take skin · cut score
+                      Challenger wins
                     </button>
                     <button
                       type="button"
@@ -96,20 +137,22 @@ export function ChallengeQueue({
                       onClick={() => onResolve(ch.challengeId, false)}
                       className="inline-flex min-h-9 flex-1 items-center justify-center gap-1 rounded-full border border-ink/12 bg-paper px-3 text-[11px] text-ink hover:border-ember/35 disabled:opacity-40"
                     >
-                      Skill stands · stake → skill reputation
+                      Skill stands
                     </button>
                   </div>
                 </div>
-              </div>
-            </li>
-          ))}
-        </ul>
+              ))}
+            </div>
+          )}
+        </div>
       )}
 
-      <p className="text-[10px] leading-snug text-muted">
-        Resolve is a demo oracle (relayer) — not decentralized adjudication.
-        Reward is capped at the challenger’s stake so griefing stays bounded.
-      </p>
+      {challenges.length === 0 && (
+        <p className="text-[10px] leading-snug text-muted">
+          Resolve is a demo oracle (relayer) — not decentralized adjudication.
+          Reward is capped at the challenger’s stake so griefing stays bounded.
+        </p>
+      )}
     </section>
   );
 }

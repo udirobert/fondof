@@ -44,6 +44,7 @@ import {
 } from "@/lib/acquire-note";
 import { Tip } from "@/components/tip";
 import { EconomicsHonesty } from "@/components/economics-honesty";
+import { getSkillMeta } from "@/lib/skill-meta";
 
 /** Public skill identity — quality story first, chain as detail. */
 export default function SkillPublicPage() {
@@ -65,6 +66,8 @@ export default function SkillPublicPage() {
   const [lastChallengeId, setLastChallengeId] = useState<number | null>(null);
   const [pulseBeat, setPulseBeat] = useState(0);
   const [signalPlayKey, setSignalPlayKey] = useState(0);
+  const [metaTitle, setMetaTitle] = useState<string | null>(null);
+  const [metaBlurb, setMetaBlurb] = useState<string | null>(null);
 
   const refreshChallenges = useCallback(async () => {
     if (!hash) return;
@@ -94,6 +97,9 @@ export default function SkillPublicPage() {
 
   useEffect(() => {
     setShareUrl(skillShareUrl(hash));
+    const meta = getSkillMeta(hash);
+    setMetaTitle(meta?.title ?? null);
+    setMetaBlurb(meta?.blurb ?? null);
     const acquireStory = takeAcquireNote();
     if (acquireStory) setNote(acquireStory);
     void refresh();
@@ -229,10 +235,27 @@ export default function SkillPublicPage() {
       <div className="mx-auto flex w-full max-w-lg flex-col gap-8 px-4 py-10 pb-20">
         <div className="text-center">
           <FondofWordmark size="inline" />
-          <p className="mt-2 text-[11px] text-muted">
-            Live skill · agents prove what works
-            {tick > 0 ? " · updating" : ""}
-          </p>
+          {metaTitle ? (
+            <>
+              <h1 className="mt-4 font-serif text-2xl leading-snug tracking-tight text-ink">
+                {metaTitle}
+              </h1>
+              {metaBlurb && (
+                <p className="mt-2 text-sm text-foreground-secondary">
+                  {metaBlurb}
+                </p>
+              )}
+              <p className="mt-2 text-[11px] text-muted">
+                Live skill · agents prove what works
+                {tick > 0 ? " · updating" : ""}
+              </p>
+            </>
+          ) : (
+            <p className="mt-2 text-[11px] text-muted">
+              Live skill · agents prove what works
+              {tick > 0 ? " · updating" : ""}
+            </p>
+          )}
         </div>
 
         <SignalStory
@@ -310,7 +333,7 @@ export default function SkillPublicPage() {
             {copied ? "Link copied" : "Copy share link"}
           </button>
           <a
-            href={skillTweetIntent({ hash })}
+            href={skillTweetIntent({ hash, title: metaTitle ?? undefined })}
             target="_blank"
             rel="noopener noreferrer"
             className="flex min-h-11 items-center justify-center gap-2 rounded-full border border-ink/12 bg-paper px-4 text-sm text-ink hover:border-ember/35"
@@ -386,24 +409,30 @@ export default function SkillPublicPage() {
               Also proven on SkillPool
             </p>
             <ul className="mt-3 space-y-2">
-              {peers.map((p) => (
-                <li key={p.skillHash}>
-                  <Link
-                    href={skillPublicPath(p.skillHash)}
-                    className="flex items-center justify-between gap-2 rounded-lg border border-ink/8 bg-paper/60 px-3 py-2 text-sm hover:border-ember/30"
-                  >
-                    <span className="font-medium text-ink">
-                      Score {formatSignal(p.signal)}
-                    </span>
-                    <span className="text-[11px] text-muted">
-                      {p.usageCount} uses
-                      {p.challengeLosses > 0
-                        ? ` · ${p.challengeLosses} losses`
-                        : ""}
-                    </span>
-                  </Link>
-                </li>
-              ))}
+              {peers.map((p) => {
+                const peerTitle = getSkillMeta(p.skillHash)?.title;
+                return (
+                  <li key={p.skillHash}>
+                    <Link
+                      href={skillPublicPath(p.skillHash)}
+                      className="flex items-center justify-between gap-2 rounded-lg border border-ink/8 bg-paper/60 px-3 py-2 text-sm hover:border-ember/30"
+                    >
+                      <span className="min-w-0 truncate font-medium text-ink">
+                        {peerTitle || `Score ${formatSignal(p.signal)}`}
+                      </span>
+                      <span className="shrink-0 text-[11px] text-muted">
+                        {peerTitle
+                          ? `Score ${formatSignal(p.signal)} · `
+                          : ""}
+                        {p.usageCount} uses
+                        {p.challengeLosses > 0
+                          ? ` · ${p.challengeLosses} losses`
+                          : ""}
+                      </span>
+                    </Link>
+                  </li>
+                );
+              })}
             </ul>
           </section>
         )}

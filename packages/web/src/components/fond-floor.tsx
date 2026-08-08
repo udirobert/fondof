@@ -897,17 +897,17 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
                   )}
                 </div>
 
-                <WorkStages forceOpen={discoverySkills.length > 0}>
-                  <DiscoveryPanel
-                    embedded
-                    existingSkills={discoverySkills}
-                    repoMatchSummary={repoMatchSummary}
-                    forgeWorthyCount={forgeWorthyCount}
-                    totalIdeas={ideas.length}
-                    ideas={ideas}
-                    onSkillsUpdate={setDiscoverySkills}
-                    onCompareNote={setCompareNote}
-                  />
+                <DiscoveryPanel
+                  existingSkills={discoverySkills}
+                  repoMatchSummary={repoMatchSummary}
+                  forgeWorthyCount={forgeWorthyCount}
+                  totalIdeas={ideas.length}
+                  ideas={ideas}
+                  onSkillsUpdate={setDiscoverySkills}
+                  onCompareNote={setCompareNote}
+                />
+
+                <WorkStages>
                   <AgentExportBar
                     className="mb-2"
                     ideas={ideas}

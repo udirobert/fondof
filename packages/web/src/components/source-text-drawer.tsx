@@ -171,10 +171,24 @@ export function SourceTextDrawer({
 
             <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
               {!body ? (
-                <p className="text-sm text-muted">
-                  Source text isn’t available for this entry yet. Re-run extract
-                  on the URL to load the transcript, or open the original link.
-                </p>
+                <div className="space-y-3 text-sm text-muted">
+                  <p>
+                    No transcript body is cached for this source yet — often
+                    from an older extract, or the fetch never returned text.
+                  </p>
+                  <p>
+                    Close this drawer, paste the URL again, and re-run extract
+                    to load the body. Or open the original:
+                  </p>
+                  <a
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex text-ember hover:underline"
+                  >
+                    {url}
+                  </a>
+                </div>
               ) : filtered.length === 0 ? (
                 <p className="text-sm text-muted">No lines match “{query}”.</p>
               ) : (

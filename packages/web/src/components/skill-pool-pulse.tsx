@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Tip } from "@/components/tip";
 import { getTopSkills, type SkillOnChainResponse } from "@/lib/api";
 import { formatSignal } from "@/lib/idea-insights";
+import { getSkillMeta } from "@/lib/skill-meta";
 import { skillPublicPath } from "@/lib/skill-share";
 
 interface SkillPoolPulseProps {
@@ -89,10 +90,11 @@ export function SkillPoolPulse({
                 href={skillPublicPath(s.skillHash)}
                 className="underline-offset-2 hover:text-ember hover:underline"
               >
-                {formatSignal(s.signal)}
+                {getSkillMeta(s.skillHash)?.title?.slice(0, 28) ||
+                  formatSignal(s.signal)}
                 <span className="text-muted">
                   {" "}
-                  ({s.usageCount} use{s.usageCount === 1 ? "" : "s"})
+                  · {formatSignal(s.signal)}
                 </span>
               </Link>
             </span>

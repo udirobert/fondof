@@ -1,8 +1,10 @@
 "use client";
 
+import { useMemo } from "react";
 import Link from "next/link";
 import { Tip } from "@/components/tip";
 import { formatSignal } from "@/lib/idea-insights";
+import { getSkillMeta } from "@/lib/skill-meta";
 import { skillPublicPath } from "@/lib/skill-share";
 import type { SkillOnChainResponse } from "@/lib/api";
 
@@ -22,6 +24,16 @@ export function PoolSkillCard({
 }: PoolSkillCardProps) {
   const path = skillPublicPath(skill.skillHash);
   const skew = index % 2 === 0 ? -0.4 : 0.5;
+  const meta = useMemo(
+    () => getSkillMeta(skill.skillHash),
+    [skill.skillHash],
+  );
+  const title =
+    meta?.title ||
+    `Proven by ${skill.usageCount} agent use${skill.usageCount === 1 ? "" : "s"}`;
+  const subtitle = meta?.title
+    ? `Proven by ${skill.usageCount} use${skill.usageCount === 1 ? "" : "s"} · forged by ${forgerLabel}`
+    : `Forged by ${forgerLabel}`;
 
   return (
     <Link
@@ -46,11 +58,15 @@ export function PoolSkillCard({
             )}
           </div>
           <h3 className="font-serif text-[1.05rem] leading-snug tracking-tight text-ink group-hover:text-ember">
-            Proven by {skill.usageCount} agent use
-            {skill.usageCount === 1 ? "" : "s"}
+            {title}
           </h3>
+          {meta?.blurb && (
+            <p className="mt-1 line-clamp-2 text-[12px] leading-snug text-foreground-secondary">
+              {meta.blurb}
+            </p>
+          )}
           <p className="mt-1 text-[12px] text-foreground-secondary">
-            Forged by {forgerLabel}
+            {subtitle}
           </p>
           <p className="mt-2 text-[11px] text-ember opacity-0 transition-opacity group-hover:opacity-100">
             Open · use · dispute

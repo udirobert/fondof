@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Check,
+  ChevronDown,
   Copy,
   ExternalLink,
   Flame,
@@ -52,6 +53,10 @@ import { SkillPoolLoop } from "@/components/skill-pool-loop";
 import { Tip } from "@/components/tip";
 import { useAppStore } from "@/lib/store";
 import { fondofPhrase } from "@/lib/fondof-phrase";
+import {
+  rememberSkillMeta,
+  skillPreviewFromMarkdown,
+} from "@/lib/skill-meta";
 import Link from "next/link";
 
 type Phase = "ritual" | "compose" | "attested";
@@ -98,6 +103,8 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
   const [linkCopied, setLinkCopied] = useState(false);
   const [celebrate, setCelebrate] = useState(false);
   const [attestKey, setAttestKey] = useState(0);
+  const [showFullDraft, setShowFullDraft] = useState(false);
+  const [forgeTitle, setForgeTitle] = useState<string | null>(null);
   const setPublished = useAppStore((s) => s.setPublished);
   const { address, isConnected, chainId } = useConnection();
   const { switchChainAsync } = useSwitchChain();
@@ -158,6 +165,7 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
       if (!res.error && res.markdown) {
         setSkillHash(res.skillHash);
         setSourceHashes(res.sourceHashes ?? []);
+        if (res.title) setForgeTitle(res.title);
         pendingMarkdown.current = res.markdown;
         return;
       }
@@ -187,6 +195,8 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
         setLinkCopied(false);
         setCelebrate(false);
         setWalletTxHash(undefined);
+        setShowFullDraft(false);
+        setForgeTitle(null);
         pendingMarkdown.current = null;
         streamCancel.current?.();
         streamCancel.current = null;
@@ -325,6 +335,19 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
     }
   };
 
+  const stashLiveMeta = (hash: string) => {
+    const preview = skillPreviewFromMarkdown(
+      draft,
+      forgeTitle ?? ideas[0]?.title,
+    );
+    rememberSkillMeta(hash, {
+      title: preview.title,
+      blurb: preview.blurb,
+      repo: repo || undefined,
+      live: true,
+    });
+  };
+
   const publish = async () => {
     setPublishing(true);
     setPublishNote(null);
@@ -351,6 +374,7 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
             ? `Forged as ${shortAddress(address)} — confirm in wallet if prompted.`
             : "Forged from your wallet.",
         );
+        stashLiveMeta(skillHash);
         setPhase("attested");
         setPublishing(false);
         void refreshSignal(skillHash);
@@ -363,6 +387,10 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
             ? "Wallet rejected the transaction — try again or publish via relayer."
             : msg.slice(0, 160),
         );
+        if (msg.includes("User rejected") || msg.includes("rejected")) {
+          setPublishing(false);
+          return;
+        }
         // Fall through to relayer so the demo still completes
       }
     }
@@ -382,24 +410,26 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
               ? "Published via fondof relayer (wallet forge unavailable)."
               : "Published via fondof relayer on Monad.",
           );
+          stashLiveMeta(skillHash);
           setPhase("attested");
           setPublishing(false);
           void refreshSignal(skillHash);
           return;
         }
+        setPublishNote(
+          res.error?.slice(0, 160) ||
+            "Relayer could not publish — skill is still a draft, not on SkillPool.",
+        );
+      } else {
+        setPublishNote(
+          "Draft isn’t ready to publish yet — wait for forge to finish.",
+        );
       }
     } catch {
-      // local attest
+      setPublishNote(
+        "Couldn’t reach Monad / relayer — this draft is local only. Fix network or wallet, then Publish again. Nothing was attested on SkillPool.",
+      );
     }
-    const localHash =
-      skillHash ??
-      `0x${Math.random().toString(16).slice(2)}${Date.now().toString(16)}`;
-    if (!skillHash) setSkillHash(localHash);
-    setLiveSignal("1.0");
-    setUsageCount(0);
-    setPublished(localHash, "1.0");
-    setPublishNote("Local attest — chain unavailable.");
-    setPhase("attested");
     setPublishing(false);
   };
 
@@ -485,6 +515,10 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
   };
 
   const ready = draft.length >= 40 && !composing;
+  const draftPreview = skillPreviewFromMarkdown(
+    draft,
+    forgeTitle ?? ideas[0]?.title,
+  );
 
   const copyDraft = async () => {
     if (!draft) return;
@@ -547,11 +581,7 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
               <AttestationBurst
                 active={celebrate}
                 onDone={() => setCelebrate(false)}
-                label={
-                  walletReady || isConnected
-                    ? "Attested on Monad"
-                    : "Published to SkillPool"
-                }
+                label="Attested on Monad"
               />
               <AnimatePresence mode="wait">
                 {phase === "ritual" && (
@@ -619,36 +649,78 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
                         )}
                       </div>
                       <div className="min-h-[40vh] flex-1 overflow-auto px-4 py-4 pb-6 sm:px-5 lg:min-h-0">
-                        <div className="mb-3 flex items-center justify-between gap-2">
-                          <div>
-                            <p className="text-[11px] uppercase tracking-wider text-muted">
-                              Your skill draft
-                            </p>
-                            <p className="mt-0.5 text-[11px] text-muted">
-                              Edit by re-forging · publish puts it in the scored
-                              pool
-                            </p>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={copyDraft}
-                            disabled={!draft}
-                            className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-full px-2.5 text-xs text-muted transition-colors hover:bg-mist hover:text-ink disabled:opacity-30"
-                          >
-                            {copied ? (
-                              <Check size={13} className="text-ember" />
-                            ) : (
-                              <Copy size={13} />
-                            )}
-                            {copied ? "Copied" : "Copy"}
-                          </button>
+                        <div className="mb-4">
+                          <p className="text-[11px] uppercase tracking-wider text-muted">
+                            Skill preview
+                          </p>
+                          <p className="mt-0.5 text-[11px] text-muted">
+                            What goes live when you publish — not a doc to finish
+                            reading
+                          </p>
                         </div>
-                        <pre className="font-mono text-[12px] leading-relaxed whitespace-pre-wrap text-foreground-secondary">
-                          {draft || (composing ? "Composing…" : "")}
-                          {composing && draft.length > 0 && (
-                            <span className="ember-pulse ml-0.5 inline-block h-3.5 w-1.5 align-middle bg-ember" />
-                          )}
-                        </pre>
+
+                        {composing && !draft ? (
+                          <p className="font-mono text-[12px] text-muted">
+                            Composing…
+                          </p>
+                        ) : (
+                          <div className="space-y-3">
+                            <h3 className="font-serif text-2xl leading-snug tracking-tight text-ink">
+                              {draftPreview.title}
+                              {composing && (
+                                <span className="ember-pulse ml-1.5 inline-block h-3.5 w-1.5 align-middle bg-ember" />
+                              )}
+                            </h3>
+                            <p className="text-sm leading-relaxed text-foreground-secondary">
+                              {draftPreview.blurb}
+                            </p>
+                            <p className="text-[11px] text-muted">
+                              Fitted to{" "}
+                              <span className="text-ink">{repo || "your repo"}</span>
+                              {" · "}
+                              {ideas.length} shard
+                              {ideas.length === 1 ? "" : "s"}
+                            </p>
+
+                            <button
+                              type="button"
+                              onClick={() => setShowFullDraft((v) => !v)}
+                              className="inline-flex min-h-9 items-center gap-1.5 text-[11px] text-muted hover:text-ink"
+                              aria-expanded={showFullDraft}
+                            >
+                              <ChevronDown
+                                size={13}
+                                className={`transition-transform ${showFullDraft ? "rotate-180" : ""}`}
+                              />
+                              {showFullDraft
+                                ? "Hide full markdown"
+                                : "Show full markdown"}
+                            </button>
+
+                            {showFullDraft && (
+                              <div className="rounded-xl border border-ink/8 bg-paper/60 p-3">
+                                <div className="mb-2 flex justify-end">
+                                  <button
+                                    type="button"
+                                    onClick={copyDraft}
+                                    disabled={!draft}
+                                    className="inline-flex min-h-8 items-center gap-1.5 rounded-full px-2 text-[11px] text-muted hover:bg-mist hover:text-ink disabled:opacity-30"
+                                  >
+                                    {copied ? (
+                                      <Check size={12} className="text-ember" />
+                                    ) : (
+                                      <Copy size={12} />
+                                    )}
+                                    {copied ? "Copied" : "Copy markdown"}
+                                  </button>
+                                </div>
+                                <pre className="font-mono text-[11px] leading-relaxed whitespace-pre-wrap text-foreground-secondary">
+                                  {draft}
+                                </pre>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -765,7 +837,7 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
                                 <a
                                   href={skillTweetIntent({
                                     hash: skillHash,
-                                    title: ideas[0]?.title,
+                                    title: draftPreview.title,
                                   })}
                                   target="_blank"
                                   rel="noopener noreferrer"
@@ -849,28 +921,31 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
                             )}
                           </button>
                           {publishNote && (
-                            <p className="px-1 text-[11px] text-ember">
+                            <p className="px-1 text-[11px] leading-snug text-ember">
                               {publishNote}
                             </p>
                           )}
-                          <button
-                            type="button"
-                            onClick={copyDraft}
-                            disabled={!draft}
-                            className="flex min-h-10 w-full items-center justify-center gap-2 rounded-full border border-ink/12 bg-paper px-4 py-2 text-sm text-ink transition-colors hover:border-ember/35 disabled:opacity-30"
-                          >
-                            {copied ? (
-                              <Check size={14} className="text-ember" />
-                            ) : (
-                              <Copy size={14} />
-                            )}
-                            {copied ? "Copied" : "Copy for Cursor / Claude"}
-                          </button>
                           <p className="px-1 text-[10px] leading-snug text-muted">
                             Publishing puts skin in escrow so the pool can score
                             this skill — quality signaling, not a listing fee
-                            you earn back.
+                            you earn back. Copy markdown after it’s live if you
+                            want it offline.
                           </p>
+                          {showFullDraft && (
+                            <button
+                              type="button"
+                              onClick={copyDraft}
+                              disabled={!draft}
+                              className="flex min-h-10 w-full items-center justify-center gap-2 rounded-full border border-ink/12 bg-paper px-4 py-2 text-sm text-ink transition-colors hover:border-ember/35 disabled:opacity-30"
+                            >
+                              {copied ? (
+                                <Check size={14} className="text-ember" />
+                              ) : (
+                                <Copy size={14} />
+                              )}
+                              {copied ? "Copied" : "Copy markdown"}
+                            </button>
+                          )}
                         </div>
                       )}
 
