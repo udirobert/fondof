@@ -330,6 +330,52 @@ body {
     0 18px 36px oklch(0.3 0.02 55 / 0.12);
 }
 
+/* Pool skills — same paper grammar as forge shards */
+.pool-skill-card {
+  padding: 0.75rem 1rem 0.75rem 0.85rem;
+  background:
+    linear-gradient(
+      135deg,
+      oklch(0.995 0.008 95) 0%,
+      oklch(0.97 0.018 85) 100%
+    );
+  border: 1px solid oklch(0.3 0.02 55 / 0.08);
+  border-radius: 2px 14px 10px 3px;
+  box-shadow:
+    0 1px 0 oklch(0.3 0.02 55 / 0.04),
+    0 8px 20px oklch(0.3 0.02 55 / 0.06);
+  clip-path: polygon(
+    0 0,
+    calc(100% - 10px) 0,
+    100% 10px,
+    100% 100%,
+    8px 100%,
+    0 calc(100% - 6px)
+  );
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.pool-skill-card:hover {
+  border-color: oklch(0.58 0.16 42 / 0.35);
+  box-shadow:
+    0 1px 0 oklch(0.3 0.02 55 / 0.05),
+    0 14px 28px oklch(0.3 0.02 55 / 0.09);
+}
+
+.pool-skill-card__crease {
+  width: 3px;
+  flex-shrink: 0;
+  border-radius: 2px;
+  background: oklch(0.55 0.02 60 / 0.22);
+  align-self: stretch;
+  margin: 0.15rem 0;
+  transition: background 0.2s ease;
+}
+
+.pool-skill-card:hover .pool-skill-card__crease {
+  background: var(--ember);
+}
+
 .discovery-strip {
   padding: 0.25rem 0 0.5rem;
   border-bottom: 1px solid oklch(0.3 0.02 55 / 0.06);

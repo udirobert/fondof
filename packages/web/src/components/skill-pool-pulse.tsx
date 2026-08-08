@@ -2,17 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Dices, Loader2 } from "lucide-react";
 import { Tip } from "@/components/tip";
-import {
-  acquireSkill,
-  getTopSkills,
-  type SkillOnChainResponse,
-} from "@/lib/api";
+import { getTopSkills, type SkillOnChainResponse } from "@/lib/api";
 import { formatSignal } from "@/lib/idea-insights";
 import { skillPublicPath } from "@/lib/skill-share";
-import { stashAcquireNote } from "@/lib/acquire-note";
 
 interface SkillPoolPulseProps {
   className?: string;
@@ -21,16 +14,14 @@ interface SkillPoolPulseProps {
 }
 
 /**
- * Always-on SkillPool presence — existence is unavoidable; details stay on /pool.
+ * Floor chrome only — presence + peek. Draw ritual lives on /pool.
  */
 export function SkillPoolPulse({
   className = "",
   compact = false,
 }: SkillPoolPulseProps) {
-  const router = useRouter();
   const [skills, setSkills] = useState<SkillOnChainResponse[]>([]);
   const [loading, setLoading] = useState(true);
-  const [acquiring, setAcquiring] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -55,95 +46,58 @@ export function SkillPoolPulse({
     };
   }, []);
 
-  const onDraw = async () => {
-    setAcquiring(true);
-    try {
-      const res = await acquireSkill();
-      if (res.error || !res.skillHash) return;
-      const sig = formatSignal(res.skill?.signal);
-      stashAcquireNote(
-        `Drawn for your agent because this skill has high proven quality (signal ${sig}, weighted random — not search rank).`,
-      );
-      router.push(skillPublicPath(res.skillHash));
-    } catch {
-      // ignore
-    } finally {
-      setAcquiring(false);
-    }
-  };
-
   return (
     <section
-      className={`rounded-xl border border-ember/20 bg-ember/5 ${compact ? "px-3 py-2.5" : "px-3.5 py-3"} ${className}`}
+      className={`border-b border-ink/8 pb-3 ${className}`}
       aria-label="Live SkillPool"
     >
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="min-w-0">
-          <Tip tip="skillpool">
-            <Link
-              href="/pool"
-              className="cursor-help text-[11px] font-medium uppercase tracking-wider text-ember hover:underline"
-            >
-              SkillPool · live
-            </Link>
-          </Tip>
-          {!compact && (
-            <p className="mt-0.5 text-[11px] text-muted">
-              Quality signaling on Monad — not a marketplace
-            </p>
-          )}
-        </div>
-        <div className="flex shrink-0 flex-wrap items-center gap-1.5">
-          <Tip tip="acquire">
-            <button
-              type="button"
-              onClick={() => void onDraw()}
-              disabled={acquiring || (!loading && skills.length === 0)}
-              className="inline-flex min-h-8 items-center gap-1.5 rounded-full border border-ember/35 bg-paper px-2.5 text-[11px] font-medium text-ember hover:bg-ember/10 disabled:opacity-40"
-            >
-              {acquiring ? (
-                <Loader2 size={12} className="animate-spin" />
-              ) : (
-                <Dices size={12} />
-              )}
-              {acquiring ? "Drawing…" : "Draw for agent"}
-            </button>
-          </Tip>
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+        <Tip tip="skillpool">
           <Link
             href="/pool"
-            className="inline-flex min-h-8 items-center rounded-full border border-ink/10 px-2.5 text-[11px] text-ink hover:border-ember/30"
+            className="font-serif text-base text-ink hover:text-ember"
           >
-            Browse pool
+            SkillPool
           </Link>
-        </div>
+        </Tip>
+        <Link
+          href="/pool"
+          className="text-[11px] text-ember hover:underline"
+        >
+          {skills.length > 0 ? "Open the desk →" : "How it works →"}
+        </Link>
       </div>
 
+      {!compact && (
+        <p className="mt-0.5 text-[12px] text-muted">
+          Agents proving skills on Monad
+        </p>
+      )}
+
       {loading && skills.length === 0 ? (
-        <p className="mt-2 text-[11px] text-muted">Reading live scores…</p>
+        <p className="mt-2 text-[11px] text-muted">Listening…</p>
       ) : skills.length === 0 ? (
-        <p className="mt-2 text-[11px] leading-snug text-muted">
-          Pool empty — forge & publish to open the loop.{" "}
-          <Link href="/pool" className="text-ember hover:underline">
-            How it works
-          </Link>
+        <p className="mt-2 text-[12px] text-foreground-secondary">
+          Empty for now — forge & publish to open the loop.
         </p>
       ) : (
-        <ul className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
-          {skills.map((s) => (
-            <li key={s.skillHash}>
+        <p className="mt-2 text-[12px] leading-relaxed text-ink">
+          {skills.map((s, i) => (
+            <span key={s.skillHash}>
+              {i > 0 ? " · " : ""}
               <Link
                 href={skillPublicPath(s.skillHash)}
-                className="text-[12px] text-ink underline-offset-2 hover:text-ember hover:underline"
+                className="underline-offset-2 hover:text-ember hover:underline"
               >
-                Score {formatSignal(s.signal)}
+                {formatSignal(s.signal)}
                 <span className="text-muted">
                   {" "}
-                  · {s.usageCount} use{s.usageCount === 1 ? "" : "s"}
+                  ({s.usageCount} use{s.usageCount === 1 ? "" : "s"})
                 </span>
               </Link>
-            </li>
+            </span>
           ))}
-        </ul>
+        </p>
       )}
     </section>
   );

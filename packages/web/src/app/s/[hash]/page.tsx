@@ -251,7 +251,7 @@ export default function SkillPublicPage() {
           </p>
         )}
 
-        <EconomicsHonesty variant="banner" />
+        <EconomicsHonesty variant="line" />
 
         {!loading && !skill && (
           <p className="text-center text-sm text-foreground-secondary">
