@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import type { Env } from "../index.js";
 import {
+  acquireFromChain,
   getSkillFromChain,
   getTopSkillsFromChain,
   useOnChain,
@@ -12,6 +13,34 @@ export const skillsRoute = new Hono<{ Bindings: Env }>();
 
 const SKILL_TTL = 60; // KV/Cache min practical TTL
 const TOP_TTL = 60;
+
+/**
+ * Acquire a skill by on-chain weighted signal (view).
+ * Agents discover quality without SEO — Monad thesis demo.
+ */
+skillsRoute.post("/skills/acquire", rateLimit("acquire"), async (c) => {
+  const body = (await c.req
+    .json<{ seed?: string }>()
+    .catch(() => ({ seed: undefined }))) as { seed?: string };
+  try {
+    const result = await acquireFromChain(
+      c.env.MONAD_RPC_URL,
+      c.env.FONDOF_CONTRACT_ADDRESS,
+      body.seed,
+    );
+    if (!result.skill) {
+      return c.json({ error: "No skills in pool yet — forge first" }, 404);
+    }
+    return c.json({
+      skillHash: result.skillHash,
+      skill: result.skill,
+      seed: result.seed,
+    });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Unknown error";
+    return c.json({ error: msg }, 500);
+  }
+});
 
 // Get skill data + signal from chain (short edge cache — protects RPC)
 skillsRoute.get("/skills/:hash", async (c) => {

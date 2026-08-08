@@ -231,12 +231,66 @@ export async function challengeSkill(
   success?: boolean;
   txHash?: string;
   explorer?: string;
+  challengeId?: number;
   error?: string;
 }> {
   const res = await fetch(`${API_URL}/api/challenge`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ skillHash }),
+  });
+  return res.json();
+}
+
+export type OnChainChallenge = {
+  challengeId: number;
+  skillHash: string;
+  challenger: string;
+  stake: string;
+  resolved: boolean;
+  challengerWon: boolean;
+  createdAt: number;
+};
+
+/** Weighted random skill by on-chain signal. */
+export async function acquireSkill(seed?: string): Promise<{
+  skillHash?: string;
+  skill?: SkillOnChainResponse;
+  error?: string;
+}> {
+  const res = await fetch(`${API_URL}/api/skills/acquire`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ seed }),
+  });
+  return res.json();
+}
+
+export async function listOpenChallenges(
+  skillHash?: string,
+): Promise<{ challenges: OnChainChallenge[]; error?: string }> {
+  const q = skillHash
+    ? `?skillHash=${encodeURIComponent(skillHash)}`
+    : "";
+  const res = await fetch(`${API_URL}/api/challenges${q}`);
+  return res.json();
+}
+
+/** Resolver settles challenge — challengerWon true cuts skill signal. */
+export async function resolveChallenge(
+  challengeId: number,
+  challengerWon: boolean,
+): Promise<{
+  success?: boolean;
+  txHash?: string;
+  explorer?: string;
+  challengerWon?: boolean;
+  error?: string;
+}> {
+  const res = await fetch(`${API_URL}/api/challenge/${challengeId}/resolve`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ challengerWon }),
   });
   return res.json();
 }

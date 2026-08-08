@@ -455,7 +455,11 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
       if (res.error) {
         setChallengeNote(res.error);
       } else if (res.txHash) {
-        setChallengeNote("Challenge submitted on Monad (relayer).");
+        setChallengeNote(
+          typeof res.challengeId === "number"
+            ? `Challenge #${res.challengeId} on Monad — open skill page to resolve.`
+            : "Challenge submitted on Monad (relayer).",
+        );
         if (res.explorer) setExplorer(res.explorer);
         void refreshSignal(skillHash);
       }

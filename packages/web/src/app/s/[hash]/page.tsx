@@ -2,34 +2,62 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
-import { Check, Copy, ExternalLink, Flame, Swords, Zap } from "lucide-react";
+import { useParams, useRouter } from "next/navigation";
 import {
+  Check,
+  Copy,
+  Dices,
+  ExternalLink,
+  Flame,
+  Loader2,
+  Swords,
+  Zap,
+} from "lucide-react";
+import {
+  acquireSkill,
   challengeSkill,
   getSkillSignal,
   getTopSkills,
+  listOpenChallenges,
   recordUsage,
+  resolveChallenge,
+  type OnChainChallenge,
   type SkillOnChainResponse,
 } from "@/lib/api";
 import { formatSignal } from "@/lib/idea-insights";
-import { addressExplorer } from "@/lib/monad-chain";
-import { skillShareUrl, skillTweetIntent } from "@/lib/skill-share";
+import { addressExplorer, shortAddress } from "@/lib/monad-chain";
+import { skillPublicPath, skillShareUrl, skillTweetIntent } from "@/lib/skill-share";
 import { FondofWordmark } from "@/components/fondof-wordmark";
 import { IdentityLabel } from "@/components/identity-label";
 
-/** Public skill identity — share, use (grow signal), challenge. */
+/** Public skill identity — share, use, challenge, resolve, acquire. */
 export default function SkillPublicPage() {
   const params = useParams<{ hash: string }>();
+  const router = useRouter();
   const hash = decodeURIComponent(params.hash ?? "");
   const [skill, setSkill] = useState<SkillOnChainResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [using, setUsing] = useState(false);
   const [challenging, setChallenging] = useState(false);
+  const [resolvingId, setResolvingId] = useState<number | null>(null);
+  const [acquiring, setAcquiring] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [shareUrl, setShareUrl] = useState("");
   const [tick, setTick] = useState(0);
   const [peers, setPeers] = useState<SkillOnChainResponse[]>([]);
+  const [challenges, setChallenges] = useState<OnChainChallenge[]>([]);
+  const [lastChallengeId, setLastChallengeId] = useState<number | null>(null);
+
+  const refreshChallenges = useCallback(async () => {
+    if (!hash) return;
+    try {
+      const res = await listOpenChallenges(hash);
+      if (!res.error) setChallenges(res.challenges ?? []);
+    } catch {
+      // ignore
+    }
+  }, [hash]);
 
   const refresh = useCallback(async () => {
     if (!hash) return;
@@ -44,7 +72,8 @@ export default function SkillPublicPage() {
     } finally {
       setLoading(false);
     }
-  }, [hash]);
+    void refreshChallenges();
+  }, [hash, refreshChallenges]);
 
   useEffect(() => {
     setShareUrl(skillShareUrl(hash));
@@ -95,7 +124,14 @@ export default function SkillPublicPage() {
       const res = await challengeSkill(hash);
       if (res.error) setNote(res.error);
       else {
-        setNote("Challenge submitted on Monad — losses cut signal.");
+        if (typeof res.challengeId === "number") {
+          setLastChallengeId(res.challengeId);
+        }
+        setNote(
+          typeof res.challengeId === "number"
+            ? `Challenge #${res.challengeId} on Monad — resolve to settle signal.`
+            : "Challenge submitted on Monad — resolve to settle signal.",
+        );
         void refresh();
       }
     } catch {
@@ -104,6 +140,62 @@ export default function SkillPublicPage() {
       setChallenging(false);
     }
   };
+
+  const onResolve = async (challengeId: number, challengerWon: boolean) => {
+    setResolvingId(challengeId);
+    setNote(null);
+    try {
+      const res = await resolveChallenge(challengeId, challengerWon);
+      if (res.error) setNote(res.error);
+      else {
+        setNote(
+          challengerWon
+            ? `Resolved #${challengeId}: challenger won — signal cut.`
+            : `Resolved #${challengeId}: forger wins — stake adds to backing.`,
+        );
+        setLastChallengeId(null);
+        void refresh();
+      }
+    } catch {
+      setNote("Resolve failed — is relayer the contract resolver?");
+    } finally {
+      setResolvingId(null);
+    }
+  };
+
+  const onAcquire = async () => {
+    setAcquiring(true);
+    setNote(null);
+    try {
+      const res = await acquireSkill();
+      if (res.error || !res.skillHash) {
+        setNote(res.error || "Pool empty");
+        return;
+      }
+      router.push(skillPublicPath(res.skillHash));
+    } catch {
+      setNote("Acquire unavailable");
+    } finally {
+      setAcquiring(false);
+    }
+  };
+
+  const openChallenges =
+    challenges.length > 0
+      ? challenges
+      : lastChallengeId != null
+        ? [
+            {
+              challengeId: lastChallengeId,
+              skillHash: hash,
+              challenger: "",
+              stake: "",
+              resolved: false,
+              challengerWon: false,
+              createdAt: 0,
+            },
+          ]
+        : [];
 
   return (
     <div className="atmosphere relative min-h-[calc(100dvh-3.5rem)] pt-14">
@@ -197,6 +289,19 @@ export default function SkillPublicPage() {
             <Swords size={14} />
             {challenging ? "Challenging…" : "Challenge quality"}
           </button>
+          <button
+            type="button"
+            onClick={() => void onAcquire()}
+            disabled={acquiring}
+            className="flex min-h-11 items-center justify-center gap-2 rounded-full border border-ember/25 bg-ember/5 px-4 text-sm text-ember hover:bg-ember/10 disabled:opacity-40"
+          >
+            {acquiring ? (
+              <Loader2 size={14} className="animate-spin" />
+            ) : (
+              <Dices size={14} />
+            )}
+            {acquiring ? "Acquiring…" : "Acquire another by signal"}
+          </button>
           {skill?.forger && (
             <a
               href={addressExplorer(skill.forger)}
@@ -210,6 +315,54 @@ export default function SkillPublicPage() {
           )}
         </div>
 
+        {openChallenges.length > 0 && (
+          <section className="rounded-xl border border-ink/10 bg-paper/70 p-4">
+            <p className="text-[11px] uppercase tracking-wider text-muted">
+              Open challenges · resolve to settle
+            </p>
+            <ul className="mt-3 space-y-3">
+              {openChallenges.map((ch) => (
+                <li key={ch.challengeId} className="space-y-2">
+                  <p className="font-mono text-[11px] text-ink">
+                    #{ch.challengeId}
+                    {ch.challenger
+                      ? ` · ${shortAddress(ch.challenger)}`
+                      : ""}
+                    {ch.stake
+                      ? ` · stake ${formatSignal(ch.stake)}`
+                      : ""}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      disabled={resolvingId === ch.challengeId}
+                      onClick={() => void onResolve(ch.challengeId, true)}
+                      className="inline-flex min-h-9 flex-1 items-center justify-center gap-1 rounded-full border border-ink/12 px-3 text-[11px] text-ink hover:border-ember/35 disabled:opacity-40"
+                    >
+                      {resolvingId === ch.challengeId ? (
+                        <Loader2 size={12} className="animate-spin" />
+                      ) : null}
+                      Challenger wins
+                    </button>
+                    <button
+                      type="button"
+                      disabled={resolvingId === ch.challengeId}
+                      onClick={() => void onResolve(ch.challengeId, false)}
+                      className="inline-flex min-h-9 flex-1 items-center justify-center gap-1 rounded-full border border-ink/12 px-3 text-[11px] text-ink hover:border-ember/35 disabled:opacity-40"
+                    >
+                      Forger wins
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-2 text-[10px] text-muted">
+              Demo resolve via relayer (contract resolver). Challenger win →
+              losses++ and signal drops.
+            </p>
+          </section>
+        )}
+
         {note && <p className="text-center text-[11px] text-muted">{note}</p>}
 
         {peers.length > 0 && (
@@ -221,7 +374,7 @@ export default function SkillPublicPage() {
               {peers.map((p) => (
                 <li key={p.skillHash}>
                   <Link
-                    href={`/s/${encodeURIComponent(p.skillHash)}`}
+                    href={skillPublicPath(p.skillHash)}
                     className="flex items-center justify-between gap-2 rounded-lg border border-ink/8 bg-paper/60 px-3 py-2 text-sm hover:border-ember/30"
                   >
                     <span className="font-medium text-ink">

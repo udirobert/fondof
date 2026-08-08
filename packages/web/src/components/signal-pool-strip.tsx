@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Flame, Swords, Zap } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Dices, Flame, Loader2, Swords, Zap } from "lucide-react";
 import {
+  acquireSkill,
   getTopSkills,
   type SkillOnChainResponse,
 } from "@/lib/api";
@@ -13,12 +15,15 @@ import { shortAddress } from "@/lib/monad-chain";
 import { skillPublicPath } from "@/lib/skill-share";
 
 /**
- * Live SkillPool — use / challenge loop visible on the floor (not only after publish).
+ * Live SkillPool — acquire by signal, use / challenge loop.
  */
 export function SignalPoolStrip() {
+  const router = useRouter();
   const [skills, setSkills] = useState<SkillOnChainResponse[]>([]);
   const [names, setNames] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(true);
+  const [acquiring, setAcquiring] = useState(false);
+  const [acquireNote, setAcquireNote] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -53,6 +58,26 @@ export function SignalPoolStrip() {
     };
   }, []);
 
+  const onAcquire = async () => {
+    setAcquiring(true);
+    setAcquireNote(null);
+    try {
+      const res = await acquireSkill();
+      if (res.error || !res.skillHash) {
+        setAcquireNote(res.error || "Pool empty — forge first");
+        return;
+      }
+      setAcquireNote(
+        `Acquired by signal · ${formatSignal(res.skill?.signal)}`,
+      );
+      router.push(skillPublicPath(res.skillHash));
+    } catch {
+      setAcquireNote("Acquire unavailable");
+    } finally {
+      setAcquiring(false);
+    }
+  };
+
   if (loading && skills.length === 0) {
     return (
       <section className="mb-5 border-b border-ink/8 pb-4" aria-label="SkillPool">
@@ -82,12 +107,27 @@ export function SignalPoolStrip() {
 
   return (
     <section className="mb-5 border-b border-ink/8 pb-4" aria-label="SkillPool">
-      <div className="mb-2 flex items-center justify-between gap-2">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <p className="font-mono text-[10px] uppercase tracking-wider text-muted">
-          Live SkillPool · challenge & grow
+          Live SkillPool · acquire by signal
         </p>
-        <span className="text-[10px] text-muted">refreshes</span>
+        <button
+          type="button"
+          onClick={() => void onAcquire()}
+          disabled={acquiring}
+          className="inline-flex min-h-8 items-center gap-1.5 rounded-full border border-ember/30 bg-ember/5 px-2.5 text-[11px] text-ember hover:bg-ember/10 disabled:opacity-40"
+        >
+          {acquiring ? (
+            <Loader2 size={12} className="animate-spin" />
+          ) : (
+            <Dices size={12} />
+          )}
+          {acquiring ? "Acquiring…" : "Acquire for agent"}
+        </button>
       </div>
+      {acquireNote && (
+        <p className="mb-2 text-[11px] text-muted">{acquireNote}</p>
+      )}
       <ul className="space-y-2">
         {skills.map((s) => {
           const label =
@@ -131,7 +171,7 @@ export function SignalPoolStrip() {
       </ul>
       <p className="mt-2 flex items-center gap-1 text-[10px] text-muted">
         <Flame size={10} className="text-ember" />
-        Open a skill to use (grow signal) or challenge (cut it)
+        Acquire = weighted by on-chain signal · not search ranking
       </p>
     </section>
   );

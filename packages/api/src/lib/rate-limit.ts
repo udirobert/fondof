@@ -18,6 +18,8 @@ export const RATE_BUDGETS = {
   forge: { limit: 20, windowSec: 3600 },
   publish: { limit: 15, windowSec: 3600 },
   challenge: { limit: 15, windowSec: 3600 },
+  resolve: { limit: 20, windowSec: 3600 },
+  acquire: { limit: 60, windowSec: 3600 },
   use: { limit: 40, windowSec: 3600 },
   search: { limit: 30, windowSec: 3600 },
 } as const satisfies Record<string, RateBucket>;
