@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import {
   useConnect,
   useConnection,
@@ -14,15 +15,58 @@ interface WalletButtonProps {
   variant?: "nav" | "panel";
 }
 
+function hasInjectedProvider() {
+  return typeof window !== "undefined" && typeof window.ethereum !== "undefined";
+}
+
 /** Optional Monad wallet — never gates ingest. */
 export function WalletButton({ variant = "nav" }: WalletButtonProps) {
-  const { address, isConnected, chainId, status } = useConnection();
-  const { connect, connectors, isPending, error } = useConnect();
+  const { address, isConnected, chainId } = useConnection();
+  const { connectAsync, connectors, isPending, error, reset } = useConnect();
   const { disconnect } = useDisconnect();
   const { switchChain, isPending: switching } = useSwitchChain();
+  const [mounted, setMounted] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const wrongChain = isConnected && chainId !== monadTestnet.id;
-  const injected = connectors.find((c) => c.id === "injected") ?? connectors[0];
+  const connector =
+    connectors.find((c) => c.id === "injected") ?? connectors[0];
+
+  const onConnect = async () => {
+    setLocalError(null);
+    reset();
+
+    if (!hasInjectedProvider()) {
+      setLocalError("Install MetaMask (or another browser wallet), then retry.");
+      return;
+    }
+    if (!connector) {
+      setLocalError("Wallet connector not ready — refresh and try again.");
+      return;
+    }
+
+    try {
+      await connectAsync({
+        connector,
+        chainId: monadTestnet.id,
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Couldn’t connect";
+      if (/reject|denied|cancel/i.test(msg)) {
+        setLocalError("Connection rejected in wallet.");
+      } else if (/provider|not found|no.*wallet/i.test(msg)) {
+        setLocalError("No wallet found — install MetaMask and refresh.");
+      } else {
+        setLocalError(msg.slice(0, 120));
+      }
+    }
+  };
+
+  const errText = localError || error?.message || null;
 
   if (variant === "panel") {
     if (!isConnected) {
@@ -30,8 +74,8 @@ export function WalletButton({ variant = "nav" }: WalletButtonProps) {
         <div className="space-y-1.5">
           <button
             type="button"
-            disabled={!injected || isPending}
-            onClick={() => injected && connect({ connector: injected })}
+            disabled={isPending || !mounted}
+            onClick={() => void onConnect()}
             className="flex min-h-10 w-full items-center justify-center gap-2 rounded-full border border-ink/12 bg-paper px-4 text-sm text-ink transition-colors hover:border-ember/35 disabled:opacity-40"
           >
             <Wallet size={14} />
@@ -40,8 +84,8 @@ export function WalletButton({ variant = "nav" }: WalletButtonProps) {
           <p className="px-1 font-mono text-[10px] tracking-wide text-muted">
             Relayer = demo speed · Wallet = you are the forger
           </p>
-          {error && (
-            <p className="px-1 text-[11px] text-ember">{error.message}</p>
+          {errText && (
+            <p className="px-1 text-[11px] text-ember">{errText}</p>
           )}
         </div>
       );
@@ -80,6 +124,7 @@ export function WalletButton({ variant = "nav" }: WalletButtonProps) {
     );
   }
 
+  // nav
   if (isConnected && address) {
     return (
       <div className="flex items-center gap-1.5">
@@ -109,15 +154,28 @@ export function WalletButton({ variant = "nav" }: WalletButtonProps) {
   }
 
   return (
-    <button
-      type="button"
-      disabled={!injected || isPending || status === "connecting"}
-      onClick={() => injected && connect({ connector: injected })}
-      className="inline-flex items-center gap-1.5 rounded-full border border-ink/10 bg-paper px-2.5 py-1 text-[11px] text-muted transition-colors hover:border-ember/35 hover:text-ink disabled:opacity-40"
-      title="Optional — connect to forge as yourself; else relayer publishes"
-    >
-      <Wallet size={12} />
-      {isPending ? "…" : "Forger"}
-    </button>
+    <div className="relative">
+      <button
+        type="button"
+        disabled={isPending || !mounted}
+        onClick={() => void onConnect()}
+        className="inline-flex items-center gap-1.5 rounded-full border border-ink/10 bg-paper px-2.5 py-1 text-[11px] text-muted transition-colors hover:border-ember/35 hover:text-ink disabled:opacity-40"
+        title="Connect wallet to forge as yourself — else relayer publishes"
+      >
+        <Wallet size={12} />
+        {isPending ? "…" : "Forger"}
+      </button>
+      {errText && (
+        <p className="absolute top-full right-0 z-50 mt-1 w-56 rounded-lg border border-ink/10 bg-paper px-2.5 py-1.5 text-[10px] leading-snug text-ember shadow-[var(--shadow-float)]">
+          {errText}
+        </p>
+      )}
+    </div>
   );
+}
+
+declare global {
+  interface Window {
+    ethereum?: unknown;
+  }
 }
