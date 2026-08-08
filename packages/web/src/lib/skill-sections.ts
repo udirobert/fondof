@@ -34,7 +34,9 @@ function classify(title: string): SkillSectionKind {
 function excerptFrom(body: string, max = 96): string {
   const flat = body
     .replace(/```[\s\S]*?```/g, " … ")
-    .replace(/[#>*_`[\]()]/g, " ")
+    .replace(/[#>*_`()]/g, " ")
+    .replaceAll("[", " ")
+    .replaceAll("]", " ")
     .replace(/\s+/g, " ")
     .trim();
   if (!flat) return "Expand for details";
