@@ -45,6 +45,7 @@ import {
 import { Tip } from "@/components/tip";
 import { EconomicsHonesty } from "@/components/economics-honesty";
 import { WhereItLandsList } from "@/components/where-it-lands";
+import { SkillSectionAccordion } from "@/components/skill-section-accordion";
 import { getSkillMeta } from "@/lib/skill-meta";
 import { whereItLands } from "@/lib/where-it-lands";
 
@@ -61,6 +62,7 @@ export default function SkillPublicPage() {
   const [acquiring, setAcquiring] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [copiedMd, setCopiedMd] = useState(false);
   const [shareUrl, setShareUrl] = useState("");
   const [tick, setTick] = useState(0);
   const [peers, setPeers] = useState<SkillOnChainResponse[]>([]);
@@ -125,16 +127,34 @@ export default function SkillPublicPage() {
     if (skill?.repo) setMetaRepo(skill.repo);
   }, [skill?.title, skill?.blurb, skill?.repo]);
 
-  const landingHits = whereItLands({
-    repoName: metaRepo ?? undefined,
-    ideaText: [metaTitle, metaBlurb].filter(Boolean).join(" "),
-  });
+  const landingHits =
+    skill?.landings && skill.landings.length > 0
+      ? skill.landings
+      : whereItLands({
+          repoName: metaRepo ?? skill?.repo ?? undefined,
+          frameworks: skill?.frameworks,
+          ideaText: [metaTitle, metaBlurb].filter(Boolean).join(" "),
+        });
+
+  const skillMarkdown = skill?.markdown?.trim() || "";
+  const showLanding = Boolean(metaRepo || skill?.repo || landingHits.length);
 
   const onCopy = async () => {
     try {
       await navigator.clipboard.writeText(shareUrl || skillShareUrl(hash));
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1600);
+    } catch {
+      // ignore
+    }
+  };
+
+  const onCopyMarkdown = async () => {
+    if (!skillMarkdown) return;
+    try {
+      await navigator.clipboard.writeText(skillMarkdown);
+      setCopiedMd(true);
+      window.setTimeout(() => setCopiedMd(false), 1600);
     } catch {
       // ignore
     }
@@ -273,12 +293,21 @@ export default function SkillPublicPage() {
           )}
         </div>
 
-        {metaRepo && (
+        {showLanding && (
           <WhereItLandsList
             hits={landingHits}
             ready={!loading}
-            repo={metaRepo}
+            repo={metaRepo ?? skill?.repo ?? undefined}
           />
+        )}
+
+        {skillMarkdown && (
+          <section className="space-y-2" aria-label="Skill body">
+            <p className="text-[11px] uppercase tracking-wider text-muted">
+              Skill for your agent
+            </p>
+            <SkillSectionAccordion markdown={skillMarkdown} />
+          </section>
         )}
 
         <SignalStory
@@ -306,13 +335,29 @@ export default function SkillPublicPage() {
         )}
 
         <div className="flex flex-col gap-2">
+          {skillMarkdown ? (
+            <button
+              type="button"
+              onClick={() => void onCopyMarkdown()}
+              className="flex min-h-11 items-center justify-center gap-2 rounded-full bg-ember px-4 text-sm font-medium text-paper hover:bg-ember-hot"
+            >
+              {copiedMd ? <Check size={14} /> : <Copy size={14} />}
+              {copiedMd
+                ? "Copied for your agent"
+                : "Copy for Cursor / Claude / Kiro"}
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={() => void onCopy()}
-            className="flex min-h-11 items-center justify-center gap-2 rounded-full bg-ember px-4 text-sm font-medium text-paper hover:bg-ember-hot"
+            className={`flex min-h-11 items-center justify-center gap-2 rounded-full px-4 text-sm font-medium ${
+              skillMarkdown
+                ? "border border-ink/12 bg-paper text-ink hover:border-ember/35"
+                : "bg-ember text-paper hover:bg-ember-hot"
+            }`}
           >
             {copied ? <Check size={14} /> : <Copy size={14} />}
-            {copied ? "Copied for your agent" : "Copy link for your agent"}
+            {copied ? "Link copied" : "Copy share link"}
           </button>
           <button
             type="button"

@@ -8,7 +8,7 @@ import {
   useStormOnChain,
 } from "../lib/monad.js";
 import { cacheGetJson, cachePutJson } from "../lib/edge-cache.js";
-import { mergeSkillMeta, putSkillMeta } from "../lib/skill-meta.js";
+import { mergeSkillMeta, putSkillMeta, type LandingHitRecord } from "../lib/skill-meta.js";
 import { rateLimit } from "../lib/rate-limit-mw.js";
 
 export const skillsRoute = new Hono<{ Bindings: Env }>();
@@ -33,7 +33,7 @@ skillsRoute.post("/skills/acquire", rateLimit("acquire"), async (c) => {
     if (!result.skill) {
       return c.json({ error: "No skills in pool yet — forge first" }, 404);
     }
-    const skill = await mergeSkillMeta(result.skill);
+    const skill = await mergeSkillMeta(result.skill, { includeBody: true });
     return c.json({
       skillHash: result.skillHash,
       skill,
@@ -45,15 +45,25 @@ skillsRoute.post("/skills/acquire", rateLimit("acquire"), async (c) => {
   }
 });
 
-/** Store human title after wallet forge (relayer publish includes meta in body). */
+/** Store human artifact after wallet forge (relayer publish includes meta in body). */
 skillsRoute.post("/skills/:hash/meta", rateLimit("publish"), async (c) => {
   const hash = c.req.param("hash");
   const body = (await c.req
-    .json<{ title?: string; blurb?: string; repo?: string }>()
+    .json<{
+      title?: string;
+      blurb?: string;
+      repo?: string;
+      markdown?: string;
+      landings?: LandingHitRecord[];
+      frameworks?: string[];
+    }>()
     .catch(() => ({ title: undefined }))) as {
     title?: string;
     blurb?: string;
     repo?: string;
+    markdown?: string;
+    landings?: LandingHitRecord[];
+    frameworks?: string[];
   };
   const title = body.title?.trim();
   if (!title) {
@@ -63,12 +73,15 @@ skillsRoute.post("/skills/:hash/meta", rateLimit("publish"), async (c) => {
     title,
     blurb: body.blurb,
     repo: body.repo,
+    markdown: body.markdown,
+    landings: body.landings,
+    frameworks: body.frameworks,
   });
-  // Bust short skill cache so title appears immediately
+  // Bust short skill cache so artifact appears immediately
   await caches.default
     .delete(
       new Request(
-        `https://fondof-cache.internal/skill:v3:${hash.toLowerCase()}`,
+        `https://fondof-cache.internal/skill:v4:${hash.toLowerCase()}`,
       ),
     )
     .catch(() => undefined);
@@ -78,7 +91,7 @@ skillsRoute.post("/skills/:hash/meta", rateLimit("publish"), async (c) => {
 // Get skill data + signal from chain (short edge cache — protects RPC)
 skillsRoute.get("/skills/:hash", async (c) => {
   const hash = c.req.param("hash");
-  const cacheKey = `skill:v3:${hash.toLowerCase()}`;
+  const cacheKey = `skill:v4:${hash.toLowerCase()}`;
 
   const hit = await cacheGetJson<Record<string, unknown>>(cacheKey);
   if (hit) {
@@ -94,7 +107,7 @@ skillsRoute.get("/skills/:hash", async (c) => {
     );
 
     if (!skill) return c.json({ error: "Skill not found in pool" }, 404);
-    const withMeta = await mergeSkillMeta(skill);
+    const withMeta = await mergeSkillMeta(skill, { includeBody: true });
     await cachePutJson(cacheKey, withMeta, SKILL_TTL);
     c.header("X-Cache", "MISS");
     return c.json(withMeta);
@@ -165,7 +178,7 @@ skillsRoute.post("/skills/:hash/use", rateLimit("use"), async (c) => {
     try {
       await caches.default.delete(
         new Request(
-          `https://fondof-cache.internal/skill:v3:${hash.toLowerCase()}`,
+          `https://fondof-cache.internal/skill:v4:${hash.toLowerCase()}`,
         ),
       );
     } catch {
@@ -210,7 +223,7 @@ skillsRoute.post("/skills/:hash/storm", rateLimit("storm"), async (c) => {
     try {
       await caches.default.delete(
         new Request(
-          `https://fondof-cache.internal/skill:v3:${hash.toLowerCase()}`,
+          `https://fondof-cache.internal/skill:v4:${hash.toLowerCase()}`,
         ),
       );
     } catch {

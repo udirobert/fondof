@@ -348,17 +348,27 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
       draft,
       forgeTitle ?? ideas[0]?.title,
     );
-    rememberSkillMeta(hash, {
+    const landings = whereItLands({
+      repoName: repo || undefined,
+      frameworks: repoMeta?.frameworks,
+      languages: repoMeta?.languages?.map((l) => l.language),
+      ideaText: ideas.map((i) => `${i.title} ${i.description}`).join(" "),
+    });
+    const artifact = {
       title: preview.title,
       blurb: preview.blurb,
       repo: repo || undefined,
+      markdown: draft || undefined,
+      landings,
+      frameworks: repoMeta?.frameworks,
+    };
+    rememberSkillMeta(hash, {
+      title: artifact.title,
+      blurb: artifact.blurb,
+      repo: artifact.repo,
       live: true,
     });
-    void publishSkillMeta(hash, {
-      title: preview.title,
-      blurb: preview.blurb,
-      repo: repo || undefined,
-    });
+    void publishSkillMeta(hash, artifact);
   };
 
   const publish = async () => {
@@ -368,6 +378,20 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
       draft,
       forgeTitle ?? ideas[0]?.title,
     );
+    const landings = whereItLands({
+      repoName: repo || undefined,
+      frameworks: repoMeta?.frameworks,
+      languages: repoMeta?.languages?.map((l) => l.language),
+      ideaText: ideas.map((i) => `${i.title} ${i.description}`).join(" "),
+    });
+    const artifactMeta = {
+      title: preview.title,
+      blurb: preview.blurb,
+      repo: repo || undefined,
+      markdown: draft || undefined,
+      landings,
+      frameworks: repoMeta?.frameworks,
+    };
 
     // Connected wallet → forge on-chain as the user (you are the forger).
     if (isConnected && skillHash && sourceHashes.length > 0) {
@@ -415,11 +439,7 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
     try {
       if (skillHash) {
         const res = await Promise.race([
-          publishSkill(skillHash, sourceHashes, {
-            title: preview.title,
-            blurb: preview.blurb,
-            repo: repo || undefined,
-          }),
+          publishSkill(skillHash, sourceHashes, artifactMeta),
           new Promise<never>((_, reject) => {
             window.setTimeout(() => reject(new Error("timeout")), 6000);
           }),

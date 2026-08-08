@@ -90,7 +90,7 @@ fondof/
 ## Key Design Decisions
 
 - **Relayer + optional wallet:** Relayer submits forge/use/challenge for demos; wallet forge attributes the forger on-chain.
-- **Hashes on-chain, titles at the edge:** SkillPool stores hashes; human title/blurb in edge cache (+ client mirror) so `/pool` cards stay readable.
+- **Hashes on-chain, titles + skill body at the edge:** SkillPool stores hashes; title, blurb, landing map, and capped markdown live in Worker edge cache so `/s/[hash]` is a real artifact for any judge browser — not localStorage-only.
 - **Fit check ≠ FR6 benchmark:** Forge shows a structural fit strip (sections, citations, repo tokens, length) plus a **Where it lands** path map. That is not a live agent eval on the user’s repo. Real Validation Engine stays deferred. Post-publish **Proof** = SkillPool signal (uses, escrow, losses) with sparkline motion — secondary to copying the skill for an agent.
 - **One product surface:** `/` is the floor; `/canvas` redirects there. Nav is Fond + Pool.
 - **Agent-agnostic skill format:** Markdown skills work with Kiro, Claude, Cursor, etc. UI uses progressive section disclosure so long files aren’t a wall.

@@ -1,19 +1,25 @@
 import { Hono } from "hono";
 import type { Env } from "../index.js";
 import { forgeOnChain } from "../lib/monad.js";
-import { putSkillMeta } from "../lib/skill-meta.js";
+import { putSkillMeta, type LandingHitRecord } from "../lib/skill-meta.js";
 import { rateLimit } from "../lib/rate-limit-mw.js";
 
 export const publishRoute = new Hono<{ Bindings: Env }>();
 
 publishRoute.post("/publish", rateLimit("publish"), async (c) => {
-  const { skillHash, sourceHashes, title, blurb, repo } = await c.req.json<{
+  const body = await c.req.json<{
     skillHash: string;
     sourceHashes: string[];
     title?: string;
     blurb?: string;
     repo?: string;
+    markdown?: string;
+    landings?: LandingHitRecord[];
+    frameworks?: string[];
   }>();
+
+  const { skillHash, sourceHashes, title, blurb, repo, markdown, landings, frameworks } =
+    body;
 
   if (!skillHash) return c.json({ error: "skillHash is required" }, 400);
   if (!sourceHashes?.length) return c.json({ error: "sourceHashes are required" }, 400);
@@ -32,7 +38,14 @@ publishRoute.post("/publish", rateLimit("publish"), async (c) => {
     );
 
     if (title?.trim()) {
-      await putSkillMeta(skillHash, { title, blurb, repo });
+      await putSkillMeta(skillHash, {
+        title,
+        blurb,
+        repo,
+        markdown,
+        landings,
+        frameworks,
+      });
     }
 
     return c.json({

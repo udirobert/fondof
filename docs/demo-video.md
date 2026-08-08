@@ -17,7 +17,7 @@ Unlisted YouTube is fine for Ready Spec Ship. Match this path to the README judg
 | 0:35–1:05 | **Need path (no GitHub):** Need tab → `retry budgets for async TypeScript` → Extract → shards land. |
 | 1:05–1:40 | Select Forge shards → **Skill for {repo}** → Fit check → **Where it lands** ticks → expandable sections (not a markdown wall). |
 | 1:40–2:10 | **Publish** (quiet). Paper skill card → **Copy for Cursor / Claude / Kiro** (peak). Open skill for Proof secondary. |
-| 2:10–2:35 | Skill page: copy link for agent → **I used this** → Proof mix sparkline. Dispute/oracle once if shown. |
+| 2:10–2:40 | Skill page: **Where it lands** + section skim → **Copy for Cursor / Claude / Kiro** → **I used this** → Proof sparkline. |
 | 2:35–2:55 | **/pool** desk → Draw / paper cards. |
 | 2:55–3:10 | Close: craft first, Proof second. Link README + `.kiro/`. |
 
