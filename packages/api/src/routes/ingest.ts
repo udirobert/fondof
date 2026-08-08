@@ -4,6 +4,7 @@ import { chat, embed } from "../lib/llm.js";
 import { extractContent } from "../lib/extract.js";
 import { transcribeAudio, isAudioUrl, resolveAudioUrl } from "../lib/transcribe.js";
 import { isYouTubeUrl, getYouTubeTranscript } from "../lib/youtube.js";
+import { isRssUrl, getLatestEpisodeFromRss } from "../lib/rss.js";
 
 const EXTRACT_SYSTEM = `You are a JSON-only response bot. You extract actionable technical ideas from content.
 
@@ -23,7 +24,7 @@ ingestRoute.post("/ingest", async (c) => {
   try {
     let text: string;
     let title: string;
-    let contentType: "audio" | "article" | "youtube";
+    let contentType: "audio" | "article" | "youtube" | "podcast";
 
     // Detect content type and extract text
     if (isYouTubeUrl(url)) {
@@ -37,6 +38,29 @@ ingestRoute.post("/ingest", async (c) => {
 
       text = transcript.text;
       title = transcript.title;
+    } else if (isRssUrl(url)) {
+      // RSS Feed: get latest episode → transcribe
+      contentType = "podcast";
+      const episode = await getLatestEpisodeFromRss(url);
+
+      if (!episode) {
+        return c.json({ error: "Could not parse RSS feed. Make sure the URL points to a valid podcast RSS feed." }, 400);
+      }
+
+      // Transcribe the audio
+      const transcript = await transcribeAudio(episode.audioUrl, c.env);
+      if (!transcript || !transcript.text) {
+        // Fall back to using the episode description if transcription fails
+        if (episode.description && episode.description.length > 100) {
+          text = episode.description;
+        } else {
+          return c.json({ error: `Found episode "${episode.title}" but could not transcribe audio. ElevenLabs API key may be missing or the audio URL is inaccessible.` }, 400);
+        }
+      } else {
+        text = transcript.text;
+      }
+
+      title = episode.title;
     } else if (isAudioUrl(url)) {
       // Audio: resolve URL → transcribe via ElevenLabs
       contentType = "audio";
