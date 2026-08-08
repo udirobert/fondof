@@ -48,7 +48,8 @@ fondof/
 │   ├── cli/                 # Commander.js CLI application
 │   ├── core/                # Business logic, pipelines, engines
 │   ├── contracts/           # Foundry project (Solidity)
-│   └── shared/              # Shared types, schemas, utils
+│   ├── shared/              # Shared types, schemas, utils
+│   └── web/                 # Next.js 16.3+ frontend (App Router)
 ├── pnpm-workspace.yaml
 ├── package.json             # Root workspace config
 ├── tsconfig.json            # Base TS config
@@ -61,6 +62,9 @@ fondof/
 - **Local-first data:** Repo profiles and idea records are stored locally (SQLite). Only hashes go on-chain.
 - **Agent-agnostic skill format:** Output skills as markdown with YAML frontmatter. Works with Kiro, Claude, Cursor, or any agent that reads skill files.
 - **CLI-first for Blitz:** Web UI is post-hackathon. The CLI is the primary interface.
+- **Flow canvas UI:** The web frontend is a spatial canvas (not a linear feed). Sources on the left, ideas as connected nodes in the center, repos on the right, with animated beams showing matches. The metaphor is flow and transformation, not conversation.
+- **Frontend stack:** Next.js 16.3+ (App Router, streaming, view transitions), Tailwind 4, Canvas UI (WebGL effects), Framer Motion (springs), Zustand (state), TanStack Query (data fetching).
+- **Graceful degradation:** All canvas/WebGL effects fall back to plain HTML. Respect `prefers-reduced-motion`. Keyboard navigable.
 
 ## Monad-Specific Notes
 

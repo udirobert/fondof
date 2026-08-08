@@ -155,6 +155,54 @@
 - [ ] Ensure sub-60s from paste to discovery results
 - [ ] Script the demo flow with fallbacks
 
+## Phase 9: Frontend (Web UI — Post-Blitz)
+
+### Task 9.1: Next.js project setup
+- [ ] Initialize Next.js 16.3+ app in `packages/web` (App Router, Tailwind 4)
+- [ ] Configure pnpm workspace to include `packages/web`
+- [ ] Set up shared types import from `packages/shared`
+- [ ] Add Zustand for client state management
+- [ ] Configure server components for initial data loading
+
+### Task 9.2: Flow canvas layout
+- [ ] Build spatial canvas container (CSS Grid + absolute positioning)
+- [ ] Implement source cards (left column) — podcast/blog media cards
+- [ ] Implement idea nodes (center) — floating, connectable nodes with status glow
+- [ ] Implement repo context panel (right dock) — persistent sidebar
+- [ ] Responsive: collapse to vertical flow on tablet, linear cards on mobile
+
+### Task 9.3: Match beams & connections
+- [ ] Implement animated beam connections (idea → repo) using Canvas/WebGL overlay
+- [ ] Encode relevance score in beam width/opacity
+- [ ] Color-code by status: green (novel), amber (partial), red (conflict)
+- [ ] Hover interaction: show match rationale tooltip
+- [ ] Respect `prefers-reduced-motion` (static lines fallback)
+
+### Task 9.4: Ingestion & processing UI
+- [ ] Waveform visualization during audio transcription
+- [ ] Thinking orb states during idea extraction
+- [ ] Idea nodes emerging one by one (scale + blur entrance)
+- [ ] Beams scanning animation during repo matching
+
+### Task 9.5: Composition view
+- [ ] Slide selected ideas into central "forge" area
+- [ ] Display source segments as quotable cards with timestamps
+- [ ] Load repo context panel alongside (conventions, patterns)
+- [ ] Stream skill draft with live text (streaming text component)
+- [ ] Conflict warnings as pulsing highlights
+
+### Task 9.6: Attestation UX
+- [ ] Verified badge animation on publish (checkmark crystallize, <600ms)
+- [ ] Provenance hash as subtle copyable badge
+- [ ] Zero blockchain terminology in any UI text
+- [ ] Link to explorer for verification (optional, tucked away)
+
+### Task 9.7: Auth & data flow
+- [ ] GitHub OAuth login flow (web-based)
+- [ ] Repo selection and indexing triggered from UI
+- [ ] Real-time updates via server-sent events or WebSocket
+- [ ] TanStack Query for client-side cache + optimistic updates
+
 ---
 
 ## Blitz Day Prioritization (8-hour sprint)
