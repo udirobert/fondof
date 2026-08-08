@@ -1,7 +1,6 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import { FondFloor } from "@/components/fond-floor";
-
+/** One product surface — floor lives at `/`. */
 export default function CanvasPage() {
-  return <FondFloor showFrame={false} />;
+  redirect("/");
 }

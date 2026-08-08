@@ -79,10 +79,10 @@ export function WalletButton({ variant = "nav" }: WalletButtonProps) {
             className="flex min-h-10 w-full items-center justify-center gap-2 rounded-full border border-ink/12 bg-paper px-4 text-sm text-ink transition-colors hover:border-ember/35 disabled:opacity-40"
           >
             <Wallet size={14} />
-            {isPending ? "Connecting…" : "Connect to forge as you"}
+            {isPending ? "Connecting…" : "Forge as you (optional)"}
           </button>
           <p className="px-1 font-mono text-[10px] tracking-wide text-muted">
-            Relayer = demo speed · Wallet = you are the forger
+            Skip → relayer publishes for the demo
           </p>
           {errText && (
             <p className="px-1 text-[11px] text-ember">{errText}</p>

@@ -592,11 +592,12 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
               {showFrame && (
                 <div className="mb-5 text-center">
                   <FondofWordmark size="hero" />
-                  <p className="mx-auto mt-3 max-w-sm text-sm text-foreground-secondary">
-                    Paste what you learn. See what exists. Forge for your repo.
+                  <p className="mx-auto mt-3 max-w-md text-sm text-foreground-secondary">
+                    Paste or state a need. Forge a short skill fitted to your
+                    repo. Agents prove it on SkillPool.
                   </p>
                   <p className="mx-auto mt-2 font-mono text-[10px] tracking-wide text-muted">
-                    Extract → Forge → SkillPool on Monad
+                    Extract → Forge → hand to your agent
                   </p>
                 </div>
               )}

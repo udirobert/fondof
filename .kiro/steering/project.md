@@ -11,7 +11,7 @@ The blockchain layer (Monad **SkillPool**) records provenance and a **quality si
 1. **Need-first, not publish-first** — The user's workflow starts from either "I consumed something interesting" or "I have a problem." Discovery and matching come before creation. Need path requires no GitHub OAuth.
 2. **Environment-fitted** — Skills are never generic. They're always crafted for a specific repo's stack, conventions, and patterns.
 3. **Multi-source composition** — The best skills weave ideas from multiple sources, not single-source extraction.
-4. **Chain as infrastructure, craft as UX** — Prefer relayer so publish works without wallet setup. Optional wallet = you are the forger. SkillPool score is quality signaling, not yield. Never fake “published” when chain is down.
+4. **Craft hero, Proof secondary** — First job is a short fitted skill you can copy into Cursor / Claude / Kiro. SkillPool signal, disputes, and wallets support that story; they do not own the title card. Prefer relayer so publish works without wallet setup. Never fake “published” when chain is down.
 5. **Skill-worthiness** — Not everything should be a skill. The system actively distinguishes one-time fixes from repeatable patterns.
 6. **Not a marketplace** — We don't list or sell pre-made skills. SkillPool desk is a *quality loop* (draw / use / dispute), not a catalog of products for sale.
 7. **Not a registry of the ecosystem** — We search existing skills (via Exa Compare) to inform forge decisions — we don't index the whole ecosystem as a product.
@@ -91,7 +91,8 @@ fondof/
 
 - **Relayer + optional wallet:** Relayer submits forge/use/challenge for demos; wallet forge attributes the forger on-chain.
 - **Hashes on-chain, titles at the edge:** SkillPool stores hashes; human title/blurb in edge cache (+ client mirror) so `/pool` cards stay readable.
-- **Fit check ≠ FR6 benchmark:** Forge shows a structural fit strip (sections, citations, repo tokens, length). That is not a live agent eval on the user’s repo. Real Validation Engine (synthetic tasks / with-vs-without skill) stays deferred per design §5. Post-publish **Proof** = SkillPool signal (uses, escrow, losses) with sparkline motion.
+- **Fit check ≠ FR6 benchmark:** Forge shows a structural fit strip (sections, citations, repo tokens, length) plus a **Where it lands** path map. That is not a live agent eval on the user’s repo. Real Validation Engine stays deferred. Post-publish **Proof** = SkillPool signal (uses, escrow, losses) with sparkline motion — secondary to copying the skill for an agent.
+- **One product surface:** `/` is the floor; `/canvas` redirects there. Nav is Fond + Pool.
 - **Agent-agnostic skill format:** Markdown skills work with Kiro, Claude, Cursor, etc. UI uses progressive section disclosure so long files aren’t a wall.
 - **Web-first for Ready Spec Ship:** Hosted Netlify + Worker is the judge path; CLI is secondary.
 - **Graceful degradation:** Demo shards / local draft templates when APIs fail — must stay honest in copy.

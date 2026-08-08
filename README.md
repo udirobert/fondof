@@ -88,9 +88,9 @@ We're domain-agnostic. If you need pre-built DeFi/crypto agent capabilities:
 1. Open the live app (no install).
 2. **Need** tab → type e.g. `retry budgets for async TypeScript fetch` → Extract (no GitHub).
    - Or **URL** tab → paste a public article URL.
-3. Select 1–2 Forge-worthy shards → open Forge → wait for skill preview (title + one-liner + **Fit check** + expandable sections).
-4. **Publish** (relayer by default, or connect wallet on Monad testnet to forge as yourself).
-5. Open the skill → **I used this** to grow score (Proof sparkline) → optional **Dispute**.
+3. Select 1–2 Forge-worthy shards → open Forge → **Skill for {repo}** → Fit check → **Where it lands** → expandable sections.
+4. **Publish** → paper skill card → **Copy for Cursor / Claude / Kiro** (primary). Open skill for Proof if you want.
+5. Skill page → copy link for agent → **I used this** to grow Proof → optional Dispute.
 6. Visit [**/pool**](https://fondof.netlify.app/pool) → Draw a skill / browse paper cards.
 
 **Honesty:** If chain/relayer is unreachable, publish stays a local draft — we do not fake “published.” Challenge **resolve** is a demo oracle (relayer), not decentralized adjudication. **Fit check** is structural heuristics (sections / citations / repo tokens) — not a live agent eval on your repo (FR6 validation engine is deferred). Offline LLM fallbacks may seed demo shards when extract fails — labeled as such in the UI when possible.

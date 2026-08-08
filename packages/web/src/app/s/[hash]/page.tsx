@@ -44,7 +44,9 @@ import {
 } from "@/lib/acquire-note";
 import { Tip } from "@/components/tip";
 import { EconomicsHonesty } from "@/components/economics-honesty";
+import { WhereItLandsList } from "@/components/where-it-lands";
 import { getSkillMeta } from "@/lib/skill-meta";
+import { whereItLands } from "@/lib/where-it-lands";
 
 /** Public skill identity — quality story first, chain as detail. */
 export default function SkillPublicPage() {
@@ -68,6 +70,7 @@ export default function SkillPublicPage() {
   const [signalPlayKey, setSignalPlayKey] = useState(0);
   const [metaTitle, setMetaTitle] = useState<string | null>(null);
   const [metaBlurb, setMetaBlurb] = useState<string | null>(null);
+  const [metaRepo, setMetaRepo] = useState<string | null>(null);
 
   const refreshChallenges = useCallback(async () => {
     if (!hash) return;
@@ -100,6 +103,7 @@ export default function SkillPublicPage() {
     const meta = getSkillMeta(hash);
     setMetaTitle(meta?.title ?? null);
     setMetaBlurb(meta?.blurb ?? null);
+    setMetaRepo(meta?.repo ?? null);
     const acquireStory = takeAcquireNote();
     if (acquireStory) setNote(acquireStory);
     void refresh();
@@ -118,7 +122,13 @@ export default function SkillPublicPage() {
   useEffect(() => {
     if (skill?.title) setMetaTitle(skill.title);
     if (skill?.blurb) setMetaBlurb(skill.blurb);
-  }, [skill?.title, skill?.blurb]);
+    if (skill?.repo) setMetaRepo(skill.repo);
+  }, [skill?.title, skill?.blurb, skill?.repo]);
+
+  const landingHits = whereItLands({
+    repoName: metaRepo ?? undefined,
+    ideaText: [metaTitle, metaBlurb].filter(Boolean).join(" "),
+  });
 
   const onCopy = async () => {
     try {
@@ -263,6 +273,14 @@ export default function SkillPublicPage() {
           )}
         </div>
 
+        {metaRepo && (
+          <WhereItLandsList
+            hits={landingHits}
+            ready={!loading}
+            repo={metaRepo}
+          />
+        )}
+
         <SignalStory
           signal={skill?.signal}
           backing={skill?.backing}
@@ -287,6 +305,62 @@ export default function SkillPublicPage() {
           </p>
         )}
 
+        <div className="flex flex-col gap-2">
+          <button
+            type="button"
+            onClick={() => void onCopy()}
+            className="flex min-h-11 items-center justify-center gap-2 rounded-full bg-ember px-4 text-sm font-medium text-paper hover:bg-ember-hot"
+          >
+            {copied ? <Check size={14} /> : <Copy size={14} />}
+            {copied ? "Copied for your agent" : "Copy link for your agent"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void onUse()}
+            disabled={using || !skill}
+            className="flex min-h-11 items-center justify-center gap-2 rounded-full border border-ink/12 bg-paper px-4 text-sm text-ink hover:border-ember/35 disabled:opacity-40"
+          >
+            <Zap size={14} />
+            {using ? "Recording…" : "I used this — grow Proof"}
+          </button>
+          <Tip tip="challenge" className="w-full">
+            <button
+              type="button"
+              onClick={() => void onChallenge()}
+              disabled={challenging || !skill}
+              className="flex min-h-11 w-full items-center justify-center gap-2 rounded-full border border-ink/12 bg-paper px-4 text-sm text-ink hover:border-ember/35 disabled:opacity-40"
+            >
+              <Swords size={14} />
+              {challenging
+                ? "Staking…"
+                : `Dispute quality · stake ${CHALLENGE_STAKE} MON`}
+            </button>
+          </Tip>
+          <a
+            href={skillTweetIntent({ hash, title: metaTitle ?? undefined })}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex min-h-10 items-center justify-center gap-2 text-xs text-muted hover:text-ink"
+          >
+            Post to X
+          </a>
+          <Tip tip="acquire" className="w-full">
+            <button
+              type="button"
+              onClick={() => void onAcquire()}
+              disabled={acquiring}
+              className="flex min-h-10 w-full items-center justify-center gap-2 text-xs text-ember hover:underline disabled:opacity-40"
+            >
+              {acquiring ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <Dices size={14} />
+              )}
+              {acquiring ? "Drawing…" : "Draw next skill for my agent"}
+            </button>
+          </Tip>
+        </div>
+
         {(skill || sourceHashes.length > 0) && (
           <ProvenanceTree
             sourceHashes={sourceHashes}
@@ -305,62 +379,6 @@ export default function SkillPublicPage() {
           onResolve={(id, won) => void onResolve(id, won)}
           losses={skill?.challengeLosses}
         />
-
-        <div className="flex flex-col gap-2">
-          <button
-            type="button"
-            onClick={() => void onUse()}
-            disabled={using || !skill}
-            className="flex min-h-11 items-center justify-center gap-2 rounded-full bg-ember px-4 text-sm font-medium text-paper hover:bg-ember-hot disabled:opacity-40"
-          >
-            <Zap size={14} />
-            {using ? "Recording…" : "I used this — grow the score"}
-          </button>
-          <Tip tip="challenge" className="w-full">
-            <button
-              type="button"
-              onClick={() => void onChallenge()}
-              disabled={challenging || !skill}
-              className="flex min-h-11 w-full items-center justify-center gap-2 rounded-full border border-ink/12 bg-paper px-4 text-sm text-ink hover:border-ember/35 disabled:opacity-40"
-            >
-              <Swords size={14} />
-              {challenging
-                ? "Staking…"
-                : `Dispute quality · stake ${CHALLENGE_STAKE} MON`}
-            </button>
-          </Tip>
-          <button
-            type="button"
-            onClick={() => void onCopy()}
-            className="flex min-h-11 items-center justify-center gap-2 rounded-full border border-ink/12 bg-paper px-4 text-sm text-ink hover:border-ember/35"
-          >
-            {copied ? <Check size={14} /> : <Copy size={14} />}
-            {copied ? "Link copied" : "Copy share link"}
-          </button>
-          <a
-            href={skillTweetIntent({ hash, title: metaTitle ?? undefined })}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex min-h-11 items-center justify-center gap-2 rounded-full border border-ink/12 bg-paper px-4 text-sm text-ink hover:border-ember/35"
-          >
-            Post to X
-          </a>
-          <Tip tip="acquire" className="w-full">
-            <button
-              type="button"
-              onClick={() => void onAcquire()}
-              disabled={acquiring}
-              className="flex min-h-11 w-full items-center justify-center gap-2 rounded-full border border-ember/25 bg-ember/5 px-4 text-sm text-ember hover:bg-ember/10 disabled:opacity-40"
-            >
-              {acquiring ? (
-                <Loader2 size={14} className="animate-spin" />
-              ) : (
-                <Dices size={14} />
-              )}
-              {acquiring ? "Drawing…" : "Draw next skill for my agent"}
-            </button>
-          </Tip>
-        </div>
 
         {skill && (
           <ReceiptStormButton

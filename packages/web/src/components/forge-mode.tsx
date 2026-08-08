@@ -53,7 +53,7 @@ import { WalletButton } from "@/components/wallet-button";
 import { SkillPoolLoop } from "@/components/skill-pool-loop";
 import { SkillSectionAccordion } from "@/components/skill-section-accordion";
 import { SkillFitStrip } from "@/components/skill-fit-strip";
-import { Tip } from "@/components/tip";
+import { WhereItLandsList } from "@/components/where-it-lands";
 import { useAppStore } from "@/lib/store";
 import { fondofPhrase } from "@/lib/fondof-phrase";
 import {
@@ -61,6 +61,8 @@ import {
   skillPreviewFromMarkdown,
 } from "@/lib/skill-meta";
 import { skillFitCheck } from "@/lib/skill-fit-check";
+import { parseSkillSections } from "@/lib/skill-sections";
+import { whereItLands } from "@/lib/where-it-lands";
 import Link from "next/link";
 
 type Phase = "ritual" | "compose" | "attested";
@@ -109,6 +111,7 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
   const [attestKey, setAttestKey] = useState(0);
   const [showFullDraft, setShowFullDraft] = useState(false);
   const [forgeTitle, setForgeTitle] = useState<string | null>(null);
+  const [showPoolMore, setShowPoolMore] = useState(false);
   const setPublished = useAppStore((s) => s.setPublished);
   const { address, isConnected, chainId } = useConnection();
   const { switchChainAsync } = useSwitchChain();
@@ -201,6 +204,7 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
         setWalletTxHash(undefined);
         setShowFullDraft(false);
         setForgeTitle(null);
+        setShowPoolMore(false);
         pendingMarkdown.current = null;
         streamCancel.current?.();
         streamCancel.current = null;
@@ -547,6 +551,13 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
           isDelta,
         })
       : null;
+  const landingHits = whereItLands({
+    repoName: repo || undefined,
+    frameworks: repoMeta?.frameworks,
+    languages: repoMeta?.languages?.map((l) => l.language),
+    ideaText: ideas.map((i) => `${i.title} ${i.description}`).join(" "),
+  });
+  const sectionCount = draft ? parseSkillSections(draft).length : 0;
 
   const copyDraft = async () => {
     if (!draft) return;
@@ -589,11 +600,18 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
             <header className="flex items-center justify-between border-b border-ink/8 px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-5 sm:pt-3.5">
               <div className="flex min-w-0 items-center gap-2.5">
                 <Flame size={16} className="shrink-0 text-ember" />
-                <h2 className="font-serif text-xl text-ink">Forge</h2>
-                <span className="hidden truncate text-xs text-muted sm:inline">
-                  {phrase.object} · {ideas.length} shard
-                  {ideas.length === 1 ? "" : "s"}
-                </span>
+                <div className="min-w-0">
+                  <h2 className="font-serif text-xl leading-tight text-ink">
+                    Skill for{" "}
+                    <span className="text-ember">
+                      {repo?.split("/").pop() || "your repo"}
+                    </span>
+                  </h2>
+                  <p className="truncate text-[11px] text-muted">
+                    {phrase.object} · {ideas.length} shard
+                    {ideas.length === 1 ? "" : "s"}
+                  </p>
+                </div>
               </div>
               <button
                 type="button"
@@ -717,6 +735,12 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
                               />
                             )}
 
+                            <WhereItLandsList
+                              hits={landingHits}
+                              ready={ready || draft.length > 80}
+                              repo={repo}
+                            />
+
                             {draft && (
                               <div className="pt-1">
                                 <p className="mb-2 text-[11px] uppercase tracking-wider text-muted">
@@ -792,65 +816,99 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
                         </select>
                       </div>
 
+                      <p className="px-0.5 text-[10px] leading-snug text-muted">
+                        Optional:{" "}
+                        <span className="text-ink">forge as you</span> with a
+                        wallet — else the relayer publishes.
+                      </p>
                       <WalletButton variant="panel" />
 
                       {phase === "attested" ? (
                         <motion.div
-                          initial={{ opacity: 0, y: 4 }}
+                          initial={{ opacity: 0, y: 8 }}
                           animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
                           className="space-y-3"
                         >
-                          <div className="panel-sm relative overflow-hidden p-4">
-                            <div className="mb-2 flex items-center gap-2 text-steel">
-                              <Check size={16} className="text-ember" />
-                              <span className="text-sm font-medium">
-                                Live on SkillPool
+                          <div className="pool-skill-card relative overflow-hidden p-4">
+                            <span className="pool-skill-card__crease" aria-hidden />
+                            <p className="text-[10px] uppercase tracking-wider text-muted">
+                              Your skill · ready for agents
+                            </p>
+                            <h3 className="mt-1 font-serif text-xl leading-snug text-ink">
+                              {draftPreview.title}
+                            </h3>
+                            <p className="mt-1.5 text-[12px] leading-snug text-foreground-secondary">
+                              {draftPreview.blurb}
+                            </p>
+                            <p className="mt-2 text-[11px] text-muted">
+                              {repo || "your repo"}
+                              {sectionCount > 0
+                                ? ` · ${sectionCount} section${sectionCount === 1 ? "" : "s"}`
+                                : ""}
+                              {" · "}
+                              Live · score{" "}
+                              <span className="tabular-nums text-ink">
+                                <SignalCountUp
+                                  value={liveSignal}
+                                  playKey={attestKey}
+                                />
                               </span>
-                            </div>
-                            <div className="mb-3 flex items-end justify-between gap-3">
-                              <div>
-                                <Tip tip="signal">
-                                  <p className="cursor-help text-[11px] uppercase tracking-wider text-muted">
-                                    Proven score
-                                  </p>
-                                </Tip>
-                                <p className="font-serif text-3xl text-ink">
-                                  <SignalCountUp
-                                    value={liveSignal}
-                                    playKey={attestKey}
-                                  />
-                                </p>
-                              </div>
-                              <p className="pb-1 text-right text-[11px] text-muted">
-                                {usageCount ?? 0} agent use
-                                {(usageCount ?? 0) === 1 ? "" : "s"}
-                                <br />
-                                disputes cut fakes
-                              </p>
-                            </div>
+                              {(usageCount ?? 0) > 0
+                                ? ` · ${usageCount} use${usageCount === 1 ? "" : "s"}`
+                                : ""}
+                            </p>
                             {publishNote && (
-                              <p className="mb-2 text-[11px] text-muted">
+                              <p className="mt-2 text-[10px] text-muted">
                                 {publishNote}
                               </p>
                             )}
                           </div>
 
-                          <SkillPoolLoop stage="live" />
+                          <button
+                            type="button"
+                            onClick={copyDraft}
+                            disabled={!draft}
+                            className="flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-ember px-4 text-sm font-medium text-paper hover:bg-ember-hot disabled:opacity-30"
+                          >
+                            {copied ? (
+                              <Check size={14} />
+                            ) : (
+                              <Copy size={14} />
+                            )}
+                            {copied
+                              ? "Copied for your agent"
+                              : "Copy for Cursor / Claude / Kiro"}
+                          </button>
 
                           {skillHash && (
                             <Link
                               href={skillPublicPath(skillHash)}
-                              className="flex min-h-11 items-center justify-center gap-2 rounded-full bg-ember px-4 text-sm font-medium text-paper hover:bg-ember-hot"
+                              className="flex min-h-10 items-center justify-center gap-2 rounded-full border border-ink/12 bg-paper px-4 text-sm text-ink hover:border-ember/35"
                               onClick={onClose}
                             >
                               <Flame size={14} />
-                              Open skill · join the loop
+                              Open skill · Proof on SkillPool
                             </Link>
                           )}
 
-                          <div className="flex flex-col gap-2">
-                            {skillHash && (
-                              <>
+                          <button
+                            type="button"
+                            onClick={() => setShowPoolMore((v) => !v)}
+                            className="flex w-full items-center justify-between gap-2 text-left text-[11px] text-muted hover:text-ink"
+                            aria-expanded={showPoolMore}
+                          >
+                            <span>More on SkillPool</span>
+                            <ChevronDown
+                              size={13}
+                              className={`transition-transform ${showPoolMore ? "rotate-180" : ""}`}
+                            />
+                          </button>
+
+                          {showPoolMore && (
+                            <div className="space-y-2 border-t border-ink/8 pt-2">
+                              <SkillPoolLoop stage="live" />
+                              {skillHash && (
                                 <button
                                   type="button"
                                   onClick={async () => {
@@ -867,17 +925,12 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
                                       // ignore
                                     }
                                   }}
-                                  className="flex min-h-10 items-center justify-center gap-2 rounded-full border border-ink/12 bg-paper px-4 text-sm text-ink hover:border-ember/35"
+                                  className="flex min-h-9 w-full items-center justify-center gap-2 rounded-full border border-ink/12 bg-paper px-3 text-xs text-ink"
                                 >
-                                  {linkCopied ? (
-                                    <Check size={14} />
-                                  ) : (
-                                    <Copy size={14} />
-                                  )}
-                                  {linkCopied
-                                    ? "Link copied"
-                                    : "Copy skill link"}
+                                  {linkCopied ? "Link copied" : "Copy skill link"}
                                 </button>
+                              )}
+                              {skillHash && (
                                 <a
                                   href={skillTweetIntent({
                                     hash: skillHash,
@@ -885,63 +938,61 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
                                   })}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="flex min-h-10 items-center justify-center gap-2 rounded-full border border-ink/12 bg-paper px-4 text-sm text-ink hover:border-ember/35"
+                                  className="flex min-h-9 items-center justify-center gap-2 text-xs text-muted hover:text-ink"
                                 >
                                   Post to X
                                 </a>
-                              </>
-                            )}
-                            {explorer && (
-                              <a
-                                href={explorer}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex min-h-10 items-center justify-center gap-2 text-xs text-muted hover:text-ink"
+                              )}
+                              {explorer && (
+                                <a
+                                  href={explorer}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex min-h-9 items-center justify-center gap-2 text-xs text-muted hover:text-ink"
+                                >
+                                  <ExternalLink size={12} />
+                                  Tx on Monad
+                                </a>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => void onChallenge()}
+                                disabled={challenging || !skillHash}
+                                className="flex min-h-9 w-full items-center justify-center gap-2 rounded-full border border-ink/12 bg-paper px-3 text-xs text-ink disabled:opacity-40"
                               >
-                                <ExternalLink size={12} />
-                                Tx on Monad
-                              </a>
-                            )}
-                            <button
-                              type="button"
-                              onClick={() => void onChallenge()}
-                              disabled={challenging || !skillHash}
-                              className="flex min-h-10 items-center justify-center gap-2 rounded-full border border-ink/12 bg-paper px-4 text-sm text-ink hover:border-ember/35 disabled:opacity-40"
-                            >
-                              <Swords size={14} />
-                              {challenging
-                                ? "Staking…"
-                                : walletReady
-                                  ? "Dispute from wallet"
-                                  : "Dispute quality"}
-                            </button>
-                            {challengeNote && (
-                              <p className="px-1 text-[11px] text-muted">
-                                {challengeNote}
-                              </p>
-                            )}
-                          </div>
-
-                          {skillHash && (
-                            <ReceiptStormButton
-                              skillHash={skillHash}
-                              count={12}
-                              variant="panel"
-                              gated
-                              onComplete={(r) => {
-                                if (r.signal) setLiveSignal(r.signal);
-                                if (typeof r.usageCount === "number") {
-                                  setUsageCount(r.usageCount);
-                                }
-                                setAttestKey((k) => k + 1);
-                                void refreshSignal(skillHash);
-                              }}
-                            />
+                                <Swords size={12} />
+                                {challenging ? "Staking…" : "Dispute quality"}
+                              </button>
+                              {challengeNote && (
+                                <p className="px-1 text-[11px] text-muted">
+                                  {challengeNote}
+                                </p>
+                              )}
+                              {skillHash && (
+                                <ReceiptStormButton
+                                  skillHash={skillHash}
+                                  count={12}
+                                  variant="panel"
+                                  gated
+                                  onComplete={(r) => {
+                                    if (r.signal) setLiveSignal(r.signal);
+                                    if (typeof r.usageCount === "number") {
+                                      setUsageCount(r.usageCount);
+                                    }
+                                    setAttestKey((k) => k + 1);
+                                    void refreshSignal(skillHash);
+                                  }}
+                                />
+                              )}
+                            </div>
                           )}
                         </motion.div>
                       ) : (
                         <div className="space-y-3">
-                          <SkillPoolLoop stage="compose" />
+                          <p className="text-[12px] leading-snug text-foreground-secondary">
+                            Publish when the preview fits — then copy the skill
+                            for your agent. SkillPool scores what gets used.
+                          </p>
 
                           <button
                             type="button"
@@ -954,14 +1005,14 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
                               "Publishing…"
                             ) : walletReady ? (
                               <span className="inline-flex items-center gap-1.5">
-                                Publish & stake{" "}
+                                Publish as{" "}
                                 <IdentityLabel
                                   address={address!}
                                   className="text-paper"
                                 />
                               </span>
                             ) : (
-                              `Publish · stake ${FORGE_BACKING} MON skin`
+                              "Publish to SkillPool"
                             )}
                           </button>
                           {publishNote && (
@@ -970,26 +1021,9 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
                             </p>
                           )}
                           <p className="px-1 text-[10px] leading-snug text-muted">
-                            Publishing puts skin in escrow so the pool can score
-                            this skill — quality signaling, not a listing fee
-                            you earn back. Copy markdown after it’s live if you
-                            want it offline.
+                            Skin in escrow enables scoring — signaling, not a
+                            listing fee you earn back.
                           </p>
-                          {showFullDraft && (
-                            <button
-                              type="button"
-                              onClick={copyDraft}
-                              disabled={!draft}
-                              className="flex min-h-10 w-full items-center justify-center gap-2 rounded-full border border-ink/12 bg-paper px-4 py-2 text-sm text-ink transition-colors hover:border-ember/35 disabled:opacity-30"
-                            >
-                              {copied ? (
-                                <Check size={14} className="text-ember" />
-                              ) : (
-                                <Copy size={14} />
-                              )}
-                              {copied ? "Copied" : "Copy markdown"}
-                            </button>
-                          )}
                         </div>
                       )}
 

@@ -64,8 +64,8 @@ export function StartPad({
           className="text-ink underline-offset-2 hover:text-ember hover:underline"
         >
           describe a need
-        </button>{" "}
-        (no GitHub). Watch shards land. Forge.
+        </button>
+        . Forge a short skill fitted to your repo.
       </p>
 
       <div className="mb-3 flex justify-center gap-1">

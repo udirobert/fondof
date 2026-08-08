@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useMemo } from "react";
 import { useAppStore } from "@/lib/store";
 import { fondofPhrase } from "@/lib/fondof-phrase";
 import { FondofWordmark } from "@/components/fondof-wordmark";
@@ -17,15 +17,10 @@ export function Nav() {
   const isIngesting = useAppStore((s) => s.isIngesting);
   const phrase = useMemo(() => fondofPhrase(sources), [sources]);
 
-  const step = forgeOpen
-    ? 3
-    : ideas.length > 0
-      ? 2
-      : isIngesting
-        ? 1
-        : 1;
-
+  const step = forgeOpen ? 3 : ideas.length > 0 ? 2 : isIngesting ? 1 : 1;
   const showObject = ideas.length > 0 || isIngesting;
+  const onFloor = pathname === "/" || pathname === "/canvas";
+  const onPool = pathname === "/pool" || pathname?.startsWith("/s/");
 
   return (
     <nav className="fixed top-0 right-0 left-0 z-50 border-b border-ink/8 bg-parchment/90 pt-[env(safe-area-inset-top)] backdrop-blur-md">
@@ -38,42 +33,54 @@ export function Nav() {
           />
         </Link>
 
-        <ol
-          className="hidden items-center gap-1 text-xs sm:flex"
-          aria-label="Progress"
-        >
-          {[
-            { n: 1, label: "Paste" },
-            { n: 2, label: "Select" },
-            { n: 3, label: "Forge" },
-          ].map((item, i) => (
-            <li key={item.n} className="flex items-center gap-1">
-              {i > 0 && (
-                <span aria-hidden className="px-1 text-muted/40">
-                  →
+        {onFloor && (
+          <ol
+            className="hidden items-center gap-1 text-xs sm:flex"
+            aria-label="Progress"
+          >
+            {[
+              { n: 1, label: "Paste" },
+              { n: 2, label: "Select" },
+              { n: 3, label: "Forge" },
+            ].map((item, i) => (
+              <li key={item.n} className="flex items-center gap-1">
+                {i > 0 && (
+                  <span aria-hidden className="px-1 text-muted/40">
+                    →
+                  </span>
+                )}
+                <span
+                  className={`rounded-full px-2.5 py-1 transition-colors ${
+                    step === item.n
+                      ? "bg-mist font-medium text-ink"
+                      : step > item.n
+                        ? "text-ink/55"
+                        : "text-muted"
+                  }`}
+                >
+                  {item.n} {item.label}
+                  {item.n === 2 && selected > 0 ? ` · ${selected}` : ""}
                 </span>
-              )}
-              <span
-                className={`rounded-full px-2.5 py-1 transition-colors ${
-                  step === item.n
-                    ? "bg-mist font-medium text-ink"
-                    : step > item.n
-                      ? "text-ink/55"
-                      : "text-muted"
-                }`}
-              >
-                {item.n} {item.label}
-                {item.n === 2 && selected > 0 ? ` · ${selected}` : ""}
-              </span>
-            </li>
-          ))}
-        </ol>
+              </li>
+            ))}
+          </ol>
+        )}
 
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <Link
+            href="/"
+            className={`rounded-full px-2.5 py-1 text-xs transition-colors ${
+              onFloor
+                ? "bg-mist font-medium text-ink"
+                : "text-muted hover:text-ink"
+            }`}
+          >
+            Fond
+          </Link>
           <Link
             href="/pool"
             className={`rounded-full px-2.5 py-1 text-xs transition-colors ${
-              pathname === "/pool" || pathname?.startsWith("/s/")
+              onPool
                 ? "bg-ember/10 font-medium text-ember"
                 : "text-muted hover:text-ink"
             }`}
@@ -81,14 +88,6 @@ export function Nav() {
             Pool
           </Link>
           <WalletButton variant="nav" />
-          {pathname !== "/" && pathname !== "/pool" && (
-            <Link
-              href="/"
-              className="hidden text-xs text-muted transition-colors hover:text-ink sm:inline"
-            >
-              Forge
-            </Link>
-          )}
         </div>
       </div>
     </nav>
