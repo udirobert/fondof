@@ -11,9 +11,10 @@ import {
   type SkillOnChainResponse,
 } from "@/lib/api";
 import { formatSignal } from "@/lib/idea-insights";
-import { addressExplorer, shortAddress } from "@/lib/monad-chain";
+import { addressExplorer } from "@/lib/monad-chain";
 import { skillShareUrl, skillTweetIntent } from "@/lib/skill-share";
 import { FondofWordmark } from "@/components/fondof-wordmark";
+import { IdentityLabel } from "@/components/identity-label";
 
 /** Public skill identity — share, use (grow signal), challenge. */
 export default function SkillPublicPage() {
@@ -116,8 +117,9 @@ export default function SkillPublicPage() {
                 : "Not on SkillPool yet — share the link, forge to mint."}
           </p>
           {skill?.forger && (
-            <p className="mt-1 font-mono text-[11px] text-muted">
-              Forger {shortAddress(skill.forger)}
+            <p className="mt-2 flex items-center justify-center gap-1.5 font-mono text-[11px] text-muted">
+              Forger{" "}
+              <IdentityLabel address={skill.forger} avatar />
             </p>
           )}
         </section>

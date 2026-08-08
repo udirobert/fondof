@@ -7,7 +7,8 @@ import {
   useSwitchChain,
 } from "wagmi";
 import { Wallet } from "lucide-react";
-import { monadTestnet, shortAddress } from "@/lib/monad-chain";
+import { IdentityLabel } from "@/components/identity-label";
+import { monadTestnet } from "@/lib/monad-chain";
 
 interface WalletButtonProps {
   variant?: "nav" | "panel";
@@ -50,7 +51,8 @@ export function WalletButton({ variant = "nav" }: WalletButtonProps) {
       <div className="space-y-1.5 rounded-xl border border-ink/8 bg-paper/80 px-3 py-2.5">
         <div className="flex items-center justify-between gap-2">
           <p className="min-w-0 truncate font-mono text-sm text-ink">
-            Forger {shortAddress(address!)}
+            Forger{" "}
+            <IdentityLabel address={address!} avatar className="font-mono" />
           </p>
           <button
             type="button"
@@ -100,7 +102,7 @@ export function WalletButton({ variant = "nav" }: WalletButtonProps) {
           <span
             className={`h-1.5 w-1.5 rounded-full ${wrongChain ? "bg-ember" : "bg-steel"}`}
           />
-          {shortAddress(address)}
+          <IdentityLabel address={address} className="max-w-[7rem]" />
         </button>
       </div>
     );

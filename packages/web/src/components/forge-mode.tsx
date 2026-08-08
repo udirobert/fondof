@@ -44,6 +44,7 @@ import {
   skillTweetIntent,
 } from "@/lib/skill-share";
 import { OrigamiRitualCanvas } from "@/components/experience/origami-ritual-canvas";
+import { IdentityLabel } from "@/components/identity-label";
 import { WalletButton } from "@/components/wallet-button";
 import { useAppStore } from "@/lib/store";
 import { fondofPhrase } from "@/lib/fondof-phrase";
@@ -756,11 +757,19 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
                             className="flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-ember px-4 py-2.5 text-sm font-medium text-paper transition-colors hover:bg-ember-hot disabled:opacity-30"
                           >
                             <Shield size={14} />
-                            {publishing
-                              ? "Publishing…"
-                              : walletReady
-                                ? `Publish as ${shortAddress(address!)}`
-                                : "Publish skill"}
+                            {publishing ? (
+                              "Publishing…"
+                            ) : walletReady ? (
+                              <span className="inline-flex items-center gap-1.5">
+                                Publish as{" "}
+                                <IdentityLabel
+                                  address={address!}
+                                  className="text-paper"
+                                />
+                              </span>
+                            ) : (
+                              "Publish skill"
+                            )}
                           </button>
                           {publishNote && (
                             <p className="px-1 text-[11px] text-ember">
