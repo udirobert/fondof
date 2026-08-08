@@ -47,6 +47,7 @@ import { EconomicsHonesty } from "@/components/economics-honesty";
 import { WhereItLandsList } from "@/components/where-it-lands";
 import { SkillSectionAccordion } from "@/components/skill-section-accordion";
 import { ReattachDraft } from "@/components/reattach-draft";
+import { SkillOutcomePanel } from "@/components/skill-outcome";
 import { getSkillMeta } from "@/lib/skill-meta";
 import { whereItLands } from "@/lib/where-it-lands";
 
@@ -336,6 +337,18 @@ export default function SkillPublicPage() {
               }}
             />
           )
+        )}
+
+        {!loading && skill && (
+          <SkillOutcomePanel
+            skillHash={hash}
+            titleHint={metaTitle ?? skill.title}
+            outcome={skill.outcome}
+            onSaved={(outcome) => {
+              setSkill((s) => (s ? { ...s, outcome } : s));
+              setNote("Outcome attached — quality means it helped.");
+            }}
+          />
         )}
 
         <SignalStory

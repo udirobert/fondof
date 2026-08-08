@@ -164,7 +164,7 @@ Unchecked items are deferred or partial — not abandoned.
 **Product hierarchy:** personalised craft → agent hand-off → SkillPool proof → **outcome receipts** (what the skill resulted in).
 
 ### Task 10.1: Outcome attachments (next build)
-- [ ] Optional outcome on skill page / meta: PR URL, short “what improved” note, optional screenshot URL
-- [ ] Persist via edge meta (same path as markdown) — no fake metrics
-- [ ] Surface lightly on `/s/[hash]` and pool cards when present
-- [ ] Do **not** rebrand as security scanner; keep untrusted-supply as problem context only
+- [x] Optional outcome on skill page / meta: PR URL, short “what improved” note, optional screenshot URL
+- [x] Persist via edge meta (same path as markdown) — no fake metrics
+- [x] Surface lightly on `/s/[hash]` and pool cards when present
+- [x] Do **not** rebrand as security scanner; keep untrusted-supply as problem context only

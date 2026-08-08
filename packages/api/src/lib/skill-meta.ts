@@ -7,6 +7,13 @@ import { cacheGetJson, cachePutJson } from "./edge-cache.js";
 
 export type LandingHitRecord = { path: string; why: string };
 
+/** What the skill resulted in — honest optional receipts, not fake metrics. */
+export type SkillOutcomeRecord = {
+  note: string;
+  prUrl?: string;
+  screenshotUrl?: string;
+};
+
 export type SkillMetaRecord = {
   title: string;
   blurb?: string;
@@ -15,6 +22,7 @@ export type SkillMetaRecord = {
   markdown?: string;
   landings?: LandingHitRecord[];
   frameworks?: string[];
+  outcome?: SkillOutcomeRecord;
   at: number;
 };
 
@@ -33,31 +41,98 @@ export async function getSkillMeta(
 }
 
 export type SkillMetaInput = {
-  title: string;
+  title?: string;
   blurb?: string;
   repo?: string;
   markdown?: string;
   landings?: LandingHitRecord[];
   frameworks?: string[];
+  /** Pass to set/replace; omit to keep existing */
+  outcome?: SkillOutcomeRecord | null;
 };
 
+function sanitizeHttpUrl(raw: string | undefined, max = 500): string | undefined {
+  const t = raw?.trim();
+  if (!t) return undefined;
+  try {
+    const u = new URL(t);
+    if (u.protocol !== "http:" && u.protocol !== "https:") return undefined;
+    return u.toString().slice(0, max);
+  } catch {
+    return undefined;
+  }
+}
+
+function sanitizeOutcome(
+  outcome: SkillOutcomeRecord | null | undefined,
+): SkillOutcomeRecord | undefined {
+  if (outcome === null || outcome === undefined) return undefined;
+  const note = outcome.note?.trim().slice(0, 280);
+  if (!note || note.length < 8) return undefined;
+  return {
+    note,
+    prUrl: sanitizeHttpUrl(outcome.prUrl),
+    screenshotUrl: sanitizeHttpUrl(outcome.screenshotUrl),
+  };
+}
+
+/**
+ * Upsert meta. Omitted fields keep prior values so outcome-only / draft
+ * re-attach updates do not wipe the rest of the artifact.
+ */
 export async function putSkillMeta(
   hash: string,
   meta: SkillMetaInput,
 ): Promise<SkillMetaRecord> {
-  const markdown = meta.markdown?.trim();
+  const existing = await getSkillMeta(hash);
+  const title =
+    meta.title?.trim().slice(0, 120) ||
+    existing?.title?.trim() ||
+    "Untitled skill";
+
+  const markdown =
+    meta.markdown !== undefined
+      ? meta.markdown.trim()
+        ? meta.markdown.trim().slice(0, MARKDOWN_CAP)
+        : undefined
+      : existing?.markdown;
+
+  const landings =
+    meta.landings !== undefined
+      ? meta.landings.slice(0, 6).map((h) => ({
+          path: h.path.slice(0, 80),
+          why: h.why.slice(0, 120),
+        }))
+      : existing?.landings;
+
+  const frameworks =
+    meta.frameworks !== undefined
+      ? meta.frameworks.slice(0, 8).map((f) => f.slice(0, 40))
+      : existing?.frameworks;
+
+  let outcome: SkillOutcomeRecord | undefined;
+  if (meta.outcome === null) {
+    outcome = undefined;
+  } else if (meta.outcome !== undefined) {
+    outcome = sanitizeOutcome(meta.outcome);
+  } else {
+    outcome = existing?.outcome;
+  }
+
   const record: SkillMetaRecord = {
-    title: meta.title.trim().slice(0, 120) || "Untitled skill",
-    blurb: meta.blurb?.trim().slice(0, 200) || undefined,
-    repo: meta.repo?.trim().slice(0, 120) || undefined,
-    markdown: markdown
-      ? markdown.slice(0, MARKDOWN_CAP)
-      : undefined,
-    landings: meta.landings?.slice(0, 6).map((h) => ({
-      path: h.path.slice(0, 80),
-      why: h.why.slice(0, 120),
-    })),
-    frameworks: meta.frameworks?.slice(0, 8).map((f) => f.slice(0, 40)),
+    title,
+    blurb:
+      meta.blurb !== undefined
+        ? meta.blurb.trim().slice(0, 200) || undefined
+        : existing?.blurb,
+    repo:
+      meta.repo !== undefined
+        ? meta.repo.trim().slice(0, 120) || undefined
+        : existing?.repo,
+    markdown,
+    landings,
+    frameworks,
+    outcome,
     at: Date.now(),
   };
   await cachePutJson(metaKey(hash), record, META_TTL);
@@ -75,6 +150,7 @@ export async function mergeSkillMeta<T extends { skillHash?: string }>(
     markdown?: string;
     landings?: LandingHitRecord[];
     frameworks?: string[];
+    outcome?: SkillOutcomeRecord;
   }
 > {
   const hash = skill.skillHash;
@@ -88,6 +164,7 @@ export async function mergeSkillMeta<T extends { skillHash?: string }>(
     repo: meta.repo,
     landings: meta.landings,
     frameworks: meta.frameworks,
+    outcome: meta.outcome,
     ...(opts?.includeBody && meta.markdown
       ? { markdown: meta.markdown }
       : {}),

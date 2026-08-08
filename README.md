@@ -27,8 +27,7 @@ This repo also targets **Ready, Spec, Ship** (Kiro) and Monad demo contexts. See
 1. **Craft (primary)** — A short skill fitted to *your* stack, conventions, and paths — personalised and specifically useful.
 2. **Hand-off** — Copy into Cursor / Claude / Kiro; use it on a real repo.
 3. **Proof (near)** — SkillPool signal (backing + uses − challenge losses); disputes police junk and malice without becoming a scanner product.
-4. **Outcomes (next)** — Attach what the skill *resulted in* (PR, UI delta, repo improvement) so quality is “did it help?” not only “did people stake/use it?”
-
+4. **Outcomes (next)** — Attach what the skill *resulted in* (PR, UI delta, repo improvement) so quality is “did it help?” not only “did people stake/use it?” Thin path: `/s/[hash]` → Attach outcome (note + optional PR / screenshot URL) via edge meta; pool cards show a Result line when present.
 ## What fondof does
 
 1. **Ingest** — Paste a podcast/blog URL *or* state a need in plain text (no GitHub required). fondof extracts discrete idea shards.

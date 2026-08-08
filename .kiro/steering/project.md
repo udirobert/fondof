@@ -15,7 +15,7 @@ The blockchain layer stays secondary to craft UX — not gas theater, not preten
 1. **Craft** — Fitted, personalised skill (primary).
 2. **Hand-off** — Copy into an agent; apply to a real repo.
 3. **Proof (near)** — SkillPool signal + disputes.
-4. **Outcomes (next)** — Attach what the skill resulted in; do not fake this until a thin path exists.
+4. **Outcomes (thin path shipped)** — Optional note + PR / screenshot URLs on edge meta; surface on `/s/[hash]` and pool cards. Grow toward richer receipts without fake metrics.
 
 ## Core Principles
 
@@ -108,7 +108,7 @@ fondof/
 - **Hashes on-chain, titles + skill body at the edge:** SkillPool stores hashes; title, blurb, landing map, and capped markdown live in Worker edge cache so `/s/[hash]` is a real artifact for any judge browser — not localStorage-only.
 - **Re-attach draft:** If a live skill hash has no edge markdown (or after a pool reset), `/s/[hash]` offers paste-to-attach so any browser gets sections + copy without republishing on-chain.
 - **Fit check ≠ FR6 benchmark:** Forge shows a structural fit strip (sections, citations, repo tokens, length) plus a **Where it lands** path map. That is not a live agent eval on the user’s repo. Real Validation Engine stays deferred. Post-publish **Proof** = SkillPool signal (uses, escrow, losses) with sparkline motion — secondary to copying the skill for an agent.
-- **Outcomes next:** Quality should grow toward “what this skill resulted in” (repo/UI/PR). Ship only with honest, optional attachments — never invent fake before/after metrics.
+- **Outcomes (edge meta):** Optional `outcome: { note, prUrl?, screenshotUrl? }` merged into skill meta. Honest receipts only — no invented before/after scores.
 - **One product surface:** `/` is the floor; `/canvas` redirects there. Nav is Fond + Pool.
 - **Agent-agnostic skill format:** Markdown skills work with Kiro, Claude, Cursor, etc. UI uses progressive section disclosure so long files aren’t a wall.
 - **Web-first for Ready Spec Ship:** Hosted Netlify + Worker is the judge path; CLI is secondary.

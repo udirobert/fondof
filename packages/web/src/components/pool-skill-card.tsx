@@ -68,6 +68,12 @@ export function PoolSkillCard({
               {blurb}
             </p>
           )}
+          {skill.outcome?.note && (
+            <p className="mt-1.5 line-clamp-2 text-[11px] leading-snug text-ink/80">
+              <span className="text-ember">Result · </span>
+              {skill.outcome.note}
+            </p>
+          )}
           <p className="mt-1 text-[12px] text-foreground-secondary">
             {subtitle}
           </p>

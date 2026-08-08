@@ -56,6 +56,11 @@ skillsRoute.post("/skills/:hash/meta", rateLimit("publish"), async (c) => {
       markdown?: string;
       landings?: LandingHitRecord[];
       frameworks?: string[];
+      outcome?: {
+        note?: string;
+        prUrl?: string;
+        screenshotUrl?: string;
+      } | null;
     }>()
     .catch(() => ({ title: undefined }))) as {
     title?: string;
@@ -64,11 +69,25 @@ skillsRoute.post("/skills/:hash/meta", rateLimit("publish"), async (c) => {
     markdown?: string;
     landings?: LandingHitRecord[];
     frameworks?: string[];
+    outcome?: {
+      note?: string;
+      prUrl?: string;
+      screenshotUrl?: string;
+    } | null;
   };
+
+  const hasOutcomePatch = body.outcome !== undefined;
   const title = body.title?.trim();
-  if (!title) {
+  if (!title && !hasOutcomePatch) {
     return c.json({ error: "title is required" }, 400);
   }
+  if (body.outcome && body.outcome !== null) {
+    const note = body.outcome.note?.trim() ?? "";
+    if (note.length < 8) {
+      return c.json({ error: "outcome note is too short" }, 400);
+    }
+  }
+
   const record = await putSkillMeta(hash, {
     title,
     blurb: body.blurb,
@@ -76,7 +95,18 @@ skillsRoute.post("/skills/:hash/meta", rateLimit("publish"), async (c) => {
     markdown: body.markdown,
     landings: body.landings,
     frameworks: body.frameworks,
+    outcome:
+      body.outcome === null
+        ? null
+        : body.outcome
+          ? {
+              note: body.outcome.note ?? "",
+              prUrl: body.outcome.prUrl,
+              screenshotUrl: body.outcome.screenshotUrl,
+            }
+          : undefined,
   });
+
   // Bust short skill cache so artifact appears immediately
   await caches.default
     .delete(
@@ -85,6 +115,15 @@ skillsRoute.post("/skills/:hash/meta", rateLimit("publish"), async (c) => {
       ),
     )
     .catch(() => undefined);
+  // Best-effort list cache bust (common limits)
+  for (const lim of [5, 10, 20]) {
+    await caches.default
+      .delete(
+        new Request(`https://fondof-cache.internal/skills:top:v4:${lim}`),
+      )
+      .catch(() => undefined);
+  }
+
   return c.json({ success: true, meta: record });
 });
 
@@ -120,7 +159,7 @@ skillsRoute.get("/skills/:hash", async (c) => {
 // Get top skills by signal
 skillsRoute.get("/skills", async (c) => {
   const limit = parseInt(c.req.query("limit") ?? "10");
-  const cacheKey = `skills:top:v3:${limit}`;
+  const cacheKey = `skills:top:v4:${limit}`;
 
   const hit = await cacheGetJson<{ skills: unknown[] }>(cacheKey);
   if (hit) {

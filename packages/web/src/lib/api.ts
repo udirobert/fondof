@@ -77,6 +77,12 @@ export interface PublishResponse {
   error?: string;
 }
 
+export interface SkillOutcome {
+  note: string;
+  prUrl?: string;
+  screenshotUrl?: string;
+}
+
 export interface SkillOnChainResponse {
   skillHash: string;
   forger: string;
@@ -93,6 +99,7 @@ export interface SkillOnChainResponse {
   markdown?: string;
   landings?: Array<{ path: string; why: string }>;
   frameworks?: string[];
+  outcome?: SkillOutcome;
   error?: string;
 }
 
@@ -229,14 +236,15 @@ export async function publishSkill(
 export async function publishSkillMeta(
   skillHash: string,
   meta: {
-    title: string;
+    title?: string;
     blurb?: string;
     repo?: string;
     markdown?: string;
     landings?: Array<{ path: string; why: string }>;
     frameworks?: string[];
+    outcome?: SkillOutcome | null;
   },
-): Promise<{ success?: boolean; error?: string }> {
+): Promise<{ success?: boolean; error?: string; meta?: unknown }> {
   const res = await fetch(
     `${API_URL}/api/skills/${encodeURIComponent(skillHash)}/meta`,
     {
