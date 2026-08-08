@@ -182,9 +182,9 @@ body {
 
 .idea-shard {
   display: flex;
-  align-items: stretch;
-  gap: 0.75rem;
-  padding: 0.9rem 1rem 0.9rem 0.85rem;
+  flex-direction: column;
+  gap: 0;
+  padding: 0.75rem 1rem 0.75rem 0.85rem;
   background:
     linear-gradient(
       135deg,
@@ -323,9 +323,16 @@ body {
   opacity: 0.85;
 }
 
+.idea-shard--highlight {
+  border-color: oklch(0.58 0.16 42 / 0.55);
+  box-shadow:
+    0 0 0 1px oklch(0.58 0.16 42 / 0.25),
+    0 18px 36px oklch(0.3 0.02 55 / 0.12);
+}
+
 .discovery-strip {
-  padding: 0.5rem 0 0.85rem;
-  border-bottom: 1px solid oklch(0.3 0.02 55 / 0.08);
+  padding: 0.25rem 0 0.5rem;
+  border-bottom: 1px solid oklch(0.3 0.02 55 / 0.06);
 }
 
 .forge-tray {

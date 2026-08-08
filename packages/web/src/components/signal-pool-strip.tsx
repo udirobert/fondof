@@ -14,16 +14,24 @@ import { identityLabel, resolveIdentities } from "@/lib/identity";
 import { shortAddress } from "@/lib/monad-chain";
 import { skillPublicPath } from "@/lib/skill-share";
 
+interface SignalPoolStripProps {
+  /** Nested under WorkStages — drop outer chrome */
+  embedded?: boolean;
+}
+
 /**
  * Live SkillPool — acquire by signal, use / challenge loop.
  */
-export function SignalPoolStrip() {
+export function SignalPoolStrip({ embedded = false }: SignalPoolStripProps) {
   const router = useRouter();
   const [skills, setSkills] = useState<SkillOnChainResponse[]>([]);
   const [names, setNames] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(true);
   const [acquiring, setAcquiring] = useState(false);
   const [acquireNote, setAcquireNote] = useState<string | null>(null);
+  const shell = embedded
+    ? "mb-4 pb-3"
+    : "mb-5 border-b border-ink/8 pb-4";
 
   useEffect(() => {
     let cancelled = false;
@@ -80,7 +88,7 @@ export function SignalPoolStrip() {
 
   if (loading && skills.length === 0) {
     return (
-      <section className="mb-5 border-b border-ink/8 pb-4" aria-label="SkillPool">
+      <section className={shell} aria-label="SkillPool">
         <p className="font-mono text-[10px] uppercase tracking-wider text-muted">
           SkillPool on Monad
         </p>
@@ -91,25 +99,22 @@ export function SignalPoolStrip() {
 
   if (skills.length === 0) {
     return (
-      <section className="mb-5 border-b border-ink/8 pb-4" aria-label="SkillPool">
+      <section className={shell} aria-label="SkillPool">
         <p className="font-mono text-[10px] uppercase tracking-wider text-muted">
           SkillPool on Monad
         </p>
         <p className="mt-1 text-sm text-ink">
           No skills live yet — forge and publish to open the signal loop.
         </p>
-        <p className="mt-1 text-[11px] text-muted">
-          Signal = backing + uses − challenge losses. Be the first forger.
-        </p>
       </section>
     );
   }
 
   return (
-    <section className="mb-5 border-b border-ink/8 pb-4" aria-label="SkillPool">
+    <section className={shell} aria-label="SkillPool">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <p className="font-mono text-[10px] uppercase tracking-wider text-muted">
-          Live SkillPool · acquire by signal
+          Live SkillPool
         </p>
         <button
           type="button"
@@ -171,7 +176,7 @@ export function SignalPoolStrip() {
       </ul>
       <p className="mt-2 flex items-center gap-1 text-[10px] text-muted">
         <Flame size={10} className="text-ember" />
-        Acquire = weighted by on-chain signal · not search ranking
+        Weighted by on-chain signal
       </p>
     </section>
   );

@@ -16,6 +16,7 @@ interface AgentExportBarProps {
   repo?: string;
   /** When set, export only these; else all ideas */
   selectedIds?: Set<string>;
+  className?: string;
 }
 
 /**
@@ -28,6 +29,7 @@ export function AgentExportBar({
   fondObject,
   repo,
   selectedIds,
+  className = "mb-4",
 }: AgentExportBarProps) {
   const [copied, setCopied] = useState<"md" | "prompt" | null>(null);
 
@@ -63,10 +65,10 @@ export function AgentExportBar({
       : `${target.length} shards`;
 
   return (
-    <div className="mb-4 flex flex-wrap items-center gap-2">
+    <div className={`flex flex-wrap items-center gap-2 ${className}`}>
       <p className="mr-1 flex items-center gap-1.5 text-[11px] text-muted">
         <Terminal size={12} />
-        Agent-ready · {scope}
+        Agent · {scope}
       </p>
       <button
         type="button"

@@ -18,6 +18,7 @@ import { FitTarget } from "@/components/fit-target";
 import { FondofWordmark } from "@/components/fondof-wordmark";
 import { LiveSignalLine } from "@/components/live-signal-line";
 import { SignalPoolStrip } from "@/components/signal-pool-strip";
+import { WorkStages } from "@/components/work-stages";
 import { useAppStore } from "@/lib/store";
 import { fondofPhrase } from "@/lib/fondof-phrase";
 import {
@@ -69,6 +70,9 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
   const [liveFondObject, setLiveFondObject] = useState("this source");
   const [liveTitle, setLiveTitle] = useState<string | undefined>();
   const [liveIdeas, setLiveIdeas] = useState<IdeaFromAPI[]>([]);
+  const [fitFilterActive, setFitFilterActive] = useState(false);
+  const [focusShardId, setFocusShardId] = useState<string | null>(null);
+  const focusClearRef = useRef<number | null>(null);
 
   const {
     sources,
@@ -411,7 +415,89 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
     [ideas, allRepos, activeRepoObj, discoverySkills],
   );
 
-  const activeFitCount = ideaInsights.filter((r) => r.fit).length;
+  const fittedInsights = useMemo(
+    () => ideaInsights.filter((r) => r.fit),
+    [ideaInsights],
+  );
+  const activeFitCount = fittedInsights.length;
+
+  const fitPreviews = useMemo(
+    () =>
+      fittedInsights.slice(0, 3).map((r) => ({
+        id: r.idea.id,
+        title: r.idea.title,
+        why: r.fit?.why ?? "stack match",
+      })),
+    [fittedInsights],
+  );
+
+  const fitIdeaIds = useMemo(
+    () => fittedInsights.map((r) => r.idea.id),
+    [fittedInsights],
+  );
+
+  // Reset fit filter when the target repo changes
+  useEffect(() => {
+    setFitFilterActive(false);
+    setFocusShardId(null);
+  }, [activeRepo]);
+
+  useEffect(() => {
+    return () => {
+      if (focusClearRef.current) window.clearTimeout(focusClearRef.current);
+    };
+  }, []);
+
+  const showFitShards = useCallback(() => {
+    setFitFilterActive(true);
+    const first = fitIdeaIds[0];
+    if (first) {
+      window.requestAnimationFrame(() => {
+        document
+          .getElementById(`shard-${first}`)
+          ?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      });
+    }
+  }, [fitIdeaIds]);
+
+  const clearFitFilter = useCallback(() => {
+    setFitFilterActive(false);
+  }, []);
+
+  const selectFitShards = useCallback(() => {
+    const forgeable = fittedInsights
+      .filter(
+        (r) =>
+          r.worth.worthiness === "forge" &&
+          r.overlaps[0]?.label !== "covers",
+      )
+      .map((r) => r.idea.id);
+    const ids = forgeable.length > 0 ? forgeable : fitIdeaIds;
+    selectIdeas(ids);
+    setFitFilterActive(true);
+    const first = ids[0];
+    if (first) {
+      window.requestAnimationFrame(() => {
+        document
+          .getElementById(`shard-${first}`)
+          ?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      });
+    }
+  }, [fittedInsights, fitIdeaIds, selectIdeas]);
+
+  const focusShard = useCallback((id: string) => {
+    setFitFilterActive(true);
+    setFocusShardId(id);
+    if (focusClearRef.current) window.clearTimeout(focusClearRef.current);
+    focusClearRef.current = window.setTimeout(() => {
+      setFocusShardId(null);
+    }, 2200);
+    window.requestAnimationFrame(() => {
+      document
+        .getElementById(`shard-${id}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  }, []);
 
   const selectedIdeas = ideas
     .filter((i) => selectedIdeaIds.has(i.id))
@@ -642,63 +728,107 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
                     variant="strip"
                     selectedIdeaCount={selectedIdeaIds.size}
                     fitCount={activeFitCount}
+                    fitPreviews={fitPreviews}
+                    fitFilterActive={fitFilterActive}
+                    onShowFit={showFitShards}
+                    onClearFit={clearFitFilter}
+                    onSelectFit={selectFitShards}
+                    onFocusShard={focusShard}
                   />
                 </div>
 
-                <DiscoveryPanel
-                  existingSkills={discoverySkills}
-                  repoMatchSummary={repoMatchSummary}
-                  forgeWorthyCount={forgeWorthyCount}
-                  totalIdeas={ideas.length}
-                  ideas={ideas}
-                  onSkillsUpdate={setDiscoverySkills}
-                  onCompareNote={setCompareNote}
-                />
-
-                <SignalPoolStrip />
-
-                <AgentExportBar
-                  ideas={ideas}
-                  sourceTitle={sources[0]?.title}
-                  sourceUrl={sources[0]?.url}
-                  fondObject={phrase.object}
-                  repo={activeRepo}
-                  selectedIds={selectedIdeaIds}
-                />
-
-                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-[11px] uppercase tracking-wider text-muted">
-                    Shards · select to forge
-                    {activeRepoObj
-                      ? ` · fit shown for ${activeRepoObj.name}`
-                      : ""}
-                  </p>
-                  {idleComposeHint && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (relatedPair.length === 2) {
-                          selectIdeas(relatedPair);
-                        } else {
-                          selectIdeas(
-                            ideaInsights
-                              .filter((r) => r.worth.worthiness === "forge")
-                              .slice(0, 2)
-                              .map((r) => r.idea.id),
-                          );
-                        }
-                      }}
-                      className="text-left text-[11px] leading-snug text-ember hover:text-ember-hot"
-                    >
-                      {idleComposeHint}
-                    </button>
-                  )}
+                <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                  <div>
+                    <p className="text-[11px] uppercase tracking-wider text-muted">
+                      Shards · select to forge
+                      {fitFilterActive && activeRepoObj
+                        ? ` · showing fits for ${activeRepoObj.name}`
+                        : activeRepoObj
+                          ? ` · fit for ${activeRepoObj.name}`
+                          : ""}
+                    </p>
+                    <p className="mt-1 text-sm text-ink">
+                      <span className="font-medium text-ember">
+                        {forgeWorthyCount}
+                      </span>
+                      <span className="text-muted">/{ideas.length}</span> worth
+                      forging
+                      {activeFitCount > 0 && activeRepoObj ? (
+                        <>
+                          {" "}
+                          ·{" "}
+                          <button
+                            type="button"
+                            onClick={() =>
+                              fitFilterActive
+                                ? clearFitFilter()
+                                : showFitShards()
+                            }
+                            className="font-medium text-ember underline-offset-2 hover:underline"
+                          >
+                            {fitFilterActive
+                              ? "Show all shards"
+                              : `${activeFitCount} fit ${activeRepoObj.name}`}
+                          </button>
+                        </>
+                      ) : null}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {activeFitCount > 0 && !fitFilterActive && (
+                      <button
+                        type="button"
+                        onClick={selectFitShards}
+                        className="inline-flex min-h-9 items-center justify-center rounded-full border border-ink/12 bg-mist px-3.5 text-[12px] font-medium text-ink hover:border-ember/35"
+                      >
+                        Select {activeFitCount} fits
+                      </button>
+                    )}
+                    {idleComposeHint && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (relatedPair.length === 2) {
+                            selectIdeas(relatedPair);
+                          } else {
+                            selectIdeas(
+                              ideaInsights
+                                .filter((r) => r.worth.worthiness === "forge")
+                                .slice(0, 2)
+                                .map((r) => r.idea.id),
+                            );
+                          }
+                        }}
+                        className="inline-flex min-h-9 items-center justify-center rounded-full border border-ember/35 bg-ember/8 px-3.5 text-left text-[12px] font-medium leading-snug text-ember transition-colors hover:border-ember/55 hover:bg-ember/12"
+                      >
+                        {relatedPair.length === 2
+                          ? "Select related pair"
+                          : "Select top 2 to forge"}
+                      </button>
+                    )}
+                  </div>
                 </div>
 
-                <div className="idea-shard-plane flex flex-col gap-3 pb-8 sm:gap-3.5">
+                <div className="idea-shard-plane flex flex-col gap-2.5 pb-6 sm:gap-3">
+                  {fitFilterActive && activeFitCount === 0 ? (
+                    <p className="rounded-lg bg-mist/60 px-3 py-4 text-sm text-muted">
+                      No shards match this repo&apos;s stack —{" "}
+                      <button
+                        type="button"
+                        onClick={clearFitFilter}
+                        className="text-ember underline-offset-2 hover:underline"
+                      >
+                        show all
+                      </button>
+                    </p>
+                  ) : null}
                   {ideaInsights.map(
                     ({ idea, worth, repos, fit, overlaps }, i) => {
                       const topOverlap = overlaps[0];
+                      const isFit = !!fit;
+                      if (fitFilterActive && !isFit) {
+                        return null;
+                      }
                       return (
                         <IdeaShard
                           key={idea.id}
@@ -731,15 +861,38 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
                                 }
                               : null
                           }
+                          highlight={focusShardId === idea.id}
                         />
                       );
                     },
                   )}
                 </div>
 
-                <div className="border-t border-ink/8 pt-4 pb-2">
-                  <LiveSignalLine />
-                </div>
+                <WorkStages forceOpen={discoverySkills.length > 0}>
+                  <DiscoveryPanel
+                    embedded
+                    existingSkills={discoverySkills}
+                    repoMatchSummary={repoMatchSummary}
+                    forgeWorthyCount={forgeWorthyCount}
+                    totalIdeas={ideas.length}
+                    ideas={ideas}
+                    onSkillsUpdate={setDiscoverySkills}
+                    onCompareNote={setCompareNote}
+                  />
+                  <SignalPoolStrip embedded />
+                  <AgentExportBar
+                    className="mb-2"
+                    ideas={ideas}
+                    sourceTitle={sources[0]?.title}
+                    sourceUrl={sources[0]?.url}
+                    fondObject={phrase.object}
+                    repo={activeRepo}
+                    selectedIds={selectedIdeaIds}
+                  />
+                  <div className="border-t border-ink/8 pt-3 pb-1">
+                    <LiveSignalLine />
+                  </div>
+                </WorkStages>
               </div>
             </div>
 
@@ -748,6 +901,12 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
                 repos={allRepos}
                 selectedIdeaCount={selectedIdeaIds.size}
                 fitCount={activeFitCount}
+                fitPreviews={fitPreviews}
+                fitFilterActive={fitFilterActive}
+                onShowFit={showFitShards}
+                onClearFit={clearFitFilter}
+                onSelectFit={selectFitShards}
+                onFocusShard={focusShard}
               />
             </div>
           </motion.div>

@@ -16,6 +16,8 @@ interface DiscoveryPanelProps {
   onSkillsUpdate: (skills: ExistingSkillHit[]) => void;
   compareNote?: string | null;
   onCompareNote?: (note: string | null) => void;
+  /** Nested under WorkStages — drop outer chrome */
+  embedded?: boolean;
 }
 
 /**
@@ -30,6 +32,7 @@ export function DiscoveryPanel({
   onSkillsUpdate,
   compareNote,
   onCompareNote,
+  embedded = false,
 }: DiscoveryPanelProps) {
   const [searching, setSearching] = useState(false);
   const [localNote, setLocalNote] = useState<string | null>(null);
@@ -88,15 +91,19 @@ export function DiscoveryPanel({
 
   return (
     <motion.section
-      initial={{ opacity: 0, y: 6 }}
+      initial={embedded ? false : { opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-      className="discovery-strip mb-5 sm:mb-6"
+      className={
+        embedded
+          ? "discovery-strip mb-4 pb-3"
+          : "discovery-strip mb-5 sm:mb-6"
+      }
       aria-label="Compare similar skills"
     >
-      <div className="mb-2 flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-muted">
+      <div className="mb-1.5 flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-muted">
         <Layers size={12} />
-        Compare · then fit
+        Compare
       </div>
 
       <p className="text-sm text-ink">
@@ -129,13 +136,6 @@ export function DiscoveryPanel({
           </>
         )}
       </p>
-
-      {!hasSkills && (
-        <p className="mt-2 text-[12px] text-muted">
-          Extract is done. Run compare (Exa) only when you want to know you&apos;re
-          not reforging the same pattern.
-        </p>
-      )}
 
       {hasSkills && (
         <ul className="mt-3 space-y-2">
@@ -191,9 +191,7 @@ export function DiscoveryPanel({
               ? "Re-run compare"
               : "Compare similar skills"}
         </button>
-        <p className="text-[11px] text-muted">
-          Exa · github.com · skills.sh — billed only when you ask
-        </p>
+        <p className="text-[11px] text-muted">Exa · when you ask</p>
       </div>
       {note && <p className="mt-1.5 text-[11px] text-muted">{note}</p>}
     </motion.section>
