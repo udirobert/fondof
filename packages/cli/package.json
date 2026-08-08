@@ -1,0 +1,27 @@
+{
+  "name": "@fondof/cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "fondof": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist *.tsbuildinfo",
+    "typecheck": "tsc --noEmit",
+    "dev": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "@fondof/core": "workspace:*",
+    "@fondof/shared": "workspace:*",
+    "chalk": "5.4.1",
+    "commander": "13.1.0",
+    "ora": "8.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "22.13.4",
+    "tsx": "4.19.3",
+    "typescript": "5.7.3"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "name": "fondof",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The bridge between what you learn and what your agents do",
+  "scripts": {
+    "build": "pnpm -r --filter=!@fondof/contracts build",
+    "clean": "pnpm -r clean",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  }
+}
