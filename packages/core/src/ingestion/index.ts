@@ -4,6 +4,7 @@ import { resolveContent, type ContentType } from "./content-resolver.js";
 import { transcribe } from "./transcriber.js";
 import { extractArticle } from "./article-extractor.js";
 import { extractIdeas, type LLMProvider } from "./idea-extractor.js";
+import { createEmbeddingProvider } from "../embeddings/provider.js";
 
 export type { LLMProvider } from "./idea-extractor.js";
 export type { ContentType } from "./content-resolver.js";
@@ -86,6 +87,18 @@ export async function ingest(options: IngestOptions): Promise<IngestResult> {
     sourceHash,
     llm,
   });
+
+  // Step 5: Generate embeddings for each idea
+  const embedder = createEmbeddingProvider();
+  const ideaTexts = ideas.map(
+    (idea) => `${idea.idea.title}: ${idea.idea.description}`
+  );
+  if (ideaTexts.length > 0) {
+    const embeddings = await embedder.embedBatch(ideaTexts);
+    for (let i = 0; i < ideas.length; i++) {
+      ideas[i].embedding = embeddings[i] ?? [];
+    }
+  }
 
   return {
     contentType: resolved.type,

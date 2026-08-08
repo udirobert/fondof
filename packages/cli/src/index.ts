@@ -2,6 +2,7 @@
 import { Command } from "commander";
 import { connectCommand } from "./commands/connect.js";
 import { ingestCommand } from "./commands/ingest.js";
+import { needCommand } from "./commands/need.js";
 import { forgeCommand } from "./commands/forge.js";
 import { publishCommand } from "./commands/publish.js";
 import { statusCommand } from "./commands/status.js";
@@ -15,6 +16,7 @@ program
 
 program.addCommand(connectCommand);
 program.addCommand(ingestCommand);
+program.addCommand(needCommand);
 program.addCommand(forgeCommand);
 program.addCommand(publishCommand);
 program.addCommand(statusCommand);

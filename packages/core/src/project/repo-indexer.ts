@@ -8,6 +8,7 @@ import {
   type GitHubTreeEntry,
 } from "./github-api.js";
 import type { LLMProvider } from "../ingestion/idea-extractor.js";
+import { createEmbeddingProvider } from "../embeddings/provider.js";
 
 export interface IndexRepoOptions {
   /** GitHub owner (user or org) */
@@ -57,6 +58,20 @@ export async function indexRepo(options: IndexRepoOptions): Promise<RepoProfile>
   // Detect existing skills
   const existingSkills = detectExistingSkills(tree);
 
+  // Generate repo topic embedding
+  const repoDescription = [
+    `${name}: ${frameworks.join(", ")} project`,
+    `Languages: ${languageBreakdown.map((l) => l.language).join(", ")}`,
+    `Architecture: ${conventions.architecture}`,
+    `Error handling: ${conventions.errorHandling}`,
+    issues.length > 0 ? `Open issues: ${issues.slice(0, 5).join("; ")}` : "",
+  ]
+    .filter(Boolean)
+    .join(". ");
+
+  const embedder = createEmbeddingProvider();
+  const topicEmbedding = await embedder.embed(repoDescription);
+
   return {
     id: randomUUID(),
     name,
@@ -67,7 +82,7 @@ export async function indexRepo(options: IndexRepoOptions): Promise<RepoProfile>
     dependencies,
     conventions,
     existingSkills,
-    topicEmbedding: [], // Populated later by embedding step
+    topicEmbedding,
     openIssueThemes: issues,
     lastIndexed: new Date().toISOString(),
   };

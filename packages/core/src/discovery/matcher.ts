@@ -1,8 +1,12 @@
 import type { IdeaRecord, RepoProfile, RepoMatch } from "@fondof/shared";
+import { cosineSimilarity } from "../embeddings/similarity.js";
 
 /**
- * Match an idea against a set of repos using tag/keyword overlap scoring.
- * Uses structural matching: idea applicability/domain tags vs repo frameworks/deps/languages.
+ * Match an idea against a set of repos using hybrid scoring:
+ * - Structural matching (tags, frameworks, deps)
+ * - Vector similarity (embedding cosine distance)
+ *
+ * The hybrid score weights: 60% structural + 40% semantic (when embeddings available).
  */
 export function matchIdeaToRepos(idea: IdeaRecord, repos: RepoProfile[]): RepoMatch[] {
   const matches: RepoMatch[] = [];
@@ -92,6 +96,19 @@ function computeMatchScore(idea: IdeaRecord, repo: RepoProfile): MatchResult {
 
   // Cap at 1.0
   score = Math.min(1.0, score);
+
+  // Hybrid: blend structural score with vector similarity if embeddings available
+  const hasEmbeddings =
+    idea.embedding.length > 0 && repo.topicEmbedding.length > 0;
+
+  if (hasEmbeddings) {
+    const vectorScore = Math.max(0, cosineSimilarity(idea.embedding, repo.topicEmbedding));
+    // Blend: 60% structural, 40% semantic
+    score = score * 0.6 + vectorScore * 0.4;
+    if (vectorScore > 0.5) {
+      reasons.push(`Semantic similarity: ${Math.round(vectorScore * 100)}%`);
+    }
+  }
 
   const rationale =
     reasons.length > 0

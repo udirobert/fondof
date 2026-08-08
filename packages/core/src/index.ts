@@ -28,6 +28,13 @@ export {
 } from "./project/index.js";
 export { attest, queryAttestation, loadRelayerConfig, FONDOF_ATTESTATION_ABI, type RelayerConfig } from "./relayer/index.js";
 export {
+  createEmbeddingProvider,
+  cosineSimilarity,
+  findTopMatches,
+  type EmbeddingProvider,
+  type SimilarityResult,
+} from "./embeddings/index.js";
+export {
   searchSkills,
   searchSourceMaterial,
   firecrawlExtract,
