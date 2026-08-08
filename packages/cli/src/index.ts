@@ -3,9 +3,9 @@ import { config } from "dotenv";
 import { resolve } from "node:path";
 import { Command } from "commander";
 
-// Load .env from project root (walk up from packages/cli)
-config({ path: resolve(process.cwd(), ".env"), override: false, debug: false });
-config({ path: resolve(process.cwd(), "../../.env"), override: false, debug: false }); // from packages/cli
+// Load .env from project root — override: true so .env wins over shell vars
+config({ path: resolve(process.cwd(), ".env"), override: true });
+config({ path: resolve(process.cwd(), "../../.env"), override: true }); // from packages/cli
 
 import { connectCommand } from "./commands/connect.js";
 import { ingestCommand } from "./commands/ingest.js";
