@@ -2,22 +2,53 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Link2, Loader2 } from "lucide-react";
+import { Link2, Loader2, ArrowRight } from "lucide-react";
+import { useAppStore } from "@/lib/store";
+import { ingestURL } from "@/lib/api";
 
 export function IngestBar() {
   const [url, setUrl] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const { isIngesting, setIngesting, addSource, updateSource, addIdeas } = useAppStore();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!url.trim()) return;
+    if (!url.trim() || isIngesting) return;
 
-    setIsLoading(true);
-    // TODO: Call ingest API
-    setTimeout(() => {
-      setIsLoading(false);
-      setUrl("");
-    }, 2000);
+    const inputUrl = url.trim();
+    setIngesting(true);
+    addSource({
+      url: inputUrl,
+      title: "Loading...",
+      contentType: "article",
+      ideasCount: 0,
+      sourceHash: "",
+      isProcessing: true,
+    });
+
+    try {
+      const result = await ingestURL(inputUrl);
+
+      if (result.error) {
+        updateSource(inputUrl, { title: `Error: ${result.error}`, isProcessing: false });
+      } else {
+        updateSource(inputUrl, {
+          title: result.title || inputUrl,
+          contentType: result.contentType,
+          ideasCount: result.ideas.length,
+          sourceHash: result.sourceHash,
+          isProcessing: false,
+        });
+        addIdeas(result.ideas);
+      }
+    } catch {
+      updateSource(inputUrl, {
+        title: "Failed to connect",
+        isProcessing: false,
+      });
+    }
+
+    setIngesting(false);
+    setUrl("");
   };
 
   return (
@@ -29,18 +60,31 @@ export function IngestBar() {
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           placeholder="Paste a podcast or blog URL..."
-          className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted/60 focus:outline-none"
+          disabled={isIngesting}
+          className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted/60 focus:outline-none disabled:opacity-50"
         />
-        <AnimatePresence>
-          {isLoading && (
+        <AnimatePresence mode="wait">
+          {isIngesting ? (
             <motion.div
+              key="loading"
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
             >
               <Loader2 size={14} className="text-accent animate-spin" />
             </motion.div>
-          )}
+          ) : url.trim() ? (
+            <motion.button
+              key="submit"
+              type="submit"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              className="text-accent hover:text-accent-hover transition-colors"
+            >
+              <ArrowRight size={14} />
+            </motion.button>
+          ) : null}
         </AnimatePresence>
       </div>
     </form>

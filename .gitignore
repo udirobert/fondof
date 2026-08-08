@@ -36,3 +36,7 @@ coverage/
 .fondof/
 *.sqlite
 *.sqlite3
+
+
+# Wrangler local secrets
+.dev.vars

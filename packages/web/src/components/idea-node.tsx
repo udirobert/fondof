@@ -1,15 +1,15 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Zap, Brain, AlertTriangle, Building2 } from "lucide-react";
+import { Zap, Brain, AlertTriangle, Building2, Check } from "lucide-react";
+import { useAppStore } from "@/lib/store";
 
 interface IdeaNodeProps {
+  id: string;
   title: string;
   description: string;
   patternType: "technique" | "mental-model" | "anti-pattern" | "architecture";
   domains: string[];
-  worthiness: "forge-skill" | "apply-directly" | "skip";
-  worthinessScore: number;
   index?: number;
 }
 
@@ -20,23 +20,17 @@ const typeConfig = {
   architecture: { icon: Building2, label: "Architecture" },
 };
 
-const worthinessConfig = {
-  "forge-skill": { color: "text-forge", bg: "bg-forge/8", label: "Forge" },
-  "apply-directly": { color: "text-apply", bg: "bg-apply/8", label: "Apply" },
-  skip: { color: "text-skip", bg: "bg-skip/8", label: "Skip" },
-};
-
 export function IdeaNode({
+  id,
   title,
   description,
   patternType,
   domains,
-  worthiness,
-  worthinessScore,
   index = 0,
 }: IdeaNodeProps) {
+  const { selectedIdeaIds, toggleIdeaSelection } = useAppStore();
+  const isSelected = selectedIdeaIds.has(id);
   const { icon: TypeIcon, label: typeLabel } = typeConfig[patternType];
-  const { color, bg, label: worthLabel } = worthinessConfig[worthiness];
 
   return (
     <motion.div
@@ -49,45 +43,46 @@ export function IdeaNode({
         delay: index * 0.08,
       }}
       whileHover={{ scale: 1.03, y: -3 }}
-      className="paper p-5 cursor-pointer max-w-[240px] relative"
+      whileTap={{ scale: 0.98 }}
+      onClick={() => toggleIdeaSelection(id)}
+      className={`paper p-5 cursor-pointer max-w-[240px] relative transition-shadow ${
+        isSelected ? "ring-2 ring-accent shadow-lg" : ""
+      }`}
     >
-      {/* Worthiness ink mark */}
+      {/* Selection indicator */}
+      {isSelected && (
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-accent flex items-center justify-center"
+        >
+          <Check size={10} className="text-white" />
+        </motion.div>
+      )}
+
+      {/* Left bar */}
       <div
         className={`absolute left-0 top-4 bottom-4 w-[3px] rounded-full ${
-          worthiness === "forge-skill"
-            ? "bg-forge"
-            : worthiness === "apply-directly"
-              ? "bg-apply"
-              : "bg-muted/30"
+          isSelected ? "bg-accent" : "bg-muted/20"
         }`}
-        style={{ opacity: worthinessScore }}
       />
 
       <div className="pl-2">
-        {/* Type + Worthiness */}
         <div className="flex items-center justify-between mb-2.5">
           <span className="flex items-center gap-1 text-[11px] text-muted">
             <TypeIcon size={11} />
             {typeLabel}
           </span>
-          <span
-            className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${bg} ${color}`}
-          >
-            {worthLabel}
-          </span>
         </div>
 
-        {/* Title */}
         <h3 className="text-[13px] font-semibold leading-snug text-foreground mb-1.5">
           {title}
         </h3>
 
-        {/* Description */}
         <p className="text-[11px] text-foreground-secondary leading-relaxed line-clamp-3">
           {description}
         </p>
 
-        {/* Domain tags */}
         <div className="mt-3 flex flex-wrap gap-1">
           {domains.slice(0, 3).map((domain) => (
             <span
