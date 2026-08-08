@@ -17,6 +17,7 @@
     "@fondof/shared": "workspace:*",
     "chalk": "5.4.1",
     "commander": "13.1.0",
+    "dotenv": "16.4.7",
     "ora": "8.2.0"
   },
   "devDependencies": {

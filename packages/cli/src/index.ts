@@ -1,5 +1,12 @@
 #!/usr/bin/env node
+import { config } from "dotenv";
+import { resolve } from "node:path";
 import { Command } from "commander";
+
+// Load .env from project root (walk up from packages/cli)
+config({ path: resolve(process.cwd(), ".env"), override: false, debug: false });
+config({ path: resolve(process.cwd(), "../../.env"), override: false, debug: false }); // from packages/cli
+
 import { connectCommand } from "./commands/connect.js";
 import { ingestCommand } from "./commands/ingest.js";
 import { needCommand } from "./commands/need.js";

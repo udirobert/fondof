@@ -63,17 +63,29 @@ We're domain-agnostic. If you need pre-built DeFi/crypto agent capabilities:
 ## Quick start
 
 ```bash
+# Install dependencies
+pnpm install
+
 # Connect your GitHub
 fondof connect
 
 # Ingest content (podcast or blog)
 fondof ingest https://example.com/podcast/episode-42.mp3
 
-# Forge a skill from extracted ideas
-fondof forge --repo myorg/myproject
+# Or start from a need
+fondof need "better error handling in async TypeScript"
 
-# Publish with provenance attestation (invisible chain layer)
+# Forge a skill from extracted ideas
+fondof forge --latest --repo myorg/myproject
+
+# Publish to SkillPool on Monad (signal starts growing)
 fondof publish .kiro/steering/my-skill.md
+
+# Challenge a skill you think is low quality
+fondof challenge <skill-hash>
+
+# Check status
+fondof status
 ```
 
 ## Architecture
@@ -90,24 +102,36 @@ packages/
 
 - **TypeScript** monorepo (pnpm workspaces)
 - **ElevenLabs Scribe** for podcast transcription
-- **Exa** for semantic skill discovery
-- **Firecrawl** for robust article extraction
-- **Claude** for idea extraction and skill composition
-- **Monad** (EVM L1) for provenance attestation
-- **Foundry** for Solidity development
+- **Cloudflare Workers AI** for LLM (free) + embeddings (bge-small, free)
+- **Exa / TinyFish** for semantic skill search
+- **Firecrawl / Readability** for article extraction
+- **Monad** (EVM L1, 10K TPS) for SkillPool contract
+- **viem** for on-chain interaction
+- **Foundry** for Solidity development (15 tests)
+- **Next.js 16.3** + Framer Motion for the web UI
 
 ## Environment variables
 
 ```bash
-ANTHROPIC_API_KEY=sk-ant-...      # LLM for idea extraction + composition
-ELEVENLABS_API_KEY=...            # Podcast transcription
-EXA_API_KEY=...                   # Semantic search for skill discovery
-FIRECRAWL_API_KEY=...             # Article extraction (optional, has Readability fallback)
-TINYFISH_API_KEY=...              # Web search fallback (free tier available)
-GITHUB_TOKEN=...                  # Or use `fondof connect` for OAuth
-FONDOF_RELAYER_KEY=...            # Relayer wallet (for attestation)
-FONDOF_CONTRACT_ADDRESS=...      # Deployed contract address
-MONAD_RPC_URL=...                 # Monad RPC endpoint
+# Required for on-chain operations (SkillPool)
+MONAD_RPC_URL=https://monad-testnet.g.alchemy.com/v2/<your-key>
+FONDOF_RELAYER_KEY=0x...              # Relayer wallet private key
+FONDOF_CONTRACT_ADDRESS=0x1c0b6C42acD41BE5582a8F34137Acb713107170a  # Deployed SkillPool
+
+# LLM — pick one (Cloudflare is free)
+CLOUDFLARE_ACCOUNT_ID=...            # Free: 10K neurons/day
+CLOUDFLARE_API_TOKEN=...             # Create at dash.cloudflare.com
+# ANTHROPIC_API_KEY=sk-ant-...       # Optional premium alternative
+
+# Transcription (for podcasts)
+ELEVENLABS_API_KEY=...               # Free tier available
+
+# Search (optional, graceful degradation without)
+# EXA_API_KEY=...                    # Semantic skill search
+# TINYFISH_API_KEY=...               # Web search fallback (free)
+
+# GitHub (or use `fondof connect` for OAuth)
+# GITHUB_TOKEN=...
 ```
 
 ## Contributing
