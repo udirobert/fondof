@@ -2,14 +2,29 @@
   "name": "fondof",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "description": "The bridge between what you learn and what your agents do",
   "scripts": {
     "build": "pnpm -r --filter=!@fondof/contracts build",
     "clean": "pnpm -r clean",
-    "typecheck": "pnpm -r typecheck"
+    "typecheck": "pnpm -r typecheck",
+    "lint": "eslint 'packages/*/src/**/*.ts'",
+    "prepare": "husky"
   },
   "engines": {
     "node": ">=20.0.0",
     "pnpm": ">=9.0.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.20.0",
+    "eslint": "9.20.0",
+    "husky": "9.1.7",
+    "lint-staged": "15.4.3",
+    "typescript-eslint": "8.24.1"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix"
+    ]
   }
 }
