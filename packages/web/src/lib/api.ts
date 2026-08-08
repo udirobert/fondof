@@ -21,6 +21,26 @@ export interface ExistingSkillHit {
   score?: number;
 }
 
+export type IngestProvider =
+  | "firecrawl"
+  | "html"
+  | "timedtext"
+  | "page"
+  | "elevenlabs"
+  | "rss"
+  | "workers-ai"
+  | "cache";
+
+export interface IngestValue {
+  providers: IngestProvider[];
+  extractProvider?: IngestProvider;
+  cacheHit: boolean;
+  sourceHash: string;
+  textLength: number;
+  ideaCount: number;
+  deferred: Array<"exa" | "forge" | "publish">;
+}
+
 export interface IngestResponse {
   contentType: string;
   sourceHash: string;
@@ -28,6 +48,10 @@ export interface IngestResponse {
   ideas: IdeaFromAPI[];
   textLength: number;
   existingSkills?: ExistingSkillHit[];
+  providers?: IngestProvider[];
+  extractProvider?: IngestProvider;
+  cached?: boolean;
+  deferred?: Array<"exa" | "forge" | "publish">;
   error?: string;
 }
 
@@ -83,6 +107,7 @@ export type IngestStreamEvent =
   | { type: "phase"; phase: string; label: string }
   | { type: "meta"; title: string }
   | { type: "idea"; idea: IdeaFromAPI }
+  | { type: "value"; value: IngestValue }
   | {
       type: "discovery";
       existingSkills: ExistingSkillHit[];
@@ -94,6 +119,8 @@ export type IngestStreamEvent =
       title: string;
       textLength: number;
       ideaCount: number;
+      cacheHit?: boolean;
+      providers?: IngestProvider[];
     }
   | { type: "error"; error: string };
 
@@ -210,14 +237,24 @@ export async function challengeSkill(
   return res.json();
 }
 
-/** Search SkillPool-adjacent catalogs for skills that already cover a topic. */
+/** Compare stage — Exa catalogs (not run during extract). */
 export async function searchExistingSkills(
-  query: string
-): Promise<{ results: ExistingSkillHit[]; error?: string }> {
+  query: string,
+  ideas?: Array<{
+    title: string;
+    description?: string;
+    embedding?: number[];
+  }>,
+): Promise<{
+  results: ExistingSkillHit[];
+  provider?: string | null;
+  embedScored?: boolean;
+  error?: string;
+}> {
   const res = await fetch(`${API_URL}/api/search/skills`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ query }),
+    body: JSON.stringify({ query, ideas }),
   });
   return res.json();
 }

@@ -53,9 +53,10 @@ export function SelectionBar({
               )}
             </div>
 
-            {composeHint && (
-              <p className="text-[11px] leading-snug text-muted">{composeHint}</p>
-            )}
+            <p className="text-[12px] leading-snug text-ink/80">
+              {composeHint ??
+                "Compose selected shards into one fitted skill"}
+            </p>
 
             <div className="flex items-center gap-2">
               <p className="min-w-0 flex-1 text-sm text-ink">

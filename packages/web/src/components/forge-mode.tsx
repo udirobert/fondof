@@ -55,7 +55,12 @@ type Phase = "ritual" | "compose" | "attested";
 interface ForgeModeProps {
   open: boolean;
   ideas: DemoIdea[];
-  repos: { fullName: string; name: string }[];
+  repos: {
+    fullName: string;
+    name: string;
+    frameworks?: string[];
+    languages?: { language: string; percentage: number }[];
+  }[];
   onClose: () => void;
 }
 
@@ -109,6 +114,7 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
 
   const runForge = async (targetRepo: string, signal: { cancelled: boolean }) => {
     const fallback = skillDraftTemplate(ideas, targetRepo || "your-repo");
+    const meta = repos.find((r) => r.fullName === targetRepo);
     try {
       const res = await Promise.race([
         forgeSkill(
@@ -119,8 +125,12 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
           })),
           {
             name: targetRepo,
-            frameworks: ["TypeScript"],
-            languages: ["TypeScript"],
+            frameworks: meta?.frameworks?.length
+              ? meta.frameworks
+              : ["TypeScript"],
+            languages: meta?.languages?.length
+              ? meta.languages.map((l) => l.language)
+              : ["TypeScript"],
           },
         ),
         new Promise<never>((_, reject) => {

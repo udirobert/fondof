@@ -1,5 +1,11 @@
 import { create } from "zustand";
-import type { IdeaFromAPI, ForgeResponse, ExistingSkillHit } from "./api";
+import type {
+  IdeaFromAPI,
+  ForgeResponse,
+  ExistingSkillHit,
+  IngestValue,
+} from "./api";
+import type { ConnectedRepo } from "./github-repo";
 
 export interface SourceEntry {
   url: string;
@@ -10,6 +16,8 @@ export interface SourceEntry {
   isProcessing: boolean;
   /** Characters extracted (transcript / article body) */
   textLength?: number;
+  extractProvider?: string;
+  cacheHit?: boolean;
 }
 
 export interface AppState {
@@ -22,6 +30,9 @@ export interface AppState {
   // Fit target (repo the skill is composed for)
   activeRepo: string;
   setActiveRepo: (fullName: string) => void;
+  /** User-added GitHub repos (public) */
+  userRepos: ConnectedRepo[];
+  addUserRepo: (repo: ConnectedRepo) => void;
 
   // Ideas
   ideas: IdeaFromAPI[];
@@ -31,9 +42,13 @@ export interface AppState {
   toggleIdeaSelection: (id: string) => void;
   selectIdeas: (ids: string[]) => void;
   clearSelection: () => void;
-  /** Existing skills that overlap the latest ingest (Exa / SkillPool search) */
+  /** Existing skills from the Compare stage (Exa) — not auto-fetched on extract */
   discoverySkills: ExistingSkillHit[];
   setDiscoverySkills: (skills: ExistingSkillHit[]) => void;
+  ingestValue: IngestValue | null;
+  setIngestValue: (value: IngestValue | null) => void;
+  compareNote: string | null;
+  setCompareNote: (note: string | null) => void;
   /** Instant path: seed sources + ideas + optional preselection */
   loadSample: (
     sources: SourceEntry[],
@@ -76,6 +91,17 @@ export const useAppStore = create<AppState>((set) => ({
 
   activeRepo: "udirobert/fondof",
   setActiveRepo: (fullName) => set({ activeRepo: fullName }),
+  userRepos: [],
+  addUserRepo: (repo) =>
+    set((s) => {
+      if (s.userRepos.some((r) => r.fullName === repo.fullName)) {
+        return { activeRepo: repo.fullName };
+      }
+      return {
+        userRepos: [repo, ...s.userRepos],
+        activeRepo: repo.fullName,
+      };
+    }),
 
   // Ideas
   ideas: [],
@@ -93,25 +119,25 @@ export const useAppStore = create<AppState>((set) => ({
   clearSelection: () => set({ selectedIdeaIds: new Set() }),
   discoverySkills: [],
   setDiscoverySkills: (skills) => set({ discoverySkills: skills }),
+  ingestValue: null,
+  setIngestValue: (value) => set({ ingestValue: value }),
+  compareNote: null,
+  setCompareNote: (note) => set({ compareNote: note }),
   loadSample: (sources, ideas, selectIds = []) =>
     set({
       sources,
       ideas,
       selectedIdeaIds: new Set(selectIds),
-      discoverySkills: [
-        {
-          title: "agent-skills/reliability-patterns",
-          url: "https://github.com/agentskills/reliability-patterns",
-          snippet:
-            "Circuit breakers, retry budgets, and timeout composition for agent tooling.",
-        },
-        {
-          title: "skills.sh/compose-from-sources",
-          url: "https://skills.sh/compose-from-sources",
-          snippet:
-            "Combine overlapping techniques into one fitted skill markdown.",
-        },
-      ],
+      discoverySkills: [],
+      ingestValue: {
+        providers: ["cache"],
+        cacheHit: true,
+        sourceHash: sources[0]?.sourceHash || "demo",
+        textLength: sources[0]?.textLength ?? 0,
+        ideaCount: ideas.length,
+        deferred: ["exa", "forge", "publish"],
+      },
+      compareNote: null,
       forgedSkill: null,
       publishedTxHash: null,
       publishedSignal: null,

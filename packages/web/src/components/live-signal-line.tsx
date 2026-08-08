@@ -9,7 +9,7 @@ import { shortAddress } from "@/lib/monad-chain";
 import { skillPublicPath } from "@/lib/skill-share";
 
 /** One-liner social proof — ENS names when available. */
-export function LiveSignalLine() {
+export function LiveSignalLine({ className = "" }: { className?: string }) {
   const [skills, setSkills] = useState<SkillOnChainResponse[]>([]);
   const [names, setNames] = useState<Map<string, string>>(new Map());
 
@@ -39,23 +39,29 @@ export function LiveSignalLine() {
   if (skills.length === 0) return null;
 
   return (
-    <p className="mt-6 max-w-md text-center font-mono text-[10px] leading-relaxed tracking-wide text-muted">
-      Live on Monad
-      {skills.map((s) => {
-        const key = s.forger.toLowerCase();
-        const label = names.get(key) || shortAddress(s.forger);
-        return (
-          <span key={s.skillHash}>
-            {" · "}
-            <Link
-              href={skillPublicPath(s.skillHash)}
-              className="text-ink/70 underline-offset-2 hover:text-ember hover:underline"
-            >
-              {label} · sig {formatSignal(s.signal)}
-            </Link>
-          </span>
-        );
-      })}
-    </p>
+    <div className={`mx-auto max-w-md text-center ${className}`}>
+      <p className="font-mono text-[10px] leading-relaxed tracking-wide text-muted">
+        Live signal on Monad
+        {skills.map((s) => {
+          const key = s.forger.toLowerCase();
+          const label = names.get(key) || shortAddress(s.forger);
+          return (
+            <span key={s.skillHash}>
+              {" · "}
+              <Link
+                href={skillPublicPath(s.skillHash)}
+                className="text-ink/70 underline-offset-2 hover:text-ember hover:underline"
+              >
+                {label} · {formatSignal(s.signal)}
+                {s.usageCount > 0 ? ` · ${s.usageCount} uses` : ""}
+              </Link>
+            </span>
+          );
+        })}
+      </p>
+      <p className="mt-1 text-[10px] text-muted">
+        Use grows signal · challenges cut it · open a skill to join the loop
+      </p>
+    </div>
   );
 }

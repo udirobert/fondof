@@ -27,13 +27,16 @@ export default function SkillPublicPage() {
   const [note, setNote] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [shareUrl, setShareUrl] = useState("");
+  const [tick, setTick] = useState(0);
 
   const refresh = useCallback(async () => {
     if (!hash) return;
     try {
       const res = await getSkillSignal(hash);
-      if (!res.error) setSkill(res);
-      else setSkill(null);
+      if (!res.error) {
+        setSkill(res);
+        setTick((t) => t + 1);
+      } else setSkill(null);
     } catch {
       setSkill(null);
     } finally {
@@ -44,7 +47,7 @@ export default function SkillPublicPage() {
   useEffect(() => {
     setShareUrl(skillShareUrl(hash));
     void refresh();
-    const id = window.setInterval(() => void refresh(), 15_000);
+    const id = window.setInterval(() => void refresh(), 12_000);
     return () => window.clearInterval(id);
   }, [hash, refresh]);
 
@@ -82,7 +85,7 @@ export default function SkillPublicPage() {
       const res = await challengeSkill(hash);
       if (res.error) setNote(res.error);
       else {
-        setNote("Challenge submitted on Monad.");
+        setNote("Challenge submitted on Monad — losses cut signal.");
         void refresh();
       }
     } catch {
@@ -98,7 +101,7 @@ export default function SkillPublicPage() {
         <div className="text-center">
           <FondofWordmark size="inline" />
           <p className="mt-2 font-mono text-[10px] tracking-wide text-muted">
-            SkillPool · Monad
+            SkillPool · Monad · live{tick > 0 ? ` · refreshed` : ""}
           </p>
         </div>
 
@@ -109,17 +112,38 @@ export default function SkillPublicPage() {
           <p className="mt-1 font-serif text-5xl text-ink tabular-nums">
             {loading ? "…" : formatSignal(skill?.signal)}
           </p>
-          <p className="mt-2 text-sm text-foreground-secondary">
+          <p className="mt-3 text-sm text-foreground-secondary">
             {skill
-              ? `${skill.usageCount} uses · ${skill.challengeLosses} challenge losses`
+              ? "Backing + uses − challenge losses"
               : loading
                 ? "Reading chain…"
                 : "Not on SkillPool yet — share the link, forge to mint."}
           </p>
+          {skill && (
+            <dl className="mx-auto mt-4 grid max-w-xs grid-cols-3 gap-2 text-center font-mono text-[10px]">
+              <div className="rounded-lg border border-ink/8 bg-paper/60 px-2 py-2">
+                <dt className="text-muted">Backing</dt>
+                <dd className="mt-0.5 text-ink tabular-nums">
+                  {formatSignal(skill.backing)}
+                </dd>
+              </div>
+              <div className="rounded-lg border border-ink/8 bg-paper/60 px-2 py-2">
+                <dt className="text-muted">Uses</dt>
+                <dd className="mt-0.5 text-ink tabular-nums">
+                  {skill.usageCount}
+                </dd>
+              </div>
+              <div className="rounded-lg border border-ink/8 bg-paper/60 px-2 py-2">
+                <dt className="text-muted">Losses</dt>
+                <dd className="mt-0.5 text-ink tabular-nums">
+                  {skill.challengeLosses}
+                </dd>
+              </div>
+            </dl>
+          )}
           {skill?.forger && (
-            <p className="mt-2 flex items-center justify-center gap-1.5 font-mono text-[11px] text-muted">
-              Forger{" "}
-              <IdentityLabel address={skill.forger} avatar />
+            <p className="mt-3 flex items-center justify-center gap-1.5 font-mono text-[11px] text-muted">
+              Forger <IdentityLabel address={skill.forger} avatar />
             </p>
           )}
         </section>
@@ -184,7 +208,7 @@ export default function SkillPublicPage() {
             className="inline-flex items-center gap-2 text-sm text-ember hover:text-ember-hot"
           >
             <Flame size={14} />
-            Forge your own
+            Forge your own · extract → compare → attest
           </Link>
           <p className="text-center text-[10px] text-muted">
             Viral ingest:{" "}

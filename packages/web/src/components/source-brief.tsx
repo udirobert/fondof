@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ExternalLink, ChevronDown } from "lucide-react";
+import type { IngestValue } from "@/lib/api";
 
 interface SourceBriefProps {
   title: string;
@@ -10,10 +11,23 @@ interface SourceBriefProps {
   ideasCount: number;
   textLength?: number;
   fondObject: string;
+  sourceHash?: string;
+  ingestValue?: IngestValue | null;
 }
 
+const PROVIDER_LABEL: Record<string, string> = {
+  firecrawl: "Firecrawl",
+  html: "HTML fallback",
+  timedtext: "YouTube captions",
+  page: "YouTube page",
+  elevenlabs: "ElevenLabs",
+  rss: "RSS",
+  "workers-ai": "Workers AI",
+  cache: "edge cache",
+};
+
 /**
- * Progressive beat 1 — acknowledge what was searched before shards.
+ * Progressive beat 1 — acknowledge what was searched + what earned its keep.
  */
 export function SourceBrief({
   title,
@@ -22,6 +36,8 @@ export function SourceBrief({
   ideasCount,
   textLength,
   fondObject,
+  sourceHash,
+  ingestValue,
 }: SourceBriefProps) {
   const [open, setOpen] = useState(true);
   const kind =
@@ -40,6 +56,15 @@ export function SourceBrief({
         : `${textLength.toLocaleString()} chars read`
       : null;
 
+  const providers = ingestValue?.providers ?? [];
+  const extractLabel = ingestValue?.extractProvider
+    ? PROVIDER_LABEL[ingestValue.extractProvider] ?? ingestValue.extractProvider
+    : null;
+  const shortHash =
+    sourceHash && sourceHash.length > 12
+      ? `${sourceHash.slice(0, 8)}…${sourceHash.slice(-4)}`
+      : sourceHash;
+
   return (
     <section className="mb-5 border-b border-ink/8 pb-4 sm:mb-6">
       <button
@@ -51,6 +76,7 @@ export function SourceBrief({
         <div className="min-w-0">
           <p className="font-mono text-[10px] uppercase tracking-wider text-muted">
             From {fondObject}
+            {ingestValue?.cacheHit ? " · cached" : ""}
           </p>
           <h2 className="mt-1 font-serif text-xl leading-snug text-ink sm:text-2xl">
             {title}
@@ -74,8 +100,32 @@ export function SourceBrief({
                 from <span className="font-medium text-ink">{material}</span>
               </>
             ) : null}
-            . Pick Forge-worthy shards to compose a skill.
+            . Next: compare similar skills, then forge.
           </p>
+
+          {(extractLabel || providers.length > 0) && (
+            <p className="font-mono text-[10px] leading-relaxed tracking-wide text-muted">
+              Value delivered
+              {extractLabel ? ` · read via ${extractLabel}` : ""}
+              {ingestValue?.cacheHit
+                ? " · $0 this run (cache)"
+                : providers.includes("workers-ai")
+                  ? " · shards via Workers AI"
+                  : ""}
+              {" · "}
+              Exa / forge / publish still open
+            </p>
+          )}
+
+          {shortHash && (
+            <p
+              className="font-mono text-[10px] text-muted"
+              title={sourceHash}
+            >
+              Provenance · sha256 {shortHash}
+            </p>
+          )}
+
           <a
             href={url.startsWith("http") ? url : undefined}
             target="_blank"

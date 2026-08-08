@@ -24,9 +24,12 @@ import {
   toApiIdea,
 } from "@/lib/ingest-client";
 import {
+  fitForRepo,
   matchRepos,
   scoreWorthiness,
 } from "@/lib/idea-insights";
+import { asConnected } from "@/lib/github-repo";
+import { overlapsForIdea, relatedShardIds } from "@/lib/skill-overlap";
 import {
   demoIdeas,
   demoRepos,
@@ -34,7 +37,7 @@ import {
   liveExamples,
   type LiveExample,
 } from "@/lib/demo-data";
-import type { ExistingSkillHit, IdeaFromAPI } from "@/lib/api";
+import type { IdeaFromAPI, IngestValue } from "@/lib/api";
 
 type FloorMode = "pad" | "ingest" | "work";
 
@@ -81,10 +84,26 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
     setIdeas,
     discoverySkills,
     setDiscoverySkills,
+    ingestValue,
+    setIngestValue,
+    setCompareNote,
     activeRepo,
+    userRepos,
+    selectIdeas,
   } = useAppStore();
 
   const phrase = useMemo(() => fondofPhrase(sources), [sources]);
+
+  const allRepos = useMemo(() => {
+    const demos = demoRepos.map(asConnected);
+    const seen = new Set(userRepos.map((r) => r.fullName));
+    return [...userRepos, ...demos.filter((d) => !seen.has(d.fullName))];
+  }, [userRepos]);
+
+  const activeRepoObj = useMemo(
+    () => allRepos.find((r) => r.fullName === activeRepo) ?? allRepos[0],
+    [allRepos, activeRepo],
+  );
 
   // Sync mode from store when ideas exist (e.g. sample, deep link)
   useEffect(() => {
@@ -174,6 +193,8 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
       setLiveTitle(undefined);
       setLiveFondObject(isNeed ? "the need" : "this source");
       setDiscoverySkills([]);
+      setIngestValue(null);
+      setCompareNote(null);
 
       const placeholderUrl = isNeed
         ? `need://${encodeURIComponent(value.slice(0, 48))}`
@@ -190,8 +211,9 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
 
       const collected: IdeaFromAPI[] = [];
       let streamContentType = isNeed ? "text" : "article";
-      let foundSkills: ExistingSkillHit[] = [];
       let extractedChars = 0;
+      let sourceHash = "";
+      const valueBag = { current: null as IngestValue | null };
 
       try {
         const result = await resolveIngestStream(
@@ -234,6 +256,9 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
               if (event.type === "idea") {
                 const idea: IdeaFromAPI = {
                   ...event.idea,
+                  domain: event.idea.domain ?? [],
+                  applicability: event.idea.applicability ?? [],
+                  embedding: event.idea.embedding ?? [],
                   patternType: (
                     [
                       "technique",
@@ -248,12 +273,26 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
                 collected.push(idea);
                 setLiveIdeas([...collected]);
               }
-              if (event.type === "discovery") {
-                foundSkills = event.existingSkills ?? [];
-                setDiscoverySkills(foundSkills);
+              if (event.type === "value") {
+                valueBag.current = event.value;
+                setIngestValue(event.value);
+                sourceHash = event.value.sourceHash || sourceHash;
               }
               if (event.type === "done") {
                 extractedChars = event.textLength ?? 0;
+                sourceHash = event.sourceHash || sourceHash;
+                if (event.providers && !valueBag.current) {
+                  const v: IngestValue = {
+                    providers: event.providers,
+                    cacheHit: !!event.cacheHit,
+                    sourceHash: event.sourceHash,
+                    textLength: event.textLength,
+                    ideaCount: event.ideaCount,
+                    deferred: ["exa", "forge", "publish"],
+                  };
+                  valueBag.current = v;
+                  setIngestValue(v);
+                }
               }
             },
           },
@@ -261,6 +300,18 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
         );
 
         extractedChars = result.textLength ?? extractedChars;
+        const finalIdeas =
+          collected.length > 0
+            ? collected
+            : result.ideas.map((idea) =>
+                toApiIdea(
+                  idea,
+                  result.source.url,
+                  result.fromApi ? sourceHash || "api" : "local",
+                ),
+              );
+
+        const delivered = valueBag.current;
         updateSource(placeholderUrl, {
           title: result.source.title,
           contentType:
@@ -275,29 +326,27 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
                 : result.source.type === "text"
                   ? "text"
                   : "blog",
-          ideasCount: result.ideas.length,
-          sourceHash: result.fromApi ? "api" : "local",
+          ideasCount: finalIdeas.length,
+          sourceHash: sourceHash || (result.fromApi ? "api" : "local"),
           isProcessing: false,
           url: result.source.url,
           textLength: extractedChars || undefined,
+          extractProvider: delivered?.extractProvider,
+          cacheHit: delivered?.cacheHit,
         });
 
-        const mapped = result.ideas.map((idea) =>
-          toApiIdea(idea, result.source.url, result.fromApi ? "api" : "local"),
-        );
-        setIdeas(mapped);
-        if (foundSkills.length === 0 && !result.fromApi) {
-          // Seeded path: still show comparative skills so the USP is demoable
-          setDiscoverySkills([
-            {
-              title: "agentskills/compose-patterns",
-              url: "https://github.com/agentskills/compose-patterns",
-              snippet:
-                "Existing skill covering multi-source composition and fit-to-repo folding.",
-            },
-          ]);
-        } else if (foundSkills.length > 0) {
-          setDiscoverySkills(foundSkills);
+        setIdeas(finalIdeas);
+        // Compare (Exa) is intentional — user runs it from DiscoveryPanel
+        setDiscoverySkills([]);
+        if (!delivered) {
+          setIngestValue({
+            providers: result.fromApi ? ["workers-ai"] : ["cache"],
+            cacheHit: !result.fromApi,
+            sourceHash: sourceHash || "local",
+            textLength: extractedChars,
+            ideaCount: finalIdeas.length,
+            deferred: ["exa", "forge", "publish"],
+          });
         }
         setMode("work");
       } catch (err) {
@@ -322,8 +371,10 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
     [
       addSource,
       removeSource,
+      setCompareNote,
       setDiscoverySkills,
       setIdeas,
+      setIngestValue,
       setIngesting,
       updateSource,
     ],
@@ -347,11 +398,15 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
     () =>
       ideas.map((idea) => {
         const worth = scoreWorthiness(idea);
-        const repos = matchRepos(idea, demoRepos);
-        return { idea, worth, repos };
+        const repos = matchRepos(idea, allRepos);
+        const fit = fitForRepo(idea, activeRepoObj);
+        const overlaps = overlapsForIdea(idea, discoverySkills);
+        return { idea, worth, repos, fit, overlaps };
       }),
-    [ideas],
+    [ideas, allRepos, activeRepoObj, discoverySkills],
   );
+
+  const activeFitCount = ideaInsights.filter((r) => r.fit).length;
 
   const selectedIdeas = ideas
     .filter((i) => selectedIdeaIds.has(i.id))
@@ -386,10 +441,13 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
     (r) => r.worth.worthiness === "forge",
   ).length;
 
+  const relatedPair = useMemo(() => relatedShardIds(ideas), [ideas]);
+
   const composeHint = useMemo(() => {
     const n = selectedIdeaIds.size;
-    if (n < 2) {
-      return n === 1 ? "Add another → hallmark skill from multiple angles" : undefined;
+    if (n === 0) return undefined;
+    if (n === 1) {
+      return "Add another Forge shard → one hallmark skill, not N weak ones";
     }
     const selected = ideaInsights.filter((r) =>
       selectedIdeaIds.has(r.idea.id),
@@ -406,6 +464,13 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
     }
     return `Compose ${n} into one skill — don’t forge each alone`;
   }, [ideaInsights, selectedIdeaIds]);
+
+  const idleComposeHint =
+    selectedIdeaIds.size === 0
+      ? relatedPair.length === 2
+        ? "These two shards are related — select both, then forge once"
+        : "Select 2+ Forge shards · one skill beats many thin ones"
+      : null;
 
   const showPad = mode === "pad" && ideas.length === 0;
   const showIngest = mode === "ingest";
@@ -444,7 +509,7 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
               />
               {showFrame && (
                 <>
-                  <LiveSignalLine />
+                  <LiveSignalLine className="mt-6" />
                   <p className="mt-4 max-w-xs text-center text-[11px] leading-relaxed text-muted">
                     Not a marketplace — a forge. Wallet optional (you = forger,
                     else relayer).
@@ -560,17 +625,30 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
                       ideasCount={ideas.length}
                       textLength={sources[0].textLength}
                       fondObject={phrase.object}
+                      sourceHash={sources[0].sourceHash}
+                      ingestValue={ingestValue}
                     />
                   </div>
                 )}
 
                 <div className="mb-4 lg:hidden">
                   <FitTarget
-                    repos={demoRepos}
+                    repos={allRepos}
                     variant="strip"
                     selectedIdeaCount={selectedIdeaIds.size}
+                    fitCount={activeFitCount}
                   />
                 </div>
+
+                <DiscoveryPanel
+                  existingSkills={discoverySkills}
+                  repoMatchSummary={repoMatchSummary}
+                  forgeWorthyCount={forgeWorthyCount}
+                  totalIdeas={ideas.length}
+                  ideas={ideas}
+                  onSkillsUpdate={setDiscoverySkills}
+                  onCompareNote={setCompareNote}
+                />
 
                 <AgentExportBar
                   ideas={ideas}
@@ -581,43 +659,83 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
                   selectedIds={selectedIdeaIds}
                 />
 
-                <DiscoveryPanel
-                  existingSkills={discoverySkills}
-                  repoMatchSummary={repoMatchSummary}
-                  forgeWorthyCount={forgeWorthyCount}
-                  totalIdeas={ideas.length}
-                />
-
-                <p className="mb-3 text-[11px] uppercase tracking-wider text-muted">
-                  Shards · select to forge
-                </p>
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-[11px] uppercase tracking-wider text-muted">
+                    Shards · select to forge
+                    {activeRepoObj
+                      ? ` · fit shown for ${activeRepoObj.name}`
+                      : ""}
+                  </p>
+                  {idleComposeHint && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (relatedPair.length === 2) {
+                          selectIdeas(relatedPair);
+                        } else {
+                          selectIdeas(
+                            ideaInsights
+                              .filter((r) => r.worth.worthiness === "forge")
+                              .slice(0, 2)
+                              .map((r) => r.idea.id),
+                          );
+                        }
+                      }}
+                      className="text-left text-[11px] leading-snug text-ember hover:text-ember-hot"
+                    >
+                      {idleComposeHint}
+                    </button>
+                  )}
+                </div>
 
                 <div className="idea-shard-plane flex flex-col gap-3 pb-8 sm:gap-3.5">
-                  {ideaInsights.map(({ idea, worth, repos }, i) => (
-                    <IdeaShard
-                      key={idea.id}
-                      id={idea.id}
-                      title={idea.title}
-                      description={idea.description}
-                      patternType={idea.patternType}
-                      domains={idea.domain}
-                      index={i}
-                      worthiness={worth.worthiness}
-                      worthinessReason={worth.reason}
-                      repoMatches={repos.map((r) => ({
-                        name: r.name,
-                        why: r.why,
-                      }))}
-                    />
-                  ))}
+                  {ideaInsights.map(
+                    ({ idea, worth, repos, fit, overlaps }, i) => {
+                      const topOverlap = overlaps[0];
+                      return (
+                        <IdeaShard
+                          key={idea.id}
+                          id={idea.id}
+                          title={idea.title}
+                          description={idea.description}
+                          patternType={idea.patternType}
+                          domains={idea.domain}
+                          applicability={idea.applicability}
+                          index={i}
+                          worthiness={worth.worthiness}
+                          worthinessReason={worth.reason}
+                          fitDetail={fit?.detail}
+                          repoMatches={repos.map((r) => ({
+                            name: r.name,
+                            why: r.why,
+                          }))}
+                          similarSkill={
+                            topOverlap
+                              ? {
+                                  title: topOverlap.skill.title,
+                                  url: topOverlap.skill.url,
+                                  label: topOverlap.label,
+                                  why: topOverlap.why,
+                                }
+                              : null
+                          }
+                        />
+                      );
+                    },
+                  )}
+                </div>
+
+                <div className="border-t border-ink/8 pt-4 pb-2">
+                  <LiveSignalLine />
                 </div>
               </div>
             </div>
 
             <div className="hidden self-stretch lg:block">
               <FitTarget
-                repos={demoRepos}
+                repos={allRepos}
                 selectedIdeaCount={selectedIdeaIds.size}
+                fitCount={activeFitCount}
               />
             </div>
           </motion.div>
@@ -636,7 +754,7 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
       <ForgeMode
         open={forgeOpen}
         ideas={selectedIdeas}
-        repos={demoRepos}
+        repos={allRepos}
         onClose={() => setForgeOpen(false)}
       />
     </div>

@@ -1,5 +1,13 @@
 import type { Env } from "../index.js";
 
+export type ExtractProvider = "firecrawl" | "html";
+
+export type ExtractResult = {
+  text: string;
+  title: string;
+  provider: ExtractProvider;
+};
+
 /**
  * Extract clean text from a URL.
  * Priority: Firecrawl (handles JS, returns markdown) → basic HTML strip fallback.
@@ -7,15 +15,16 @@ import type { Env } from "../index.js";
 export async function extractContent(
   url: string,
   env: Env
-): Promise<{ text: string; title: string } | null> {
+): Promise<ExtractResult | null> {
   // Try Firecrawl first (handles JS-rendered pages, returns clean markdown)
   if (env.FIRECRAWL_API_KEY) {
     const result = await firecrawlExtract(url, env.FIRECRAWL_API_KEY);
-    if (result) return result;
+    if (result) return { ...result, provider: "firecrawl" };
   }
 
   // Fallback: basic HTML fetch + strip
-  return basicExtract(url);
+  const basic = await basicExtract(url);
+  return basic ? { ...basic, provider: "html" } : null;
 }
 
 async function firecrawlExtract(

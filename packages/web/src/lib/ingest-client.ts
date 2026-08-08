@@ -127,12 +127,25 @@ export async function resolveIngestStream(
       });
     }
     onEvent?.({
+      type: "value",
+      value: {
+        providers: ["cache"],
+        cacheHit: true,
+        sourceHash: "need",
+        textLength: value.length,
+        ideaCount: ideas.length,
+        deferred: ["exa", "forge", "publish"],
+      },
+    });
+    onEvent?.({
       type: "done",
       sourceHash: "need",
       contentType: "text",
       title: value.slice(0, 64) || "Stated need",
       textLength: value.length,
       ideaCount: ideas.length,
+      cacheHit: true,
+      providers: ["cache"],
     });
     return {
       source: {
@@ -295,12 +308,25 @@ export async function resolveIngestStream(
     onEvent?.({ type: "idea", idea: toApiIdea(idea, url, "demo") });
   }
   onEvent?.({
+    type: "value",
+    value: {
+      providers: ["cache"],
+      cacheHit: true,
+      sourceHash: "demo",
+      textLength: 0,
+      ideaCount: fallback.length,
+      deferred: ["exa", "forge", "publish"],
+    },
+  });
+  onEvent?.({
     type: "done",
     sourceHash: "demo",
     contentType: guessType(value),
     title: hostnameTitle(url),
     textLength: 0,
     ideaCount: fallback.length,
+    cacheHit: true,
+    providers: ["cache"],
   });
 
   return {

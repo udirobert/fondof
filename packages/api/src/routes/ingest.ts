@@ -2,12 +2,24 @@ import { Hono } from "hono";
 import type { Env } from "../index.js";
 import { chat, embed } from "../lib/llm.js";
 import { extractContent } from "../lib/extract.js";
+import { compactEmbedding } from "../lib/embedding-compact.js";
 import { transcribeAudio, isAudioUrl, resolveAudioUrl } from "../lib/transcribe.js";
 import { isYouTubeUrl, getYouTubeTranscript } from "../lib/youtube.js";
 import { isRssUrl, getLatestEpisodeFromRss } from "../lib/rss.js";
 import { cacheGetJson, cachePutJson, sha256Hex } from "../lib/edge-cache.js";
 import { ingestCacheTtl, normalizeSourceUrl } from "../lib/source-url.js";
 import { rateLimit } from "../lib/rate-limit-mw.js";
+
+/** Providers used during extract — Exa is a separate compare stage. */
+export type IngestProvider =
+  | "firecrawl"
+  | "html"
+  | "timedtext"
+  | "page"
+  | "elevenlabs"
+  | "rss"
+  | "workers-ai"
+  | "cache";
 
 const EXTRACT_SYSTEM = `You are a JSON-only response bot. You extract actionable technical ideas from content.
 
@@ -19,6 +31,17 @@ Example response:
 [{"title":"Error Boundaries","description":"Use catchError for custom error handling that does not interfere with routing.","domain":["error-handling"],"applicability":["react","next.js"],"patternType":"technique"}]`;
 
 export type IngestContentType = "audio" | "article" | "youtube" | "podcast";
+
+export type IngestValue = {
+  providers: IngestProvider[];
+  extractProvider?: IngestProvider;
+  cacheHit: boolean;
+  sourceHash: string;
+  textLength: number;
+  ideaCount: number;
+  /** Stages not run (kept for feature flags / monetization copy) */
+  deferred: Array<"exa" | "forge" | "publish">;
+};
 
 export type IngestStreamEvent =
   | {
@@ -33,12 +56,18 @@ export type IngestStreamEvent =
       idea: IdeaOutput;
     }
   | {
+      type: "value";
+      value: IngestValue;
+    }
+  | {
       type: "done";
       sourceHash: string;
       contentType: IngestContentType;
       title: string;
       textLength: number;
       ideaCount: number;
+      cacheHit?: boolean;
+      providers?: IngestProvider[];
     }
   | {
       type: "discovery";
@@ -64,8 +93,11 @@ type IngestResult = {
   title: string;
   ideas: IdeaOutput[];
   textLength: number;
+  /** Kept empty on extract — compare is a separate Exa stage */
   existingSkills: Array<{ title: string; url: string; snippet: string }>;
   cacheHit?: boolean;
+  providers: IngestProvider[];
+  extractProvider?: IngestProvider;
 };
 
 type Emit = (event: IngestStreamEvent) => void;
@@ -79,6 +111,11 @@ function sleep(ms: number) {
  * not instant teleport.
  */
 async function replayCachedIngest(cached: IngestResult, emit: Emit) {
+  const providers: IngestProvider[] = [
+    "cache",
+    ...(cached.providers ?? []).filter((p) => p !== "cache"),
+  ];
+
   emit({
     type: "kind",
     contentType: cached.contentType,
@@ -115,18 +152,16 @@ async function replayCachedIngest(cached: IngestResult, emit: Emit) {
     await sleep(240);
   }
 
-  if (cached.existingSkills?.length) {
-    emit({
-      type: "phase",
-      phase: "discover",
-      label: "Checking what already exists…",
-    });
-    await sleep(380);
-    emit({
-      type: "discovery",
-      existingSkills: cached.existingSkills.slice(0, 3),
-    });
-  }
+  const value: IngestValue = {
+    providers,
+    extractProvider: cached.extractProvider,
+    cacheHit: true,
+    sourceHash: cached.sourceHash,
+    textLength: cached.textLength,
+    ideaCount: cached.ideas.length,
+    deferred: ["exa", "forge", "publish"],
+  };
+  emit({ type: "value", value });
 
   await sleep(220);
   emit({
@@ -136,6 +171,8 @@ async function replayCachedIngest(cached: IngestResult, emit: Emit) {
     title: cached.title,
     textLength: cached.textLength,
     ideaCount: cached.ideas.length,
+    cacheHit: true,
+    providers,
   });
 }
 
@@ -157,16 +194,23 @@ async function runIngestPipeline(
   emit: Emit,
 ): Promise<IngestResult> {
   const canonical = normalizeSourceUrl(url);
-  const cacheKey = `ingest:v1:${await sha256Hex(canonical)}`;
+  const cacheKey = `ingest:v2:${await sha256Hex(canonical)}`;
   const cached = await cacheGetJson<IngestResult>(cacheKey);
   if (cached?.ideas?.length) {
     await replayCachedIngest(cached, emit);
-    return { ...cached, cacheHit: true };
+    return {
+      ...cached,
+      cacheHit: true,
+      providers: ["cache", ...(cached.providers ?? [])],
+      existingSkills: [],
+    };
   }
 
   let text: string;
   let title: string;
   let contentType: IngestContentType;
+  const providers: IngestProvider[] = [];
+  let extractProvider: IngestProvider | undefined;
 
   emit({ type: "phase", phase: "resolve", label: "Reading the link…" });
 
@@ -195,9 +239,12 @@ async function runIngestPipeline(
 
     text = transcript.text;
     title = transcript.title;
+    extractProvider = transcript.provider;
+    providers.push(transcript.provider);
     emit({ type: "meta", title });
   } else if (isRssUrl(canonical)) {
     contentType = "podcast";
+    providers.push("rss");
     emit({
       type: "kind",
       contentType,
@@ -226,6 +273,7 @@ async function runIngestPipeline(
     if (!transcript || !transcript.text) {
       if (episode.description && episode.description.length > 100) {
         text = episode.description;
+        extractProvider = "rss";
       } else {
         throw new Error(
           `Found episode "${episode.title}" but could not transcribe audio. ElevenLabs API key may be missing or the audio URL is inaccessible.`,
@@ -233,6 +281,8 @@ async function runIngestPipeline(
       }
     } else {
       text = transcript.text;
+      extractProvider = "elevenlabs";
+      providers.push("elevenlabs");
     }
 
     title = episode.title;
@@ -259,6 +309,8 @@ async function runIngestPipeline(
 
     text = transcript.text;
     title = canonical.split("/").pop()?.replace(/\.[^.]+$/, "") ?? "Podcast";
+    extractProvider = "elevenlabs";
+    providers.push("elevenlabs");
     emit({ type: "meta", title });
   } else {
     contentType = "article";
@@ -276,6 +328,8 @@ async function runIngestPipeline(
 
     text = extracted.text;
     title = extracted.title || new URL(canonical).hostname;
+    extractProvider = extracted.provider;
+    providers.push(extracted.provider);
     emit({ type: "meta", title });
   }
 
@@ -298,6 +352,7 @@ async function runIngestPipeline(
     `Extract all actionable technical ideas from this content. Respond with ONLY a JSON array:\n\n${truncated}`,
     env,
   );
+  providers.push("workers-ai");
 
   const responseStr =
     typeof llmResponse === "string" ? llmResponse : JSON.stringify(llmResponse);
@@ -309,7 +364,7 @@ async function runIngestPipeline(
     const texts = ideas.map((i) => `${i.title}: ${i.description}`);
     const embeddings = await embed(env.AI, texts);
     ideas.forEach((idea, i) => {
-      idea.embedding = embeddings[i] ?? [];
+      idea.embedding = compactEmbedding(embeddings[i] ?? []);
     });
   }
 
@@ -317,24 +372,17 @@ async function runIngestPipeline(
     emit({ type: "idea", idea });
   }
 
-  // Discovery: search for existing skills that cover these ideas
-  let existingSkills: Array<{ title: string; url: string; snippet: string }> = [];
-  if (env.EXA_API_KEY && ideas.length > 0) {
-    emit({ type: "phase", phase: "discover", label: "Checking what already exists…" });
-    try {
-      const { searchExistingSkills } = await import("../lib/search.js");
-      const query = ideas.slice(0, 3).map((i) => i.title).join(", ");
-      existingSkills = await searchExistingSkills(query, env);
-      if (existingSkills.length > 0) {
-        emit({
-          type: "discovery",
-          existingSkills: existingSkills.slice(0, 3),
-        } as IngestStreamEvent);
-      }
-    } catch {
-      // Non-fatal
-    }
-  }
+  // Exa compare is intentional / on-demand — not part of extract.
+  const value: IngestValue = {
+    providers,
+    extractProvider,
+    cacheHit: false,
+    sourceHash,
+    textLength: text.length,
+    ideaCount: ideas.length,
+    deferred: ["exa", "forge", "publish"],
+  };
+  emit({ type: "value", value });
 
   emit({
     type: "done",
@@ -343,6 +391,8 @@ async function runIngestPipeline(
     title,
     textLength: text.length,
     ideaCount: ideas.length,
+    cacheHit: false,
+    providers,
   });
 
   const result: IngestResult = {
@@ -351,17 +401,14 @@ async function runIngestPipeline(
     title,
     ideas,
     textLength: text.length,
-    existingSkills,
+    existingSkills: [],
     cacheHit: false,
+    providers,
+    extractProvider,
   };
 
   if (ideas.length > 0) {
-    // Strip heavy embeddings from cache payload
-    const toStore: IngestResult = {
-      ...result,
-      ideas: ideas.map((i) => ({ ...i, embedding: [] })),
-    };
-    await cachePutJson(cacheKey, toStore, ingestCacheTtl(contentType));
+    await cachePutJson(cacheKey, result, ingestCacheTtl(contentType));
   }
 
   return result;
@@ -378,7 +425,7 @@ ingestRoute.post("/ingest/stream", rateLimit("ingest"), async (c) => {
 
   const canonical = normalizeSourceUrl(url);
   const peek = await cacheGetJson<IngestResult>(
-    `ingest:v1:${await sha256Hex(canonical)}`,
+    `ingest:v2:${await sha256Hex(canonical)}`,
   );
   const cacheStatus = peek?.ideas?.length ? "HIT" : "MISS";
 
@@ -422,8 +469,11 @@ ingestRoute.post("/ingest", rateLimit("ingest"), async (c) => {
       title: result.title,
       ideas: result.ideas,
       textLength: result.textLength,
-      existingSkills: result.existingSkills,
+      existingSkills: [],
       cached: !!result.cacheHit,
+      providers: result.providers,
+      extractProvider: result.extractProvider,
+      deferred: ["exa", "forge", "publish"],
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Unknown error";

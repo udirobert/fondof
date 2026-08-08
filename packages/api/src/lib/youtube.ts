@@ -26,20 +26,22 @@ export function extractVideoId(url: string): string | null {
   return null;
 }
 
+export type YoutubeProvider = "timedtext" | "firecrawl" | "page";
+
 /**
  * Fetch transcript from YouTube.
- * Tries: direct page scrape → Firecrawl (renders JS) → timedtext API.
+ * Tries: timedtext API → Firecrawl → page scrape.
  */
 export async function getYouTubeTranscript(
   url: string,
   firecrawlKey?: string
-): Promise<{ text: string; title: string } | null> {
+): Promise<{ text: string; title: string; provider: YoutubeProvider } | null> {
   const videoId = extractVideoId(url);
   if (!videoId) return null;
 
   // Method 1: Try timedtext API (most reliable from Workers)
   const timedText = await fetchTimedText(videoId, "");
-  if (timedText) return timedText;
+  if (timedText) return { ...timedText, provider: "timedtext" };
 
   // Method 2: Try Firecrawl to render the page and get captions
   if (firecrawlKey) {
@@ -68,6 +70,7 @@ export async function getYouTubeTranscript(
           return {
             text: data.data.markdown,
             title: data.data.metadata?.title ?? `YouTube: ${videoId}`,
+            provider: "firecrawl",
           };
         }
       }
@@ -104,7 +107,7 @@ export async function getYouTubeTranscript(
         const captionResponse = await fetch(captionUrl);
         const captionXml = await captionResponse.text();
         const text = parseYouTubeCaptions(captionXml);
-        if (text) return { text, title };
+        if (text) return { text, title, provider: "page" };
       }
     }
   } catch {

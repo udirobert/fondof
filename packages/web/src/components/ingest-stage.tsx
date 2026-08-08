@@ -5,8 +5,12 @@ import { Loader2, X } from "lucide-react";
 import { FondofWordmark } from "@/components/fondof-wordmark";
 import { IdeaShard } from "@/components/idea-shard";
 import type { IdeaFromAPI } from "@/lib/api";
-import { matchRepos, scoreWorthiness } from "@/lib/idea-insights";
+import { fitForRepo, matchRepos, scoreWorthiness } from "@/lib/idea-insights";
+import { asConnected } from "@/lib/github-repo";
+import { overlapsForIdea } from "@/lib/skill-overlap";
 import { demoRepos } from "@/lib/demo-data";
+import { useAppStore } from "@/lib/store";
+import { useMemo } from "react";
 
 export interface IngestPhase {
   phase: string;
@@ -33,6 +37,18 @@ export function IngestStage({
   liveIdeas,
   onCancel,
 }: IngestStageProps) {
+  const userRepos = useAppStore((s) => s.userRepos);
+  const activeRepo = useAppStore((s) => s.activeRepo);
+  const discoverySkills = useAppStore((s) => s.discoverySkills);
+
+  const allRepos = useMemo(() => {
+    const demos = demoRepos.map(asConnected);
+    const seen = new Set(userRepos.map((r) => r.fullName));
+    return [...userRepos, ...demos.filter((d) => !seen.has(d.fullName))];
+  }, [userRepos]);
+
+  const active = allRepos.find((r) => r.fullName === activeRepo) ?? allRepos[0];
+
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-6">
       <div className="text-center">
@@ -114,7 +130,9 @@ export function IngestStage({
               ))
             : liveIdeas.map((idea, i) => {
                 const worth = scoreWorthiness(idea);
-                const repos = matchRepos(idea, demoRepos);
+                const repos = matchRepos(idea, allRepos);
+                const fit = fitForRepo(idea, active);
+                const top = overlapsForIdea(idea, discoverySkills)[0];
                 return (
                   <IdeaShard
                     key={idea.id}
@@ -123,13 +141,25 @@ export function IngestStage({
                     description={idea.description}
                     patternType={idea.patternType}
                     domains={idea.domain}
+                    applicability={idea.applicability}
                     index={i}
                     worthiness={worth.worthiness}
                     worthinessReason={worth.reason}
+                    fitDetail={fit?.detail}
                     repoMatches={repos.map((r) => ({
                       name: r.name,
                       why: r.why,
                     }))}
+                    similarSkill={
+                      top
+                        ? {
+                            title: top.skill.title,
+                            url: top.skill.url,
+                            label: top.label,
+                            why: top.why,
+                          }
+                        : null
+                    }
                   />
                 );
               })}
