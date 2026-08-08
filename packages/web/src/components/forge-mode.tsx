@@ -110,7 +110,6 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
       window.clearTimeout(t);
     };
     // ideas locked at open; repo changes handled below without replaying ritual
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, ideas]);
 
   // Quiet re-fit only when the user changes repo (not on open).
@@ -134,7 +133,6 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
     return () => {
       signal.cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [repo, open, phase]);
 
   // When compose phase starts, reveal pending markdown (stream if motion ok).
