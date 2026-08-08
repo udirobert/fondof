@@ -1,14 +1,18 @@
 import { Hono } from "hono";
 import type { Env } from "../index.js";
 import { forgeOnChain } from "../lib/monad.js";
+import { putSkillMeta } from "../lib/skill-meta.js";
 import { rateLimit } from "../lib/rate-limit-mw.js";
 
 export const publishRoute = new Hono<{ Bindings: Env }>();
 
 publishRoute.post("/publish", rateLimit("publish"), async (c) => {
-  const { skillHash, sourceHashes } = await c.req.json<{
+  const { skillHash, sourceHashes, title, blurb, repo } = await c.req.json<{
     skillHash: string;
     sourceHashes: string[];
+    title?: string;
+    blurb?: string;
+    repo?: string;
   }>();
 
   if (!skillHash) return c.json({ error: "skillHash is required" }, 400);
@@ -26,6 +30,10 @@ publishRoute.post("/publish", rateLimit("publish"), async (c) => {
       skillHash,
       sourceHashes
     );
+
+    if (title?.trim()) {
+      await putSkillMeta(skillHash, { title, blurb, repo });
+    }
 
     return c.json({
       success: true,

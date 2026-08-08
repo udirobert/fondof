@@ -90,7 +90,8 @@ export function SkillPoolPulse({
                 href={skillPublicPath(s.skillHash)}
                 className="underline-offset-2 hover:text-ember hover:underline"
               >
-                {getSkillMeta(s.skillHash)?.title?.slice(0, 28) ||
+                {s.title?.slice(0, 28) ||
+                  getSkillMeta(s.skillHash)?.title?.slice(0, 28) ||
                   formatSignal(s.signal)}
                 <span className="text-muted">
                   {" "}

@@ -2,20 +2,36 @@
 
 **The bridge between what you learn and what your agents do.**
 
-fondof connects the content you consume (podcasts, blogs, technical talks) with the projects you're building — helping you discover existing skills, identify where new ideas apply to your work, and craft best-in-class skills fitted to your specific coding environment.
+fondof connects the content you consume (podcasts, blogs, technical talks) with the projects you're building — helping you discover existing skills, identify where new ideas apply to your work, and craft best-in-class skills fitted to your specific coding environment. Provenance and quality signal settle on Monad via **SkillPool**.
+
+## Built with Kiro
+
+fondof was specified and steered in [Kiro](https://kiro.dev), then shipped as a working web + API + on-chain loop. Judges and contributors can read the agent trail in this repo:
+
+| Artifact | Path |
+|----------|------|
+| Requirements | [`.kiro/specs/fondof/requirements.md`](.kiro/specs/fondof/requirements.md) |
+| Design | [`.kiro/specs/fondof/design.md`](.kiro/specs/fondof/design.md) |
+| Tasks | [`.kiro/specs/fondof/tasks.md`](.kiro/specs/fondof/tasks.md) |
+| Project steering | [`.kiro/steering/project.md`](.kiro/steering/project.md) |
+| Example forged skill | [`.kiro/steering/optimizing-next-js-performance-with-turbopack-and-.md`](.kiro/steering/optimizing-next-js-performance-with-turbopack-and-.md) |
+
+**Spec → ship:** the live product is the web floor (extract → forge → SkillPool) backed by a Cloudflare Worker API and `SkillPool.sol` on Monad testnet — built under that Kiro spec, not a separate rewrite.
+
+This repo also targets **Ready, Spec, Ship** (Kiro) and Monad demo contexts. See [`.kiro/`](.kiro/) for the full steering + specs package required by the hackathon.
 
 ## What fondof does
 
-1. **Ingest** — Paste a podcast or blog URL. fondof transcribes, extracts discrete ideas, and identifies actionable patterns.
-2. **Discover** — Ideas are matched against your connected repositories. fondof shows which ideas apply where, what skills already exist, and what's genuinely novel.
-3. **Forge** — Compose skills from multiple sources, fitted to your repo's stack, conventions, and existing patterns. Every skill cites its sources.
-4. **Attest** — Publish with verifiable provenance on Monad. The blockchain layer is completely invisible — no wallets, no gas, no confirmations.
+1. **Ingest** — Paste a podcast/blog URL *or* state a need in plain text (no GitHub required). fondof extracts discrete idea shards.
+2. **Discover** — Shards are fitted to your repos (demo repos work out of the box). Compare finds overlapping skills when you ask.
+3. **Forge** — Compose a skill preview fitted to your stack. Publish puts skin in escrow on SkillPool.
+4. **SkillPool** — Agents use and dispute skills; score is quality signaling on Monad. Wallet optional (you = forger) or fondof relayer publishes for you.
 
 ## Two entry points
 
 **Content-first:** "I just listened to a great podcast — where do these ideas apply across my projects?"
 
-**Need-first:** "I have a problem in my code — what existing skills cover this, and what source material could fill the gap?"
+**Need-first (OAuth-free):** "I have a problem in my code — extract shards from the need, forge, publish." Use the **Need** tab on the start pad — no GitHub login required for the happy path.
 
 ## What fondof is NOT
 
@@ -39,7 +55,7 @@ We don't index or deduplicate the existing skill ecosystem. If you want a catalo
 
 ### Not a skill tokenization/pricing protocol
 
-We don't price skills via tokens, bonding curves, or per-request payments. If you want skill economics:
+We don't price skills via tokens, bonding curves, or per-request payments. SkillPool staking is **quality signaling / expensive policing**, not yield. If you want skill economics:
 - [x402 Protocol / Coinbase Bazaar](https://x402.org) — Pay-per-call in USDC on Base
 - [ERC-8239 Skill Registry](https://eips.ethereum.org/EIPS/eip-8239) — On-chain skill identity as NFTs
 - [Torch Market](https://torch.market) — Bonding curves for agent tokens
@@ -59,84 +75,107 @@ We're domain-agnostic. If you need pre-built DeFi/crypto agent capabilities:
 - Want **provenance** — know exactly where a skill's thinking came from
 - Want **environment-fitted** skills that respect your stack, conventions, and existing patterns
 - Want to compose skills from **multiple sources**, not just copy one file
+- Want a **quality loop** — uses raise score; honest disputes police fakes
 
-## Quick start
+## Quick start (judges — hosted first)
+
+**Live app:** [https://fondof.netlify.app](https://fondof.netlify.app)  
+**API:** [https://fondof-api.trustfall.workers.dev](https://fondof-api.trustfall.workers.dev)  
+**Contract:** SkillPool on Monad testnet — `0x1c0b6C42acD41BE5582a8F34137Acb713107170a`
+
+### Testing / demo clicks
+
+1. Open the live app (no install).
+2. **Need** tab → type e.g. `retry budgets for async TypeScript fetch` → Extract (no GitHub).
+   - Or **URL** tab → paste a public article URL.
+3. Select 1–2 Forge-worthy shards → open Forge → wait for skill preview (title + one-liner).
+4. **Publish** (relayer by default, or connect wallet on Monad testnet to forge as yourself).
+5. Open the skill → **I used this** to grow score → optional **Dispute**.
+6. Visit [**/pool**](https://fondof.netlify.app/pool) → Draw a skill / browse paper cards.
+
+**Honesty:** If chain/relayer is unreachable, publish stays a local draft — we do not fake “published.” Challenge **resolve** is a demo oracle (relayer), not decentralized adjudication. Offline LLM fallbacks may seed demo shards when extract fails — labeled as such in the UI when possible.
+
+Demo video script: [`docs/demo-video.md`](docs/demo-video.md).  
+Package roles: [`docs/architecture.md`](docs/architecture.md).
+
+### Local secondary path
 
 ```bash
-# Install dependencies
 pnpm install
 
-# Connect your GitHub
-fondof connect
+# API (Cloudflare Worker)
+cd packages/api && pnpm dev
 
-# Ingest content (podcast or blog)
-fondof ingest https://example.com/podcast/episode-42.mp3
-
-# Or start from a need
-fondof need "better error handling in async TypeScript"
-
-# Forge a skill from extracted ideas
-fondof forge --latest --repo myorg/myproject
-
-# Publish to SkillPool on Monad (signal starts growing)
-fondof publish .kiro/steering/my-skill.md
-
-# Challenge a skill you think is low quality
-fondof challenge <skill-hash>
-
-# Check status
-fondof status
+# Web (another terminal) — point at local or deployed API
+cd packages/web
+# optional: NEXT_PUBLIC_API_URL=http://127.0.0.1:8787
+pnpm dev
 ```
+
+Copy [`.env.example`](.env.example) to `.env` / Worker secrets. Never commit real keys. Relayer + LLM secrets live in Wrangler secrets / Netlify env, not in git.
+
+### CLI (secondary / WIP)
+
+```bash
+pnpm --filter @fondof/cli build
+# fondof ingest | forge | publish | challenge | status
+```
+
+The **web floor** is the primary product for demos and Ready Spec Ship judging.
 
 ## Architecture
 
 ```
 packages/
-├── cli/          Commander.js CLI (connect, ingest, forge, publish, status)
-├── core/         Business logic (ingestion, discovery, composition, project, relayer)
-├── contracts/    Solidity on Monad (FondofAttestation.sol)
-└── shared/       TypeScript types (IdeaRecord, RepoProfile, DiscoveryResult, etc.)
+├── web/          Next.js UI — extract, forge, SkillPool desk (/pool, /s/[hash])
+├── api/          Cloudflare Worker — ingest, forge, publish, skills, challenge
+├── cli/          Commander.js CLI (secondary to web)
+├── core/         Shared pipelines used by CLI (ingestion, composition, relayer helpers)
+├── contracts/    Foundry — SkillPool.sol (demo contract); FondofAttestation.sol (legacy)
+└── shared/       Shared TypeScript types
 ```
+
+**Package roles:** `api` is the live HTTP edge; `core` backs the CLI and reusable logic; `web` talks to `api` over HTTPS. SkillPool is the on-chain quality loop — not a marketplace listing fee.
 
 ## Tech stack
 
 - **TypeScript** monorepo (pnpm workspaces)
-- **ElevenLabs Scribe** for podcast transcription
-- **Cloudflare Workers AI** for LLM (free) + embeddings (bge-small, free)
-- **Exa / TinyFish** for semantic skill search
+- **Next.js 16.3** + Framer Motion for the web UI (Netlify)
+- **Cloudflare Workers** (Hono) for the API
+- **ElevenLabs Scribe** for podcast transcription (optional)
+- **Cloudflare Workers AI** for LLM + embeddings
+- **Exa** for semantic skill search (Compare stage)
 - **Firecrawl / Readability** for article extraction
-- **Monad** (EVM L1, 10K TPS) for SkillPool contract
-- **viem** for on-chain interaction
-- **Foundry** for Solidity development (15 tests)
-- **Next.js 16.3** + Framer Motion for the web UI
+- **Monad** (EVM L1) for SkillPool
+- **viem / wagmi** for on-chain interaction
+- **Foundry** for Solidity development
 
 ## Environment variables
 
+See [`.env.example`](.env.example) for placeholders. Summary:
+
 ```bash
-# Required for on-chain operations (SkillPool)
-MONAD_RPC_URL=https://monad-testnet.g.alchemy.com/v2/<your-key>
-FONDOF_RELAYER_KEY=0x...              # Relayer wallet private key
-FONDOF_CONTRACT_ADDRESS=0x1c0b6C42acD41BE5582a8F34137Acb713107170a  # Deployed SkillPool
+# On-chain (SkillPool)
+MONAD_RPC_URL=https://…                 # Monad testnet RPC
+FONDOF_RELAYER_KEY=0x…                  # Relayer wallet (Worker secret)
+FONDOF_CONTRACT_ADDRESS=0x1c0b6C42acD41BE5582a8F34137Acb713107170a
 
-# LLM — pick one (Cloudflare is free)
-CLOUDFLARE_ACCOUNT_ID=...            # Free: 10K neurons/day
-CLOUDFLARE_API_TOKEN=...             # Create at dash.cloudflare.com
-# ANTHROPIC_API_KEY=sk-ant-...       # Optional premium alternative
+# Web
+NEXT_PUBLIC_API_URL=https://fondof-api.trustfall.workers.dev
+NEXT_PUBLIC_FONDOF_CONTRACT_ADDRESS=0x1c0b6C42acD41BE5582a8F34137Acb713107170a
 
-# Transcription (for podcasts)
-ELEVENLABS_API_KEY=...               # Free tier available
-
-# Search (optional, graceful degradation without)
-# EXA_API_KEY=...                    # Semantic skill search
-# TINYFISH_API_KEY=...               # Web search fallback (free)
-
-# GitHub (or use `fondof connect` for OAuth)
-# GITHUB_TOKEN=...
+# LLM / ingest (Worker secrets)
+CLOUDFLARE_ACCOUNT_ID=…
+CLOUDFLARE_API_TOKEN=…                  # or CF_API_TOKEN
+# ANTHROPIC_API_KEY=…                   # optional
+ELEVENLABS_API_KEY=…                    # optional podcasts
+EXA_API_KEY=…                           # optional Compare
+FIRECRAWL_API_KEY=…                     # optional articles
 ```
 
 ## Contributing
 
-This project is being developed for Monad Blitz. See `.kiro/specs/fondof/` for full requirements, design, and implementation tasks.
+Built for **Ready, Spec, Ship** (Kiro) and Monad demos. Specs, steering, and task status live under [`.kiro/`](.kiro/). Prefer the hosted judge path above; open issues/PRs against the web + API loop first.
 
 ## License
 

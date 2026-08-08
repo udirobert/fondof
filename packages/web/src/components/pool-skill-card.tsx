@@ -24,14 +24,17 @@ export function PoolSkillCard({
 }: PoolSkillCardProps) {
   const path = skillPublicPath(skill.skillHash);
   const skew = index % 2 === 0 ? -0.4 : 0.5;
-  const meta = useMemo(
+  const local = useMemo(
     () => getSkillMeta(skill.skillHash),
     [skill.skillHash],
   );
   const title =
-    meta?.title ||
+    skill.title ||
+    local?.title ||
     `Proven by ${skill.usageCount} agent use${skill.usageCount === 1 ? "" : "s"}`;
-  const subtitle = meta?.title
+  const blurb = skill.blurb || local?.blurb;
+  const hasHumanTitle = !!(skill.title || local?.title);
+  const subtitle = hasHumanTitle
     ? `Proven by ${skill.usageCount} use${skill.usageCount === 1 ? "" : "s"} · forged by ${forgerLabel}`
     : `Forged by ${forgerLabel}`;
 
@@ -60,9 +63,9 @@ export function PoolSkillCard({
           <h3 className="font-serif text-[1.05rem] leading-snug tracking-tight text-ink group-hover:text-ember">
             {title}
           </h3>
-          {meta?.blurb && (
+          {blurb && (
             <p className="mt-1 line-clamp-2 text-[12px] leading-snug text-foreground-secondary">
-              {meta.blurb}
+              {blurb}
             </p>
           )}
           <p className="mt-1 text-[12px] text-foreground-secondary">

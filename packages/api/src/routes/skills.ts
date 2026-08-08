@@ -8,6 +8,7 @@ import {
   useStormOnChain,
 } from "../lib/monad.js";
 import { cacheGetJson, cachePutJson } from "../lib/edge-cache.js";
+import { mergeSkillMeta, putSkillMeta } from "../lib/skill-meta.js";
 import { rateLimit } from "../lib/rate-limit-mw.js";
 
 export const skillsRoute = new Hono<{ Bindings: Env }>();
@@ -32,9 +33,10 @@ skillsRoute.post("/skills/acquire", rateLimit("acquire"), async (c) => {
     if (!result.skill) {
       return c.json({ error: "No skills in pool yet — forge first" }, 404);
     }
+    const skill = await mergeSkillMeta(result.skill);
     return c.json({
       skillHash: result.skillHash,
-      skill: result.skill,
+      skill,
       seed: result.seed,
     });
   } catch (e) {
@@ -43,10 +45,40 @@ skillsRoute.post("/skills/acquire", rateLimit("acquire"), async (c) => {
   }
 });
 
+/** Store human title after wallet forge (relayer publish includes meta in body). */
+skillsRoute.post("/skills/:hash/meta", rateLimit("publish"), async (c) => {
+  const hash = c.req.param("hash");
+  const body = (await c.req
+    .json<{ title?: string; blurb?: string; repo?: string }>()
+    .catch(() => ({ title: undefined }))) as {
+    title?: string;
+    blurb?: string;
+    repo?: string;
+  };
+  const title = body.title?.trim();
+  if (!title) {
+    return c.json({ error: "title is required" }, 400);
+  }
+  const record = await putSkillMeta(hash, {
+    title,
+    blurb: body.blurb,
+    repo: body.repo,
+  });
+  // Bust short skill cache so title appears immediately
+  await caches.default
+    .delete(
+      new Request(
+        `https://fondof-cache.internal/skill:v3:${hash.toLowerCase()}`,
+      ),
+    )
+    .catch(() => undefined);
+  return c.json({ success: true, meta: record });
+});
+
 // Get skill data + signal from chain (short edge cache — protects RPC)
 skillsRoute.get("/skills/:hash", async (c) => {
   const hash = c.req.param("hash");
-  const cacheKey = `skill:v2:${hash.toLowerCase()}`;
+  const cacheKey = `skill:v3:${hash.toLowerCase()}`;
 
   const hit = await cacheGetJson<Record<string, unknown>>(cacheKey);
   if (hit) {
@@ -62,9 +94,10 @@ skillsRoute.get("/skills/:hash", async (c) => {
     );
 
     if (!skill) return c.json({ error: "Skill not found in pool" }, 404);
-    await cachePutJson(cacheKey, skill, SKILL_TTL);
+    const withMeta = await mergeSkillMeta(skill);
+    await cachePutJson(cacheKey, withMeta, SKILL_TTL);
     c.header("X-Cache", "MISS");
-    return c.json(skill);
+    return c.json(withMeta);
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Unknown error";
     return c.json({ error: msg }, 500);
@@ -74,7 +107,7 @@ skillsRoute.get("/skills/:hash", async (c) => {
 // Get top skills by signal
 skillsRoute.get("/skills", async (c) => {
   const limit = parseInt(c.req.query("limit") ?? "10");
-  const cacheKey = `skills:top:v1:${limit}`;
+  const cacheKey = `skills:top:v2:${limit}`;
 
   const hit = await cacheGetJson<{ skills: unknown[] }>(cacheKey);
   if (hit) {
@@ -99,7 +132,10 @@ skillsRoute.get("/skills", async (c) => {
       ),
     );
 
-    const payload = { skills: skills.filter(Boolean) };
+    const withMeta = await Promise.all(
+      skills.filter(Boolean).map((s) => mergeSkillMeta(s!)),
+    );
+    const payload = { skills: withMeta };
     await cachePutJson(cacheKey, payload, TOP_TTL);
     c.header("X-Cache", "MISS");
     return c.json(payload);
@@ -129,7 +165,7 @@ skillsRoute.post("/skills/:hash/use", rateLimit("use"), async (c) => {
     try {
       await caches.default.delete(
         new Request(
-          `https://fondof-cache.internal/skill:v2:${hash.toLowerCase()}`,
+          `https://fondof-cache.internal/skill:v3:${hash.toLowerCase()}`,
         ),
       );
     } catch {
@@ -174,7 +210,7 @@ skillsRoute.post("/skills/:hash/storm", rateLimit("storm"), async (c) => {
     try {
       await caches.default.delete(
         new Request(
-          `https://fondof-cache.internal/skill:v2:${hash.toLowerCase()}`,
+          `https://fondof-cache.internal/skill:v3:${hash.toLowerCase()}`,
         ),
       );
     } catch {

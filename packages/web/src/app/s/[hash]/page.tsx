@@ -115,6 +115,11 @@ export default function SkillPublicPage() {
     return () => window.clearInterval(id);
   }, [hash, refresh]);
 
+  useEffect(() => {
+    if (skill?.title) setMetaTitle(skill.title);
+    if (skill?.blurb) setMetaBlurb(skill.blurb);
+  }, [skill?.title, skill?.blurb]);
+
   const onCopy = async () => {
     try {
       await navigator.clipboard.writeText(shareUrl || skillShareUrl(hash));
@@ -410,7 +415,8 @@ export default function SkillPublicPage() {
             </p>
             <ul className="mt-3 space-y-2">
               {peers.map((p) => {
-                const peerTitle = getSkillMeta(p.skillHash)?.title;
+                const peerTitle =
+                  p.title || getSkillMeta(p.skillHash)?.title;
                 return (
                   <li key={p.skillHash}>
                     <Link

@@ -86,6 +86,10 @@ export interface SkillOnChainResponse {
   createdAt: number;
   signal: string;
   sourceHashes?: string[];
+  /** Human title from edge meta (not on-chain) */
+  title?: string;
+  blurb?: string;
+  repo?: string;
   error?: string;
 }
 
@@ -200,13 +204,30 @@ export async function forgeSkill(
 
 export async function publishSkill(
   skillHash: string,
-  sourceHashes: string[]
+  sourceHashes: string[],
+  meta?: { title?: string; blurb?: string; repo?: string },
 ): Promise<PublishResponse> {
   const res = await fetch(`${API_URL}/api/publish`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ skillHash, sourceHashes }),
+    body: JSON.stringify({ skillHash, sourceHashes, ...meta }),
   });
+  return res.json();
+}
+
+/** After wallet forge — persist title for /pool cards (all judges). */
+export async function publishSkillMeta(
+  skillHash: string,
+  meta: { title: string; blurb?: string; repo?: string },
+): Promise<{ success?: boolean; error?: string }> {
+  const res = await fetch(
+    `${API_URL}/api/skills/${encodeURIComponent(skillHash)}/meta`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(meta),
+    },
+  );
   return res.json();
 }
 

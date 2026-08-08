@@ -57,9 +57,15 @@ export function StartPad({
         What are you fond of?
       </p>
       <p className="mb-6 text-center text-sm text-foreground-secondary sm:mb-8">
-        Paste a talk, blog, or pod —{" "}
-        <span className="text-ink">fondof</span> wears it. Watch shards land.
-        Forge.
+        Paste a talk, blog, or pod — or{" "}
+        <button
+          type="button"
+          onClick={() => !busy && setMode("need")}
+          className="text-ink underline-offset-2 hover:text-ember hover:underline"
+        >
+          describe a need
+        </button>{" "}
+        (no GitHub). Watch shards land. Forge.
       </p>
 
       <div className="mb-3 flex justify-center gap-1">
@@ -143,7 +149,7 @@ export function StartPad({
           Instant sample — no network
         </button>
         <p className="max-w-sm text-center text-[10px] text-muted/80">
-          YouTube · blog · podcast RSS · share{" "}
+          No OAuth required for Need or public URLs · share{" "}
           <span className="font-mono">/?url=</span> to fondof a talk
         </p>
       </div>

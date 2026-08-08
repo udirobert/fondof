@@ -27,6 +27,7 @@ import {
   forgeSkill,
   getSkillSignal,
   publishSkill,
+  publishSkillMeta,
 } from "@/lib/api";
 import {
   CHALLENGE_STAKE,
@@ -346,11 +347,20 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
       repo: repo || undefined,
       live: true,
     });
+    void publishSkillMeta(hash, {
+      title: preview.title,
+      blurb: preview.blurb,
+      repo: repo || undefined,
+    });
   };
 
   const publish = async () => {
     setPublishing(true);
     setPublishNote(null);
+    const preview = skillPreviewFromMarkdown(
+      draft,
+      forgeTitle ?? ideas[0]?.title,
+    );
 
     // Connected wallet → forge on-chain as the user (you are the forger).
     if (isConnected && skillHash && sourceHashes.length > 0) {
@@ -398,7 +408,11 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
     try {
       if (skillHash) {
         const res = await Promise.race([
-          publishSkill(skillHash, sourceHashes),
+          publishSkill(skillHash, sourceHashes, {
+            title: preview.title,
+            blurb: preview.blurb,
+            repo: repo || undefined,
+          }),
           new Promise<never>((_, reject) => {
             window.setTimeout(() => reject(new Error("timeout")), 6000);
           }),
