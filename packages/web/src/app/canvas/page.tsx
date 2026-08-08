@@ -82,8 +82,11 @@ export default function CanvasPage() {
           </AnimatePresence>
         </div>
 
-        {/* Ideas grid */}
-        <div className="flex flex-wrap gap-5 relative z-10">
+        {/* Ideas grid — Codrops-style 3D stagger on enter */}
+        <div
+          className="flex flex-wrap gap-5 relative z-10"
+          style={{ perspective: 1000, transformStyle: "preserve-3d" }}
+        >
           <AnimatePresence>
             {ideas.map((idea, i) => (
               <IdeaNode

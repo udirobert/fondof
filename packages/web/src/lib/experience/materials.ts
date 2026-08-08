@@ -9,3 +9,5 @@ export const experienceColors = {
   steel: "#9aadc0",
   novel: "#4db6a0",
 } as const;
+
+export type ExperienceColor = keyof typeof experienceColors;

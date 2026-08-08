@@ -2,39 +2,65 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Compass, Flame, LayoutGrid } from "lucide-react";
+import { Flame, LayoutGrid } from "lucide-react";
 
-const links = [
+const toolLinks = [
   { href: "/canvas", label: "Canvas", icon: LayoutGrid },
   { href: "/forge", label: "Forge", icon: Flame },
 ];
 
 export function Nav() {
   const pathname = usePathname();
+  const isExperience = pathname === "/";
+
+  if (isExperience) {
+    return (
+      <nav className="fixed top-0 left-0 right-0 z-50 pointer-events-none">
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
+          <Link
+            href="/"
+            className="pointer-events-auto font-serif text-xl tracking-tight text-paper"
+          >
+            fondof
+          </Link>
+          <Link
+            href="/canvas"
+            className="pointer-events-auto rounded-full bg-ember px-4 py-2 text-sm font-medium text-ink transition-colors hover:bg-ember-hot ember-glow"
+          >
+            Enter canvas
+          </Link>
+        </div>
+      </nav>
+    );
+  }
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-background/90 backdrop-blur-sm">
-      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
+    <nav className="fixed top-0 left-0 right-0 z-50 border-b border-paper/5 bg-ink/85 backdrop-blur-md">
+      <div className="mx-auto flex h-14 max-w-[1400px] items-center justify-between px-5">
         <Link href="/" className="flex items-center gap-2.5 group">
-          <Compass
-            size={20}
-            className="text-accent group-hover:rotate-45 transition-transform duration-500"
-          />
-          <span className="text-base font-semibold tracking-tight">fondof</span>
+          <span className="font-serif text-lg tracking-tight text-paper group-hover:text-ember transition-colors">
+            fondof
+          </span>
         </Link>
 
-        <div className="flex items-center gap-0.5">
-          {links.map((link) => {
+        <div className="flex items-center gap-1">
+          {toolLinks.map((link) => {
             const Icon = link.icon;
-            const isActive = pathname === link.href;
+            const isActive =
+              pathname === link.href ||
+              (link.href === "/forge" && pathname.startsWith("/forge"));
+            const isForge = link.href === "/forge";
+
             return (
               <Link
                 key={link.href}
                 href={link.href}
-                className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-full transition-all duration-200 ${
-                  isActive
-                    ? "bg-accent-soft text-accent font-medium"
-                    : "text-foreground-secondary hover:text-foreground hover:bg-background-subtle"
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-sm transition-all duration-200 ${
+                  isActive && isForge
+                    ? "rounded-full bg-ember/20 text-ember font-medium ember-glow"
+                    : isActive
+                      ? "rounded-full bg-mist text-paper font-medium"
+                      : "rounded-full text-muted hover:text-paper hover:bg-mist/60"
                 }`}
               >
                 <Icon size={14} />

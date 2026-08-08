@@ -1,37 +1,51 @@
 @import "tailwindcss";
 
 :root {
-  /* Warm light palette */
-  --background: #fafaf8;
-  --background-subtle: #f5f4f0;
-  --foreground: #1a1a18;
-  --foreground-secondary: #4a4a45;
-  --muted: #8a8a82;
+  /* Material grammar: ink ground, paper shards, ember making, steel settled */
+  --ink: oklch(0.14 0.012 55);
+  --ink-deep: oklch(0.1 0.01 55);
+  --mist: oklch(0.2 0.014 55);
+  --mist-elevated: oklch(0.24 0.016 55);
+  --paper: oklch(0.95 0.012 85);
+  --paper-soft: oklch(0.88 0.014 80);
+  --ember: oklch(0.68 0.14 45);
+  --ember-soft: oklch(0.35 0.06 45);
+  --ember-hot: oklch(0.75 0.16 50);
+  --steel: oklch(0.72 0.03 230);
+  --steel-soft: oklch(0.35 0.02 230);
 
-  /* Warm accent: sage/teal */
-  --accent: #0d9488;
-  --accent-soft: #ccfbf1;
-  --accent-hover: #0f766e;
+  --background: var(--ink);
+  --background-subtle: var(--mist);
+  --foreground: var(--paper);
+  --foreground-secondary: oklch(0.78 0.014 80);
+  --muted: oklch(0.58 0.016 70);
 
-  /* Surfaces */
-  --surface: #ffffff;
-  --surface-warm: #fefdfb;
+  --accent: var(--ember);
+  --accent-soft: var(--ember-soft);
+  --accent-hover: var(--ember-hot);
 
-  /* Shadows (warm-tinted, not grey) */
-  --shadow-sm: 0 1px 3px rgba(26, 26, 24, 0.04), 0 1px 2px rgba(26, 26, 24, 0.02);
-  --shadow-md: 0 4px 12px rgba(26, 26, 24, 0.06), 0 2px 4px rgba(26, 26, 24, 0.03);
-  --shadow-lg: 0 12px 32px rgba(26, 26, 24, 0.08), 0 4px 8px rgba(26, 26, 24, 0.04);
-  --shadow-float: 0 20px 48px rgba(26, 26, 24, 0.1), 0 8px 16px rgba(26, 26, 24, 0.05);
+  --surface: var(--mist-elevated);
+  --surface-warm: oklch(0.26 0.018 50);
 
-  /* Status colors (muted, not neon) */
-  --forge: #0d9488;
-  --apply: #b45309;
-  --skip: #8a8a82;
+  --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.35);
+  --shadow-md: 0 8px 24px oklch(0 0 0 / 0.4), 0 2px 6px oklch(0 0 0 / 0.25);
+  --shadow-lg: 0 16px 40px oklch(0 0 0 / 0.5), 0 4px 12px oklch(0 0 0 / 0.3);
+  --shadow-float: 0 24px 56px oklch(0 0 0 / 0.55), 0 8px 20px oklch(0 0 0 / 0.35);
+  --shadow-ember: 0 0 24px oklch(0.68 0.14 45 / 0.25);
 
-  /* Connection lines */
-  --line-novel: #0d9488;
-  --line-partial: #b45309;
-  --line-conflict: #dc2626;
+  --forge: var(--ember);
+  --apply: oklch(0.72 0.12 75);
+  --skip: var(--muted);
+
+  --line-novel: oklch(0.72 0.1 175);
+  --line-partial: oklch(0.72 0.12 75);
+  --line-conflict: oklch(0.65 0.18 25);
+
+  --vignette: radial-gradient(
+    ellipse 80% 70% at 50% 40%,
+    transparent 0%,
+    oklch(0.08 0.01 55 / 0.55) 100%
+  );
 }
 
 @theme inline {
@@ -48,43 +62,110 @@
   --color-forge: var(--forge);
   --color-apply: var(--apply);
   --color-skip: var(--skip);
-  --font-sans: var(--font-inter);
-  --font-serif: var(--font-instrument-serif);
+  --color-ink: var(--ink);
+  --color-ink-deep: var(--ink-deep);
+  --color-mist: var(--mist);
+  --color-paper: var(--paper);
+  --color-ember: var(--ember);
+  --color-ember-hot: var(--ember-hot);
+  --color-ember-soft: var(--ember-soft);
+  --color-steel: var(--steel);
+  --color-novel: var(--line-novel);
+  --color-partial: var(--line-partial);
+  --color-conflict: var(--line-conflict);
+  --font-sans: var(--font-outfit);
+  --font-serif: var(--font-fraunces);
   --font-mono: var(--font-geist-mono);
+}
+
+html,
+body {
+  overflow-x: clip;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+.focus\:not-sr-only:focus {
+  position: fixed;
+  width: auto;
+  height: auto;
+  padding: inherit;
+  margin: 0;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+  font-family: var(--font-sans), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
-/* Organic paper elevation */
+/* Elevated mist/paper panels for tool readability */
+.panel {
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+  border: 1px solid oklch(0.95 0.012 85 / 0.06);
+  border-radius: 14px;
+}
+
+.panel-sm {
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid oklch(0.95 0.012 85 / 0.05);
+  border-radius: 12px;
+}
+
+.panel-float {
+  background: var(--surface-warm);
+  box-shadow: var(--shadow-float);
+  border: 1px solid oklch(0.95 0.012 85 / 0.08);
+  border-radius: 18px;
+}
+
+/* Legacy aliases used during migration */
 .paper {
   background: var(--surface);
   box-shadow: var(--shadow-md);
-  border-radius: 16px;
+  border: 1px solid oklch(0.95 0.012 85 / 0.06);
+  border-radius: 14px;
 }
 
 .paper-sm {
   background: var(--surface);
   box-shadow: var(--shadow-sm);
+  border: 1px solid oklch(0.95 0.012 85 / 0.05);
   border-radius: 12px;
 }
 
 .paper-float {
-  background: var(--surface);
+  background: var(--surface-warm);
   box-shadow: var(--shadow-float);
-  border-radius: 20px;
+  border: 1px solid oklch(0.95 0.012 85 / 0.08);
+  border-radius: 18px;
 }
 
-/* Ink-style indicators */
+.ember-glow {
+  box-shadow: var(--shadow-ember);
+}
+
 .ink-mark {
   position: relative;
 }
 .ink-mark::before {
-  content: '';
+  content: "";
   position: absolute;
   left: -12px;
   top: 50%;
@@ -95,10 +176,13 @@ body {
   background: currentColor;
 }
 
-/* Drawn line animation */
 @keyframes draw-line {
-  from { stroke-dashoffset: 100%; }
-  to { stroke-dashoffset: 0; }
+  from {
+    stroke-dashoffset: 100%;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
 }
 
 .line-drawn {
@@ -106,14 +190,62 @@ body {
   animation: draw-line 1.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
-/* Subtle grain texture */
+@keyframes ember-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.ember-pulse {
+  animation: ember-pulse 2.4s ease-in-out infinite;
+}
+
+/* Atmosphere */
 .grain::after {
-  content: '';
+  content: "";
   position: fixed;
   inset: 0;
-  opacity: 0.015;
+  opacity: 0.04;
   pointer-events: none;
+  z-index: 9999;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+}
+
+.vignette::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9998;
+  background: var(--vignette);
+}
+
+/* Conflict pattern (never color-only) */
+.pattern-conflict {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 3px,
+    oklch(0.65 0.18 25 / 0.25) 3px,
+    oklch(0.65 0.18 25 / 0.25) 6px
+  );
+}
+
+/* Codrops / kinetic type helpers */
+.split-title {
+  transform-style: preserve-3d;
+}
+
+.stagger-grid-stage {
+  transform-style: preserve-3d;
+}
+
+.stagger-grid-item {
+  backface-visibility: hidden;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -121,5 +253,17 @@ body {
     animation: none;
     stroke-dasharray: none;
     stroke-dashoffset: 0;
+  }
+
+  .ember-pulse {
+    animation: none;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

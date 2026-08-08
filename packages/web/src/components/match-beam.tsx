@@ -3,23 +3,18 @@
 import { motion } from "framer-motion";
 
 interface ConnectionLineProps {
-  /** Start coordinates */
   x1: number;
   y1: number;
-  /** End coordinates */
   x2: number;
   y2: number;
-  /** Match type affects color */
   type: "novel" | "partial" | "conflict";
-  /** Score affects opacity */
   score: number;
-  /** Delay before drawing */
   delay?: number;
+  label?: string;
 }
 
 /**
- * A hand-drawn-style connection line between an idea and a repo.
- * Animates by drawing itself in, like ink being laid down.
+ * Luminous match thread — width/opacity encode score; color+dash encode type.
  */
 export function ConnectionLine({
   x1,
@@ -29,6 +24,7 @@ export function ConnectionLine({
   type,
   score,
   delay = 0,
+  label,
 }: ConnectionLineProps) {
   const color =
     type === "novel"
@@ -37,35 +33,44 @@ export function ConnectionLine({
         ? "var(--line-partial)"
         : "var(--line-conflict)";
 
-  // Bezier control points for a gentle curve
   const dx = x2 - x1;
   const cp1x = x1 + dx * 0.4;
   const cp2x = x1 + dx * 0.6;
-
   const path = `M ${x1} ${y1} C ${cp1x} ${y1}, ${cp2x} ${y2}, ${x2} ${y2}`;
+  const strokeWidth = 1.25 + score * 2.5;
+  const dash = type === "conflict" ? "4 4" : type === "partial" ? "8 4" : undefined;
 
   return (
-    <motion.path
-      d={path}
-      fill="none"
-      stroke={color}
-      strokeWidth={1.5}
-      strokeLinecap="round"
-      opacity={Math.max(0.3, score * 0.8)}
-      initial={{ pathLength: 0 }}
-      animate={{ pathLength: 1 }}
-      transition={{
-        duration: 0.8,
-        delay,
-        ease: [0.4, 0, 0.2, 1],
-      }}
-    />
+    <g>
+      <motion.path
+        d={path}
+        fill="none"
+        stroke={color}
+        strokeWidth={strokeWidth + 4}
+        strokeLinecap="round"
+        opacity={0.12}
+        initial={{ pathLength: 0 }}
+        animate={{ pathLength: 1 }}
+        transition={{ duration: 0.7, delay, ease: [0.4, 0, 0.2, 1] }}
+      />
+      <motion.path
+        d={path}
+        fill="none"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        strokeDasharray={dash}
+        opacity={Math.max(0.35, score * 0.9)}
+        initial={{ pathLength: 0 }}
+        animate={{ pathLength: 1 }}
+        transition={{ duration: 0.8, delay, ease: [0.4, 0, 0.2, 1] }}
+      >
+        {label ? <title>{label}</title> : null}
+      </motion.path>
+    </g>
   );
 }
 
-/**
- * SVG container for connection lines — positioned over the canvas.
- */
 export function ConnectionLayer({ children }: { children: React.ReactNode }) {
   return (
     <svg
@@ -73,7 +78,16 @@ export function ConnectionLayer({ children }: { children: React.ReactNode }) {
       style={{ zIndex: 0 }}
       aria-hidden="true"
     >
-      {children}
+      <defs>
+        <filter id="thread-glow" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="2" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+      <g filter="url(#thread-glow)">{children}</g>
     </svg>
   );
 }

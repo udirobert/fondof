@@ -2,27 +2,21 @@
 
 import { motion } from "framer-motion";
 import { GitFork, Clock } from "lucide-react";
-
-interface RepoInfo {
-  name: string;
-  fullName: string;
-  languages: { language: string; percentage: number }[];
-  frameworks: string[];
-  matchCount: number;
-  lastIndexed: string;
-}
+import type { DemoRepo } from "@/lib/demo-data";
 
 interface RepoPanelProps {
-  repos: RepoInfo[];
+  repos: DemoRepo[];
+  dimmed?: boolean;
 }
 
-export function RepoPanel({ repos }: RepoPanelProps) {
+export function RepoPanel({ repos, dimmed = false }: RepoPanelProps) {
   return (
-    <motion.div
+    <motion.aside
       initial={{ x: 20, opacity: 0 }}
-      animate={{ x: 0, opacity: 1 }}
+      animate={{ x: 0, opacity: dimmed ? 0.4 : 1 }}
       transition={{ type: "spring", stiffness: 200, damping: 25, delay: 0.2 }}
-      className="w-64 p-5 overflow-y-auto"
+      className="w-full lg:w-64 shrink-0 p-5 overflow-y-auto border-t lg:border-t-0 lg:border-l border-paper/5 bg-ink-deep/40 max-h-[40vh] lg:max-h-none"
+      aria-label="Repositories"
     >
       <h2 className="text-[11px] text-muted uppercase tracking-wider font-medium mb-4">
         Your repositories
@@ -32,7 +26,7 @@ export function RepoPanel({ repos }: RepoPanelProps) {
         <div className="py-8 text-center">
           <p className="text-sm text-foreground-secondary">No repos connected</p>
           <p className="text-xs text-muted mt-1.5">
-            Run <code className="font-mono text-accent">fondof connect</code>
+            Run <code className="font-mono text-ember">fondof connect</code>
           </p>
         </div>
       ) : (
@@ -49,20 +43,20 @@ export function RepoPanel({ repos }: RepoPanelProps) {
           ))}
         </div>
       )}
-    </motion.div>
+    </motion.aside>
   );
 }
 
-function RepoCard({ repo }: { repo: RepoInfo }) {
+function RepoCard({ repo }: { repo: DemoRepo }) {
   return (
-    <div className="paper-sm p-3.5 transition-shadow hover:shadow-md cursor-pointer group">
+    <div className="panel-sm p-3.5 transition-shadow hover:shadow-md cursor-pointer group focus-within:ring-1 focus-within:ring-ember/30">
       <div className="flex items-center gap-2 mb-1.5">
         <GitFork size={12} className="text-muted" />
-        <h3 className="text-[13px] font-medium text-foreground group-hover:text-accent transition-colors truncate">
+        <h3 className="text-[13px] font-medium text-paper group-hover:text-ember transition-colors truncate">
           {repo.name}
         </h3>
         {repo.matchCount > 0 && (
-          <span className="ml-auto text-[10px] font-medium text-forge bg-forge/8 px-1.5 py-0.5 rounded-full">
+          <span className="ml-auto text-[10px] font-medium text-ember bg-ember/15 px-1.5 py-0.5 rounded-full">
             {repo.matchCount}
           </span>
         )}
@@ -70,10 +64,7 @@ function RepoCard({ repo }: { repo: RepoInfo }) {
 
       <div className="flex flex-wrap gap-1 mb-2">
         {repo.languages.slice(0, 2).map((lang) => (
-          <span
-            key={lang.language}
-            className="text-[10px] text-muted"
-          >
+          <span key={lang.language} className="text-[10px] text-muted">
             {lang.language}
           </span>
         ))}
@@ -81,7 +72,7 @@ function RepoCard({ repo }: { repo: RepoInfo }) {
           <>
             <span className="text-[10px] text-muted">·</span>
             {repo.frameworks.slice(0, 2).map((fw) => (
-              <span key={fw} className="text-[10px] text-accent">
+              <span key={fw} className="text-[10px] text-steel">
                 {fw}
               </span>
             ))}

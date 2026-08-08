@@ -1,9 +1,10 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { Flame, ArrowRight, Shield, Check, ExternalLink, Loader2 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { forgeSkill, publishSkill } from "@/lib/api";
+import { OrigamiRitualCanvas } from "@/components/experience/origami-ritual-canvas";
 
 export default function ForgePage() {
   const {
@@ -25,14 +26,18 @@ export default function ForgePage() {
   const handleForge = async () => {
     if (selectedIdeas.length === 0) return;
     setForging(true);
+    const ritual = new Promise((r) => window.setTimeout(r, 1300));
     try {
-      const result = await forgeSkill(
-        selectedIdeas.map((i) => ({
-          title: i.title,
-          description: i.description,
-          sourceUrl: i.sourceUrl,
-        }))
-      );
+      const [result] = await Promise.all([
+        forgeSkill(
+          selectedIdeas.map((i) => ({
+            title: i.title,
+            description: i.description,
+            sourceUrl: i.sourceUrl,
+          })),
+        ),
+        ritual,
+      ]);
       if (!result.error) {
         setForgedSkill(result);
       }
@@ -57,15 +62,34 @@ export default function ForgePage() {
   };
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-12">
+    <div className="mx-auto max-w-4xl px-6 py-12 pt-20">
+      <AnimatePresence>
+        {isForging && (
+          <motion.div
+            className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-ink/90 backdrop-blur-sm"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            aria-live="polite"
+            aria-label="Folding skill"
+          >
+            <OrigamiRitualCanvas playing durationMs={1200} />
+            <p className="font-serif text-2xl text-paper">Folding into form</p>
+            <p className="text-xs text-muted">
+              {selectedIdeas.length} idea{selectedIdeas.length === 1 ? "" : "s"} → skill
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ type: "spring", stiffness: 200, damping: 25 }}
       >
         <div className="flex items-center gap-3 mb-2">
-          <Flame size={20} className="text-accent" />
-          <h1 className="text-2xl font-semibold">Forge a Skill</h1>
+          <Flame size={20} className="text-ember" />
+          <h1 className="font-serif text-3xl text-paper">Forge a Skill</h1>
         </div>
         <p className="text-foreground-secondary mb-10">
           Compose selected ideas into a skill fitted to your environment.
