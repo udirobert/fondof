@@ -27,7 +27,6 @@ import {
   getSkillSignal,
   publishSkill,
 } from "@/lib/api";
-import { formatSignal } from "@/lib/idea-insights";
 import {
   CHALLENGE_STAKE,
   FORGE_BACKING,
@@ -44,6 +43,8 @@ import {
   skillTweetIntent,
 } from "@/lib/skill-share";
 import { OrigamiRitualCanvas } from "@/components/experience/origami-ritual-canvas";
+import { AttestationBurst } from "@/components/experience/attestation-burst";
+import { SignalCountUp } from "@/components/experience/signal-count-up";
 import { IdentityLabel } from "@/components/identity-label";
 import { WalletButton } from "@/components/wallet-button";
 import { useAppStore } from "@/lib/store";
@@ -93,6 +94,8 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
   const [challengeNote, setChallengeNote] = useState<string | null>(null);
   const [publishNote, setPublishNote] = useState<string | null>(null);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [celebrate, setCelebrate] = useState(false);
+  const [attestKey, setAttestKey] = useState(0);
   const setPublished = useAppStore((s) => s.setPublished);
   const { address, isConnected, chainId } = useConnection();
   const { switchChainAsync } = useSwitchChain();
@@ -178,6 +181,7 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
       setChallengeNote(null);
       setPublishNote(null);
       setLinkCopied(false);
+      setCelebrate(false);
       setWalletTxHash(undefined);
       pendingMarkdown.current = null;
       streamCancel.current?.();
@@ -396,6 +400,13 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
     setPublishing(false);
   };
 
+  // Peak moment: paper burst + signal count-up when we hit attested.
+  useEffect(() => {
+    if (phase !== "attested") return;
+    setCelebrate(true);
+    setAttestKey((k) => k + 1);
+  }, [phase]);
+
   // Poll on-chain signal after publish so growth is visible in the demo.
   useEffect(() => {
     if (phase !== "attested" || !skillHash) return;
@@ -530,6 +541,15 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
             </header>
 
             <div className="relative min-h-0 flex-1 overflow-hidden">
+              <AttestationBurst
+                active={celebrate}
+                onDone={() => setCelebrate(false)}
+                label={
+                  walletReady || isConnected
+                    ? "Attested on Monad"
+                    : "Published to SkillPool"
+                }
+              />
               <AnimatePresence mode="wait">
                 {phase === "ritual" && (
                   <motion.div
@@ -655,9 +675,9 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
                           animate={{ opacity: 1, y: 0 }}
                           className="space-y-3"
                         >
-                          <div className="panel-sm p-4">
+                          <div className="panel-sm relative overflow-hidden p-4">
                             <div className="mb-2 flex items-center gap-2 text-steel">
-                              <Check size={16} />
+                              <Check size={16} className="text-ember" />
                               <span className="text-sm font-medium">
                                 Published to SkillPool
                               </span>
@@ -667,8 +687,11 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
                                 <p className="text-[11px] uppercase tracking-wider text-muted">
                                   Signal
                                 </p>
-                                <p className="font-serif text-3xl text-ink tabular-nums">
-                                  {formatSignal(liveSignal)}
+                                <p className="font-serif text-3xl text-ink">
+                                  <SignalCountUp
+                                    value={liveSignal}
+                                    playKey={attestKey}
+                                  />
                                 </p>
                               </div>
                               <p className="pb-1 text-right text-[11px] text-muted">

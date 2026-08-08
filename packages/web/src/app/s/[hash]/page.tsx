@@ -29,6 +29,8 @@ import { addressExplorer, shortAddress } from "@/lib/monad-chain";
 import { skillPublicPath, skillShareUrl, skillTweetIntent } from "@/lib/skill-share";
 import { FondofWordmark } from "@/components/fondof-wordmark";
 import { IdentityLabel } from "@/components/identity-label";
+import { SignalCountUp } from "@/components/experience/signal-count-up";
+import { SignalPulse } from "@/components/experience/signal-pulse";
 
 /** Public skill identity — share, use, challenge, resolve, acquire. */
 export default function SkillPublicPage() {
@@ -48,6 +50,8 @@ export default function SkillPublicPage() {
   const [peers, setPeers] = useState<SkillOnChainResponse[]>([]);
   const [challenges, setChallenges] = useState<OnChainChallenge[]>([]);
   const [lastChallengeId, setLastChallengeId] = useState<number | null>(null);
+  const [pulseBeat, setPulseBeat] = useState(0);
+  const [signalPlayKey, setSignalPlayKey] = useState(0);
 
   const refreshChallenges = useCallback(async () => {
     if (!hash) return;
@@ -108,6 +112,8 @@ export default function SkillPublicPage() {
       if (res.error) setNote(res.error);
       else {
         setNote("Usage recorded — signal ticks up.");
+        setPulseBeat((b) => b + 1);
+        setSignalPlayKey((k) => k + 1);
         void refresh();
       }
     } catch {
@@ -154,6 +160,8 @@ export default function SkillPublicPage() {
             : `Resolved #${challengeId}: forger wins — stake adds to backing.`,
         );
         setLastChallengeId(null);
+        setPulseBeat((b) => b + 1);
+        setSignalPlayKey((k) => k + 1);
         void refresh();
       }
     } catch {
@@ -207,12 +215,20 @@ export default function SkillPublicPage() {
           </p>
         </div>
 
-        <section className="text-center">
+        <section className="relative text-center">
+          <SignalPulse beat={pulseBeat} />
           <p className="text-[11px] uppercase tracking-wider text-muted">
             Signal
           </p>
-          <p className="mt-1 font-serif text-5xl text-ink tabular-nums">
-            {loading ? "…" : formatSignal(skill?.signal)}
+          <p className="mt-1 font-serif text-5xl text-ink">
+            {loading ? (
+              "…"
+            ) : (
+              <SignalCountUp
+                value={skill?.signal}
+                playKey={`${hash}-${signalPlayKey}`}
+              />
+            )}
           </p>
           <p className="mt-3 text-sm text-foreground-secondary">
             {skill
