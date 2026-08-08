@@ -38,5 +38,6 @@ coverage/
 *.sqlite3
 
 
-# Wrangler local secrets
+# Wrangler
 .dev.vars
+.wrangler/
