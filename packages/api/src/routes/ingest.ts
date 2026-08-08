@@ -5,6 +5,9 @@ import { extractContent } from "../lib/extract.js";
 import { transcribeAudio, isAudioUrl, resolveAudioUrl } from "../lib/transcribe.js";
 import { isYouTubeUrl, getYouTubeTranscript } from "../lib/youtube.js";
 import { isRssUrl, getLatestEpisodeFromRss } from "../lib/rss.js";
+import { cacheGetJson, cachePutJson, sha256Hex } from "../lib/edge-cache.js";
+import { ingestCacheTtl, normalizeSourceUrl } from "../lib/source-url.js";
+import { rateLimit } from "../lib/rate-limit-mw.js";
 
 const EXTRACT_SYSTEM = `You are a JSON-only response bot. You extract actionable technical ideas from content.
 
@@ -55,7 +58,44 @@ interface IdeaOutput {
   embedding: number[];
 }
 
+type IngestResult = {
+  contentType: IngestContentType;
+  sourceHash: string;
+  title: string;
+  ideas: IdeaOutput[];
+  textLength: number;
+  existingSkills: Array<{ title: string; url: string; snippet: string }>;
+  cacheHit?: boolean;
+};
+
 type Emit = (event: IngestStreamEvent) => void;
+
+function replayCachedIngest(cached: IngestResult, emit: Emit) {
+  emit({
+    type: "kind",
+    contentType: cached.contentType,
+    fondObject: fondObjectFor(cached.contentType),
+  });
+  emit({ type: "phase", phase: "cache", label: "Loaded from cache…" });
+  emit({ type: "meta", title: cached.title });
+  for (const idea of cached.ideas) {
+    emit({ type: "idea", idea });
+  }
+  if (cached.existingSkills?.length) {
+    emit({
+      type: "discovery",
+      existingSkills: cached.existingSkills.slice(0, 3),
+    });
+  }
+  emit({
+    type: "done",
+    sourceHash: cached.sourceHash,
+    contentType: cached.contentType,
+    title: cached.title,
+    textLength: cached.textLength,
+    ideaCount: cached.ideas.length,
+  });
+}
 
 function fondObjectFor(contentType: IngestContentType): string {
   switch (contentType) {
@@ -73,21 +113,22 @@ async function runIngestPipeline(
   url: string,
   env: Env,
   emit: Emit,
-): Promise<{
-  contentType: IngestContentType;
-  sourceHash: string;
-  title: string;
-  ideas: IdeaOutput[];
-  textLength: number;
-  existingSkills: Array<{ title: string; url: string; snippet: string }>;
-}> {
+): Promise<IngestResult> {
+  const canonical = normalizeSourceUrl(url);
+  const cacheKey = `ingest:v1:${await sha256Hex(canonical)}`;
+  const cached = await cacheGetJson<IngestResult>(cacheKey);
+  if (cached?.ideas?.length) {
+    replayCachedIngest(cached, emit);
+    return { ...cached, cacheHit: true };
+  }
+
   let text: string;
   let title: string;
   let contentType: IngestContentType;
 
   emit({ type: "phase", phase: "resolve", label: "Reading the link…" });
 
-  if (isYouTubeUrl(url)) {
+  if (isYouTubeUrl(canonical)) {
     contentType = "youtube";
     emit({
       type: "kind",
@@ -99,7 +140,10 @@ async function runIngestPipeline(
       phase: "captions",
       label: "Fetching captions…",
     });
-    const transcript = await getYouTubeTranscript(url, env.FIRECRAWL_API_KEY);
+    const transcript = await getYouTubeTranscript(
+      canonical,
+      env.FIRECRAWL_API_KEY,
+    );
 
     if (!transcript || !transcript.text) {
       throw new Error(
@@ -110,7 +154,7 @@ async function runIngestPipeline(
     text = transcript.text;
     title = transcript.title;
     emit({ type: "meta", title });
-  } else if (isRssUrl(url)) {
+  } else if (isRssUrl(canonical)) {
     contentType = "podcast";
     emit({
       type: "kind",
@@ -122,7 +166,7 @@ async function runIngestPipeline(
       phase: "resolve_feed",
       label: "Opening the feed…",
     });
-    const episode = await getLatestEpisodeFromRss(url);
+    const episode = await getLatestEpisodeFromRss(canonical);
 
     if (!episode) {
       throw new Error(
@@ -150,7 +194,7 @@ async function runIngestPipeline(
     }
 
     title = episode.title;
-  } else if (isAudioUrl(url)) {
+  } else if (isAudioUrl(canonical)) {
     contentType = "audio";
     emit({
       type: "kind",
@@ -162,7 +206,7 @@ async function runIngestPipeline(
       phase: "transcribe",
       label: "Transcribing audio…",
     });
-    const audioUrl = (await resolveAudioUrl(url)) ?? url;
+    const audioUrl = (await resolveAudioUrl(canonical)) ?? canonical;
     const transcript = await transcribeAudio(audioUrl, env);
 
     if (!transcript || !transcript.text) {
@@ -172,7 +216,7 @@ async function runIngestPipeline(
     }
 
     text = transcript.text;
-    title = url.split("/").pop()?.replace(/\.[^.]+$/, "") ?? "Podcast";
+    title = canonical.split("/").pop()?.replace(/\.[^.]+$/, "") ?? "Podcast";
     emit({ type: "meta", title });
   } else {
     contentType = "article";
@@ -182,14 +226,14 @@ async function runIngestPipeline(
       fondObject: fondObjectFor(contentType),
     });
     emit({ type: "phase", phase: "read", label: "Reading the page…" });
-    const extracted = await extractContent(url, env);
+    const extracted = await extractContent(canonical, env);
 
     if (!extracted) {
       throw new Error("Could not extract content from URL");
     }
 
     text = extracted.text;
-    title = extracted.title || new URL(url).hostname;
+    title = extracted.title || new URL(canonical).hostname;
     emit({ type: "meta", title });
   }
 
@@ -215,7 +259,7 @@ async function runIngestPipeline(
 
   const responseStr =
     typeof llmResponse === "string" ? llmResponse : JSON.stringify(llmResponse);
-  const ideas = parseIdeas(responseStr, url, sourceHash);
+  const ideas = parseIdeas(responseStr, canonical, sourceHash);
 
   emit({ type: "phase", phase: "embed", label: "Settling shards…" });
 
@@ -259,24 +303,42 @@ async function runIngestPipeline(
     ideaCount: ideas.length,
   });
 
-  return {
+  const result: IngestResult = {
     contentType,
     sourceHash,
     title,
     ideas,
     textLength: text.length,
     existingSkills,
+    cacheHit: false,
   };
+
+  if (ideas.length > 0) {
+    // Strip heavy embeddings from cache payload
+    const toStore: IngestResult = {
+      ...result,
+      ideas: ideas.map((i) => ({ ...i, embedding: [] })),
+    };
+    await cachePutJson(cacheKey, toStore, ingestCacheTtl(contentType));
+  }
+
+  return result;
 }
 
 export const ingestRoute = new Hono<{ Bindings: Env }>();
 
 /** NDJSON stream of ingest progress for the Fond Floor theater. */
-ingestRoute.post("/ingest/stream", async (c) => {
+ingestRoute.post("/ingest/stream", rateLimit("ingest"), async (c) => {
   const { url } = await c.req.json<{ url: string }>();
   if (!url) {
     return c.json({ error: "url is required" }, 400);
   }
+
+  const canonical = normalizeSourceUrl(url);
+  const peek = await cacheGetJson<IngestResult>(
+    `ingest:v1:${await sha256Hex(canonical)}`,
+  );
+  const cacheStatus = peek?.ideas?.length ? "HIT" : "MISS";
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
@@ -300,16 +362,18 @@ ingestRoute.post("/ingest/stream", async (c) => {
     headers: {
       "Content-Type": "application/x-ndjson; charset=utf-8",
       "Cache-Control": "no-cache",
+      "X-Cache": cacheStatus,
     },
   });
 });
 
-ingestRoute.post("/ingest", async (c) => {
+ingestRoute.post("/ingest", rateLimit("ingest"), async (c) => {
   const { url } = await c.req.json<{ url: string }>();
   if (!url) return c.json({ error: "url is required" }, 400);
 
   try {
     const result = await runIngestPipeline(url, c.env, () => {});
+    c.header("X-Cache", result.cacheHit ? "HIT" : "MISS");
     return c.json({
       contentType: result.contentType,
       sourceHash: result.sourceHash,
@@ -317,6 +381,7 @@ ingestRoute.post("/ingest", async (c) => {
       ideas: result.ideas,
       textLength: result.textLength,
       existingSkills: result.existingSkills,
+      cached: !!result.cacheHit,
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Unknown error";

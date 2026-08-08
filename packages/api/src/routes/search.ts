@@ -1,11 +1,12 @@
 import { Hono } from "hono";
 import type { Env } from "../index.js";
 import { searchExistingSkills, searchSourceMaterial } from "../lib/search.js";
+import { rateLimit } from "../lib/rate-limit-mw.js";
 
 export const searchRoute = new Hono<{ Bindings: Env }>();
 
 // Search for existing skills that might cover a need
-searchRoute.post("/search/skills", async (c) => {
+searchRoute.post("/search/skills", rateLimit("search"), async (c) => {
   const { query } = await c.req.json<{ query: string }>();
   if (!query) return c.json({ error: "query is required" }, 400);
 
@@ -14,7 +15,7 @@ searchRoute.post("/search/skills", async (c) => {
 });
 
 // Search for source material (podcasts, blogs) about a topic
-searchRoute.post("/search/sources", async (c) => {
+searchRoute.post("/search/sources", rateLimit("search"), async (c) => {
   const { query } = await c.req.json<{ query: string }>();
   if (!query) return c.json({ error: "query is required" }, 400);
 

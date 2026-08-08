@@ -1,10 +1,11 @@
 import { Hono } from "hono";
 import type { Env } from "../index.js";
 import { challengeOnChain } from "../lib/monad.js";
+import { rateLimit } from "../lib/rate-limit-mw.js";
 
 export const challengeRoute = new Hono<{ Bindings: Env }>();
 
-challengeRoute.post("/challenge", async (c) => {
+challengeRoute.post("/challenge", rateLimit("challenge"), async (c) => {
   const { skillHash } = await c.req.json<{ skillHash: string }>();
 
   if (!skillHash) return c.json({ error: "skillHash is required" }, 400);

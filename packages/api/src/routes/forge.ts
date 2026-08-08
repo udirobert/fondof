@@ -1,6 +1,8 @@
 import { Hono } from "hono";
 import type { Env } from "../index.js";
 import { chat } from "../lib/llm.js";
+import { cacheGetJson, cachePutJson, sha256Hex } from "../lib/edge-cache.js";
+import { rateLimit } from "../lib/rate-limit-mw.js";
 
 const COMPOSE_SYSTEM = `You are an expert skill author for AI coding agents. Compose a skill that is:
 1. Fitted to the target codebase (respects its stack and conventions)
@@ -11,7 +13,9 @@ Output a complete skill in markdown with sections: Context, Guidance (with code 
 
 export const forgeRoute = new Hono<{ Bindings: Env }>();
 
-forgeRoute.post("/forge", async (c) => {
+const FORGE_TTL = 60 * 60; // 1h — same ideas + repo → same draft
+
+forgeRoute.post("/forge", rateLimit("forge"), async (c) => {
   const body = await c.req.json<{
     ideas: Array<{ title: string; description: string; sourceUrl: string }>;
     repo?: { name: string; frameworks: string[]; languages: string[] };
@@ -26,6 +30,20 @@ forgeRoute.post("/forge", async (c) => {
   const repoStr = body.repo
     ? `Target: ${body.repo.name} (${body.repo.frameworks.join(", ")}, ${body.repo.languages.join(", ")})`
     : "Target: general TypeScript project";
+
+  const cacheKey = `forge:v1:${await sha256Hex(`${repoStr}\n${ideasStr}`)}`;
+  const hit = await cacheGetJson<{
+    title: string;
+    skillHash: string;
+    sourceHashes: string[];
+    markdown: string;
+    fittedTo: string;
+    composedAt: string;
+  }>(cacheKey);
+  if (hit?.markdown) {
+    c.header("X-Cache", "HIT");
+    return c.json(hit);
+  }
 
   const prompt = `Compose a skill from these ideas, fitted to the repository:
 
@@ -60,14 +78,17 @@ Write the skill as markdown. Include title, Context section, Guidance section wi
       return Math.abs(hash).toString(16).padStart(64, "0");
     });
 
-    return c.json({
+    const payload = {
       title,
       skillHash,
       sourceHashes,
       markdown: skillMarkdown,
       fittedTo: body.repo?.name ?? "general",
       composedAt: new Date().toISOString(),
-    });
+    };
+    await cachePutJson(cacheKey, payload, FORGE_TTL);
+    c.header("X-Cache", "MISS");
+    return c.json(payload);
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Unknown error";
     return c.json({ error: msg }, 500);

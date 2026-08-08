@@ -2,9 +2,14 @@ name = "fondof-api"
 main = "src/index.ts"
 compatibility_date = "2024-12-01"
 compatibility_flags = ["nodejs_compat"]
+
+# Edge cache + rate limits use caches.default (no KV binding required).
+# Optional later: [[kv_namespaces]] binding = "CACHE" for stronger counters.
+
 [vars]
 MONAD_RPC_URL = "https://monad-testnet.g.alchemy.com/v2/L69xEIR9jJjLmdvq798gQCQ1Rq8GI4I2"
 FONDOF_CONTRACT_ADDRESS = "0x1c0b6C42acD41BE5582a8F34137Acb713107170a"
 # Secrets deployed (not committed)
+
 [ai]
 binding = "AI"

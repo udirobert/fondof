@@ -32,7 +32,13 @@ app.use(
     origin: "*",
     allowMethods: ["GET", "POST", "OPTIONS"],
     allowHeaders: ["Content-Type"],
-  })
+    exposeHeaders: [
+      "X-Cache",
+      "X-RateLimit-Limit",
+      "X-RateLimit-Remaining",
+      "X-RateLimit-Reset",
+    ],
+  }),
 );
 
 // Health check
@@ -46,6 +52,8 @@ app.get("/", (c) =>
       elevenlabs: !!c.env.ELEVENLABS_API_KEY,
       exa: !!c.env.EXA_API_KEY,
       venice: !!c.env.VENICE_API_KEY,
+      edgeCache: true,
+      rateLimit: true,
     },
   })
 );
