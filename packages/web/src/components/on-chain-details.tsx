@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from "react";
 import { ChevronDown, ExternalLink } from "lucide-react";
 import { shortAddress } from "@/lib/monad-chain";
+import { EconomicsHonesty } from "@/components/economics-honesty";
 
 interface OnChainDetailsProps {
   skillHash: string;
@@ -12,6 +13,8 @@ interface OnChainDetailsProps {
   explorerLinks?: { label: string; href: string }[];
   children?: ReactNode;
   defaultOpen?: boolean;
+  /** Show forge/challenge economics honesty */
+  showEconomics?: boolean;
 }
 
 /**
@@ -25,6 +28,7 @@ export function OnChainDetails({
   explorerLinks = [],
   children,
   defaultOpen = false,
+  showEconomics = true,
 }: OnChainDetailsProps) {
   const [open, setOpen] = useState(defaultOpen);
 
@@ -45,52 +49,59 @@ export function OnChainDetails({
         />
       </button>
       {open && (
-        <div className="space-y-2.5 border-t border-ink/8 px-3.5 py-3 font-mono text-[10px] text-muted">
-          <div>
-            <p className="text-[9px] uppercase tracking-wider">Skill hash</p>
-            <p className="mt-0.5 break-all text-ink">{skillHash}</p>
+        <div className="space-y-3 border-t border-ink/8 px-3.5 py-3 text-[10px] text-muted">
+          {showEconomics && (
+            <div className="rounded-lg bg-paper/80 p-2.5">
+              <EconomicsHonesty variant="details" />
+            </div>
+          )}
+          <div className="space-y-2.5 font-mono">
+            <div>
+              <p className="text-[9px] uppercase tracking-wider">Skill hash</p>
+              <p className="mt-0.5 break-all text-ink">{skillHash}</p>
+            </div>
+            {forger && (
+              <div>
+                <p className="text-[9px] uppercase tracking-wider">Forger</p>
+                <p className="mt-0.5 text-ink">{shortAddress(forger)}</p>
+              </div>
+            )}
+            {typeof createdAt === "number" && createdAt > 0 && (
+              <div>
+                <p className="text-[9px] uppercase tracking-wider">Forged</p>
+                <p className="mt-0.5 text-ink">
+                  {new Date(createdAt * 1000).toLocaleString()}
+                </p>
+              </div>
+            )}
+            {sourceHashes.length > 0 && (
+              <div>
+                <p className="text-[9px] uppercase tracking-wider">
+                  Source hashes ({sourceHashes.length})
+                </p>
+                <ul className="mt-1 space-y-1">
+                  {sourceHashes.map((h) => (
+                    <li key={h} className="break-all text-ink/80">
+                      {shortHash(h)}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {explorerLinks.map((link) => (
+              <a
+                key={link.href}
+                href={link.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-ember hover:underline"
+              >
+                <ExternalLink size={10} />
+                {link.label}
+              </a>
+            ))}
+            {children}
           </div>
-          {forger && (
-            <div>
-              <p className="text-[9px] uppercase tracking-wider">Forger</p>
-              <p className="mt-0.5 text-ink">{shortAddress(forger)}</p>
-            </div>
-          )}
-          {typeof createdAt === "number" && createdAt > 0 && (
-            <div>
-              <p className="text-[9px] uppercase tracking-wider">Forged</p>
-              <p className="mt-0.5 text-ink">
-                {new Date(createdAt * 1000).toLocaleString()}
-              </p>
-            </div>
-          )}
-          {sourceHashes.length > 0 && (
-            <div>
-              <p className="text-[9px] uppercase tracking-wider">
-                Source hashes ({sourceHashes.length})
-              </p>
-              <ul className="mt-1 space-y-1">
-                {sourceHashes.map((h) => (
-                  <li key={h} className="break-all text-ink/80">
-                    {shortHash(h)}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {explorerLinks.map((link) => (
-            <a
-              key={link.href}
-              href={link.href}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-ember hover:underline"
-            >
-              <ExternalLink size={10} />
-              {link.label}
-            </a>
-          ))}
-          {children}
         </div>
       )}
     </section>

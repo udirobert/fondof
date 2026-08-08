@@ -15,7 +15,7 @@ interface ChallengeQueueProps {
 }
 
 /**
- * Community policing — stake in plain terms, outcomes as badges.
+ * Community policing — stake in plain terms, honest payouts.
  */
 export function ChallengeQueue({
   challenges,
@@ -33,17 +33,24 @@ export function ChallengeQueue({
         </Tip>
         {losses > 0 && (
           <span className="rounded-full border border-ink/12 bg-mist px-2 py-0.5 text-[10px] text-ink">
-            Lost {losses} challenge{losses === 1 ? "" : "s"}
+            Lost {losses} challenge{losses === 1 ? "" : "s"} · score hit hard
           </span>
         )}
       </div>
 
       {challenges.length === 0 ? (
-        <p className="text-sm text-foreground-secondary">
-          No open disputes. Anyone can stake{" "}
-          <span className="font-medium text-ink">{CHALLENGE_STAKE} MON</span> to
-          challenge quality — if they win, this skill’s score drops.
-        </p>
+        <div className="space-y-2 text-sm text-foreground-secondary">
+          <p>
+            No open disputes. Stake{" "}
+            <span className="font-medium text-ink">{CHALLENGE_STAKE} MON</span>{" "}
+            to dispute quality — expensive policing, not a profit center.
+          </p>
+          <p className="text-[11px] leading-snug text-muted">
+            Win → take up to your stake from this skill’s backing (~2× if it
+            had enough). Lose → your stake funds the skill’s reputation
+            (backing grows; the forger’s wallet doesn’t get paid).
+          </p>
+        </div>
       ) : (
         <ul className="space-y-3">
           {challenges.map((ch) => (
@@ -81,7 +88,7 @@ export function ChallengeQueue({
                       {resolvingId === ch.challengeId ? (
                         <Loader2 size={12} className="animate-spin" />
                       ) : null}
-                      Challenger wins · cut score
+                      Challenger wins · take skin · cut score
                     </button>
                     <button
                       type="button"
@@ -89,7 +96,7 @@ export function ChallengeQueue({
                       onClick={() => onResolve(ch.challengeId, false)}
                       className="inline-flex min-h-9 flex-1 items-center justify-center gap-1 rounded-full border border-ink/12 bg-paper px-3 text-[11px] text-ink hover:border-ember/35 disabled:opacity-40"
                     >
-                      Skill stands · forger wins
+                      Skill stands · stake → skill reputation
                     </button>
                   </div>
                 </div>
@@ -98,6 +105,11 @@ export function ChallengeQueue({
           ))}
         </ul>
       )}
+
+      <p className="text-[10px] leading-snug text-muted">
+        Resolve is a demo oracle (relayer) — not decentralized adjudication.
+        Reward is capped at the challenger’s stake so griefing stays bounded.
+      </p>
     </section>
   );
 }

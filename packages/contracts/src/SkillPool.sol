@@ -156,14 +156,14 @@ contract SkillPool {
         uint256 payout;
 
         if (challengerWon) {
-            // Challenger wins: gets their stake back + portion of skill backing
+            // Challenger wins: stake returned + reward from skill escrow (capped at stake)
             skill.challengeLosses++;
             uint256 reward = skill.backing > c.stake ? c.stake : skill.backing;
             skill.backing -= reward;
             payout = c.stake + reward;
             payable(c.challenger).transfer(payout);
         } else {
-            // Skill forger wins: gets the challenger's stake
+            // Challenger loses: stake forfeited into skill.backing (reputation), not forger wallet
             payout = c.stake;
             skill.backing += c.stake;
         }

@@ -452,8 +452,8 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
         setExplorer(txExplorer(txHash));
         setChallengeNote(
           address
-            ? `Challenge from ${shortAddress(address)} submitted.`
-            : "Challenge submitted from your wallet.",
+            ? `Dispute from ${shortAddress(address)} — stake locked until the demo oracle resolves.`
+            : "Dispute submitted — win takes skin from the skill; lose funds its reputation.",
         );
         void refreshSignal(skillHash);
         setChallenging(false);
@@ -476,8 +476,8 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
       } else if (res.txHash) {
         setChallengeNote(
           typeof res.challengeId === "number"
-            ? `Challenge #${res.challengeId} on Monad — open skill page to resolve.`
-            : "Challenge submitted on Monad (relayer).",
+            ? `Dispute #${res.challengeId} — open the skill page; demo oracle resolves (not decentralized yet).`
+            : "Dispute submitted via relayer — demo oracle settles the score.",
         );
         if (res.explorer) setExplorer(res.explorer);
         void refreshSignal(skillHash);
@@ -709,8 +709,9 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
                               </p>
                             </div>
                             <p className="mb-3 text-xs text-foreground-secondary">
-                              Share — others use it, signal grows; challenges cut
-                              it.
+                              Skin in the game so agents can score this skill —
+                              not a marketplace listing. Share it; uses grow the
+                              score; successful challenges cut it.
                             </p>
                             <code className="block break-all font-mono text-[11px] text-ink">
                               {skillHash ?? hash}
@@ -806,8 +807,8 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
                               {challenging
                                 ? "Challenging…"
                                 : walletReady
-                                  ? "Challenge from wallet"
-                                  : "Challenge quality"}
+                                  ? "Dispute from wallet"
+                                  : "Dispute quality"}
                             </button>
                             {challengeNote && (
                               <p className="px-1 text-[11px] text-muted">
@@ -857,10 +858,10 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
                               {publishNote}
                             </p>
                           )}
-                          <p className="px-1 font-mono text-[10px] leading-relaxed tracking-wide text-muted">
+                          <p className="px-1 text-[11px] leading-snug text-muted">
                             {walletReady
-                              ? `${FORGE_BACKING} MON from you · signal grows with use`
-                              : "Relayer publishes if no wallet · signal = backing + use − challenges"}
+                              ? `${FORGE_BACKING} MON skin in escrow (no withdraw) — quality signaling, not earnings.`
+                              : `Relayer can publish · ${FORGE_BACKING} MON backing stays in the contract as skin, not a vault.`}
                           </p>
                         </div>
                       )}

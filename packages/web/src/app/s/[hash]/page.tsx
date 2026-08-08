@@ -43,6 +43,7 @@ import {
   takeAcquireNote,
 } from "@/lib/acquire-note";
 import { Tip } from "@/components/tip";
+import { EconomicsHonesty } from "@/components/economics-honesty";
 
 /** Public skill identity — quality story first, chain as detail. */
 export default function SkillPublicPage() {
@@ -148,7 +149,7 @@ export default function SkillPublicPage() {
           setLastChallengeId(res.challengeId);
         }
         setNote(
-          `You staked ${CHALLENGE_STAKE} MON to dispute quality — resolve to settle the score.`,
+          `You staked ${CHALLENGE_STAKE} MON to dispute — win and take skin from the skill; lose and you fund its reputation. Demo oracle resolves.`,
         );
         void refresh();
       }
@@ -168,8 +169,8 @@ export default function SkillPublicPage() {
       else {
         setNote(
           challengerWon
-            ? `Challenge #${challengeId} upheld — skill lost; score cut.`
-            : `Challenge #${challengeId} dismissed — skill stands; stake adds to backing.`,
+            ? `Challenge #${challengeId} upheld — challenger takes skin from escrow; score cut. (Demo oracle.)`
+            : `Challenge #${challengeId} dismissed — stake funds this skill’s reputation (backing), not the forger’s wallet.`,
         );
         setLastChallengeId(null);
         setPulseBeat((b) => b + 1);
@@ -250,6 +251,8 @@ export default function SkillPublicPage() {
           </p>
         )}
 
+        <EconomicsHonesty variant="banner" />
+
         {!loading && !skill && (
           <p className="text-center text-sm text-foreground-secondary">
             Not on SkillPool yet — share the link, or forge and publish to mint.
@@ -295,7 +298,7 @@ export default function SkillPublicPage() {
               <Swords size={14} />
               {challenging
                 ? "Staking…"
-                : `Challenge quality · stake ${CHALLENGE_STAKE} MON`}
+                : `Dispute quality · stake ${CHALLENGE_STAKE} MON`}
             </button>
           </Tip>
           <button

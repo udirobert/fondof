@@ -73,7 +73,7 @@ export function SignalStory({
         )}
       </p>
       <p className="mt-2 text-sm text-foreground-secondary">
-        Quality score from real agent use
+        Quality score from agent use — not a price or yield
       </p>
       {story && (
         <p className="mt-2 text-[12px] text-ember" role="status">
@@ -83,7 +83,7 @@ export function SignalStory({
       {signal != null && !loading && (
         <dl className="mx-auto mt-4 grid max-w-sm grid-cols-3 gap-2 text-center">
           <div className="rounded-lg border border-ink/8 bg-paper/60 px-2 py-2">
-            <dt className="text-[10px] text-muted">Stake behind it</dt>
+            <dt className="text-[10px] text-muted">Skin in escrow</dt>
             <dd className="mt-0.5 font-mono text-[11px] text-ink tabular-nums">
               {formatSignal(backing)}
             </dd>
@@ -102,8 +102,8 @@ export function SignalStory({
           </div>
         </dl>
       )}
-      <p className="mt-2 font-mono text-[9px] text-muted">
-        score = backing + uses − losses
+      <p className="mt-2 text-[10px] text-muted">
+        score ≈ escrow + uses − (losses × 5) · signaling, not earnings
       </p>
     </section>
   );

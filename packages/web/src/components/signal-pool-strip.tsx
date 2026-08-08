@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Dices, Flame, Loader2, Swords, Zap } from "lucide-react";
+import { Dices, Loader2, Swords, Zap } from "lucide-react";
 import { Tip } from "@/components/tip";
 import {
   acquireSkill,
@@ -112,14 +112,13 @@ export function SignalPoolStrip({ embedded = false }: SignalPoolStripProps) {
         </p>
         <p className="text-sm text-ink">The quality loop hasn’t started yet</p>
         <ol className="mt-2 list-decimal space-y-1 pl-4 text-[12px] leading-snug text-foreground-secondary">
-          <li>Forge a skill from a source and publish it</li>
-          <li>Agents use it — each use grows the score</li>
-          <li>Challenges police quality; the best skills rise</li>
+          <li>Forge a skill — put skin in escrow so it can be scored</li>
+          <li>Agents use it — each use grows the quality score</li>
+          <li>Challenges police quality (expensive, not a profit game)</li>
           <li>Draw the next skill for your agent by proven score</li>
         </ol>
-        <p className="mt-2 flex items-center gap-1 text-[10px] text-muted">
-          <Flame size={10} className="text-ember" />
-          Be the first forger
+        <p className="mt-2 text-[10px] leading-snug text-muted">
+          Not a marketplace — quality signaling on Monad.
         </p>
       </section>
     );
@@ -210,7 +209,7 @@ export function SignalPoolStrip({ embedded = false }: SignalPoolStripProps) {
         })}
       </ul>
       <p className="mt-2 text-[10px] text-muted">
-        Drawn by proven quality — not SEO ranking
+        Drawn by proven quality — signaling, not SEO or yield
       </p>
     </section>
   );
