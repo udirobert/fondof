@@ -51,6 +51,8 @@ import { ReceiptStormButton } from "@/components/receipt-storm-button";
 import { IdentityLabel } from "@/components/identity-label";
 import { WalletButton } from "@/components/wallet-button";
 import { SkillPoolLoop } from "@/components/skill-pool-loop";
+import { SkillSectionAccordion } from "@/components/skill-section-accordion";
+import { SkillFitStrip } from "@/components/skill-fit-strip";
 import { Tip } from "@/components/tip";
 import { useAppStore } from "@/lib/store";
 import { fondofPhrase } from "@/lib/fondof-phrase";
@@ -58,6 +60,7 @@ import {
   rememberSkillMeta,
   skillPreviewFromMarkdown,
 } from "@/lib/skill-meta";
+import { skillFitCheck } from "@/lib/skill-fit-check";
 import Link from "next/link";
 
 type Phase = "ritual" | "compose" | "attested";
@@ -533,6 +536,17 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
     draft,
     forgeTitle ?? ideas[0]?.title,
   );
+  const isDelta = ideas.some((i) => gapByIdeaId[i.id]);
+  const repoMeta = repos.find((r) => r.fullName === repo);
+  const fitResult =
+    draft.length > 20
+      ? skillFitCheck({
+          markdown: draft,
+          repo: repo || undefined,
+          frameworks: repoMeta?.frameworks,
+          isDelta,
+        })
+      : null;
 
   const copyDraft = async () => {
     if (!draft) return;
@@ -696,6 +710,22 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
                               {ideas.length === 1 ? "" : "s"}
                             </p>
 
+                            {fitResult && (
+                              <SkillFitStrip
+                                result={fitResult}
+                                ready={ready || draft.length > 80}
+                              />
+                            )}
+
+                            {draft && (
+                              <div className="pt-1">
+                                <p className="mb-2 text-[11px] uppercase tracking-wider text-muted">
+                                  Sections
+                                </p>
+                                <SkillSectionAccordion markdown={draft} />
+                              </div>
+                            )}
+
                             <button
                               type="button"
                               onClick={() => setShowFullDraft((v) => !v)}
@@ -707,8 +737,8 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
                                 className={`transition-transform ${showFullDraft ? "rotate-180" : ""}`}
                               />
                               {showFullDraft
-                                ? "Hide full markdown"
-                                : "Show full markdown"}
+                                ? "Hide raw markdown"
+                                : "View raw markdown"}
                             </button>
 
                             {showFullDraft && (
@@ -728,7 +758,7 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
                                     {copied ? "Copied" : "Copy markdown"}
                                   </button>
                                 </div>
-                                <pre className="font-mono text-[11px] leading-relaxed whitespace-pre-wrap text-foreground-secondary">
+                                <pre className="max-h-48 overflow-auto font-mono text-[11px] leading-relaxed whitespace-pre-wrap text-foreground-secondary">
                                   {draft}
                                 </pre>
                               </div>

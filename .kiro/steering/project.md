@@ -91,7 +91,8 @@ fondof/
 
 - **Relayer + optional wallet:** Relayer submits forge/use/challenge for demos; wallet forge attributes the forger on-chain.
 - **Hashes on-chain, titles at the edge:** SkillPool stores hashes; human title/blurb in edge cache (+ client mirror) so `/pool` cards stay readable.
-- **Agent-agnostic skill format:** Markdown skills work with Kiro, Claude, Cursor, etc.
+- **Fit check ≠ FR6 benchmark:** Forge shows a structural fit strip (sections, citations, repo tokens, length). That is not a live agent eval on the user’s repo. Real Validation Engine (synthetic tasks / with-vs-without skill) stays deferred per design §5. Post-publish **Proof** = SkillPool signal (uses, escrow, losses) with sparkline motion.
+- **Agent-agnostic skill format:** Markdown skills work with Kiro, Claude, Cursor, etc. UI uses progressive section disclosure so long files aren’t a wall.
 - **Web-first for Ready Spec Ship:** Hosted Netlify + Worker is the judge path; CLI is secondary.
 - **Graceful degradation:** Demo shards / local draft templates when APIs fail — must stay honest in copy.
 - **Demo oracle for resolve:** Challenge settle is relayer-operated in this build — disclose it.

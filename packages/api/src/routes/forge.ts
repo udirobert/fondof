@@ -8,10 +8,23 @@ const COMPOSE_SYSTEM = `You are an expert skill author for AI coding agents. Com
 1. Fitted to the target codebase (respects its stack and conventions)
 2. Grounded in source material (cites where ideas came from)
 3. Actionable (guides agent behavior on real tasks)
+4. SHORT — agents skim; humans decide to publish. Prefer density over length.
 
-Output a complete skill in markdown with sections: Context, Guidance (with code examples), Anti-patterns, References.
+Output markdown with EXACTLY these ## sections (plus a single # title):
+## Context
+## Guidance
+## Anti-patterns
+## References
 
-When a gapAgainst skill is provided: do NOT restate what that skill already covers. Write a DELTA skill — only the missing guidance, with an "Depends on" section linking the existing skill.`;
+Rules:
+- Context: 2–4 sentences max.
+- Guidance: ONE primary pattern with a small code example (prefer TypeScript). No essay.
+- Anti-patterns: 2–4 bullets.
+- References: at most 5 bullets (source titles/URLs).
+- Total draft under ~3500 characters when possible.
+- Do not repeat the same advice in multiple sections.
+
+When a gapAgainst skill is provided: do NOT restate what that skill already covers. Write a DELTA skill — only the missing guidance, with ## Depends on linking the existing skill, then ## Gap to fill, ## Guidance, ## Anti-patterns, ## References. Keep delta skills especially short.`;
 
 export const forgeRoute = new Hono<{ Bindings: Env }>();
 
@@ -38,7 +51,7 @@ forgeRoute.post("/forge", rateLimit("forge"), async (c) => {
     ? `GAP_AGAINST:${body.gapAgainst.url}:${body.gapAgainst.title}:${body.gapAgainst.snippet ?? ""}`
     : "";
 
-  const cacheKey = `forge:v2:${await sha256Hex(`${repoStr}\n${ideasStr}\n${gapStr}`)}`;
+  const cacheKey = `forge:v3:${await sha256Hex(`${repoStr}\n${ideasStr}\n${gapStr}`)}`;
   const hit = await cacheGetJson<{
     title: string;
     skillHash: string;
@@ -59,18 +72,18 @@ Title: ${body.gapAgainst.title}
 URL: ${body.gapAgainst.url}
 Snippet: ${body.gapAgainst.snippet ?? "(none)"}
 
-Write a delta skill: name it with "Gap:" prefix, include a "Depends on" section linking the URL, and only add guidance the existing skill lacks for these ideas / this repo.
+Write a short delta skill: "# Gap: …", ## Depends on (link URL), ## Gap to fill, ## Guidance (delta only), ## Anti-patterns, ## References.
 `
     : "";
 
-  const prompt = `Compose a skill from these ideas, fitted to the repository:
+  const prompt = `Compose a tight skill from these ideas, fitted to the repository:
 
 ## Ideas:
 ${ideasStr}
 
 ## ${repoStr}
 ${gapBlock}
-Write the skill as markdown. Include title, Context section, Guidance section with code examples, Anti-patterns section, and References section.`;
+Write markdown with # title then ## Context, ## Guidance (one code example), ## Anti-patterns, ## References. Stay concise — this is a skill file agents load, not a blog post. Name the target repo in Context.`;
 
   try {
     const skillMarkdown = await chat(c.env.AI, COMPOSE_SYSTEM, prompt, c.env);

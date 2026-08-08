@@ -239,8 +239,6 @@ export const skillDraftTemplate = (
   if (gapAgainst) {
     return `# Gap: ${primary}
 
-> Delta skill for \`${repo}\` — fills what existing skill misses.
-
 ## Depends on
 
 - [${gapAgainst.title}](${gapAgainst.url})
@@ -250,9 +248,13 @@ ${gapAgainst.snippet ? `  - Already covers: ${gapAgainst.snippet.slice(0, 160)}`
 
 ${ideas.map((idea) => `- **${idea.title}** — ${idea.description}`).join("\n")}
 
-## Guidance (delta only)
+## Guidance
 
 Add only the missing steps for \`${repo}\`. Do not restate the parent skill.
+
+\`\`\`ts
+// delta only — wire into existing patterns in ${repo}
+\`\`\`
 
 ## Anti-patterns
 
@@ -267,13 +269,13 @@ ${ideas.map((idea) => `- ${idea.title}`).join("\n")}
   }
   return `# ${primary}
 
-> Forged for \`${repo}\` from ${ideas.length} source idea${ideas.length === 1 ? "" : "s"}.
+## Context
 
-## Intent
+Fitted to \`${repo}\` from ${ideas.length} source idea${ideas.length === 1 ? "" : "s"}. Weave selected patterns into this repository — respect stack, conventions, and existing utilities.
 
-Weave the selected patterns into an environment-fitted skill for this repository — respecting stack, conventions, and existing utilities.
+## Guidance
 
-## Pattern
+Prefer composition over a new global handler.
 
 \`\`\`ts
 try {
@@ -283,13 +285,14 @@ try {
 }
 \`\`\`
 
-## Sources
+## Anti-patterns
+
+- Copying generic guidance that ignores \`${repo}\` conventions
+- Forging one thin skill per shard instead of composing
+
+## References
 
 ${ideas.map((idea) => `- **${idea.title}** — ${idea.description}`).join("\n")}
-
-## Fit notes
-
-Prefer composition over a new global handler. Cite sources in the skill frontmatter for provenance.
 `;
 };
 
