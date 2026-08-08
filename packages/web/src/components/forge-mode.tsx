@@ -167,28 +167,35 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
   };
 
   // Open → ritual covers latency; API starts immediately (not gated on fold).
+  // Reset only on open→closed transition (not every render while closed).
+  const wasOpen = useRef(false);
   useEffect(() => {
     if (!open) {
-      clearGaps();
-      setPhase("ritual");
-      setDraft("");
-      setHash("");
-      setSkillHash(null);
-      setSourceHashes([]);
-      setComposing(false);
-      setExplorer(null);
-      setLiveSignal(null);
-      setUsageCount(null);
-      setChallengeNote(null);
-      setPublishNote(null);
-      setLinkCopied(false);
-      setCelebrate(false);
-      setWalletTxHash(undefined);
-      pendingMarkdown.current = null;
-      streamCancel.current?.();
-      streamCancel.current = null;
+      if (wasOpen.current) {
+        clearGaps();
+        setPhase("ritual");
+        setDraft("");
+        setHash("");
+        setSkillHash(null);
+        setSourceHashes([]);
+        setComposing(false);
+        setExplorer(null);
+        setLiveSignal(null);
+        setUsageCount(null);
+        setChallengeNote(null);
+        setPublishNote(null);
+        setLinkCopied(false);
+        setCelebrate(false);
+        setWalletTxHash(undefined);
+        pendingMarkdown.current = null;
+        streamCancel.current?.();
+        streamCancel.current = null;
+      }
+      wasOpen.current = false;
       return;
     }
+
+    wasOpen.current = true;
 
     const reduce =
       typeof window !== "undefined" &&
@@ -213,7 +220,7 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
       window.clearTimeout(t);
     };
     // ideas locked at open; repo changes handled below without replaying ritual
-  }, [open, ideas]);
+  }, [open, ideas, clearGaps]);
 
   // Quiet re-fit only when the user changes repo (not on open).
   useEffect(() => {

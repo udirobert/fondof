@@ -141,7 +141,10 @@ export const useAppStore = create<AppState>((set) => ({
       else next[ideaId] = gap;
       return { gapByIdeaId: next };
     }),
-  clearGaps: () => set({ gapByIdeaId: {} }),
+  clearGaps: () =>
+    set((s) =>
+      Object.keys(s.gapByIdeaId).length === 0 ? s : { gapByIdeaId: {} },
+    ),
   loadSample: (sources, ideas, selectIds = []) =>
     set({
       sources,
