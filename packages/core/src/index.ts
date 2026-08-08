@@ -1,6 +1,6 @@
 export { ingest, type IngestOptions, type IngestResult, type LLMProvider } from "./ingestion/index.js";
 export { discover, type DiscoverOptions } from "./discovery/index.js";
-export { compose } from "./composition/index.js";
+export { compose, type ComposeOptions, type ComposeResult, type ConflictResult } from "./composition/index.js";
 export {
   requestDeviceCode,
   pollForToken,
