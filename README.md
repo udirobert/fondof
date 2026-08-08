@@ -81,7 +81,7 @@ We're domain-agnostic. If you need pre-built DeFi/crypto agent capabilities:
 
 **Live app:** [https://fondof.netlify.app](https://fondof.netlify.app)  
 **API:** [https://fondof-api.trustfall.workers.dev](https://fondof-api.trustfall.workers.dev)  
-**Contract:** SkillPool on Monad testnet — `0x1c0b6C42acD41BE5582a8F34137Acb713107170a`
+**Contract:** SkillPool on Monad testnet — `0x75545e2C450897914df416d0D24aeB33a89a8b19`
 
 ### Testing / demo clicks
 
@@ -158,11 +158,11 @@ See [`.env.example`](.env.example) for placeholders. Summary:
 # On-chain (SkillPool)
 MONAD_RPC_URL=https://…                 # Monad testnet RPC
 FONDOF_RELAYER_KEY=0x…                  # Relayer wallet (Worker secret)
-FONDOF_CONTRACT_ADDRESS=0x1c0b6C42acD41BE5582a8F34137Acb713107170a
+FONDOF_CONTRACT_ADDRESS=0x75545e2C450897914df416d0D24aeB33a89a8b19
 
 # Web
 NEXT_PUBLIC_API_URL=https://fondof-api.trustfall.workers.dev
-NEXT_PUBLIC_FONDOF_CONTRACT_ADDRESS=0x1c0b6C42acD41BE5582a8F34137Acb713107170a
+NEXT_PUBLIC_FONDOF_CONTRACT_ADDRESS=0x75545e2C450897914df416d0D24aeB33a89a8b19
 
 # LLM / ingest (Worker secrets)
 CLOUDFLARE_ACCOUNT_ID=…

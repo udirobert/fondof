@@ -46,6 +46,7 @@ import { Tip } from "@/components/tip";
 import { EconomicsHonesty } from "@/components/economics-honesty";
 import { WhereItLandsList } from "@/components/where-it-lands";
 import { SkillSectionAccordion } from "@/components/skill-section-accordion";
+import { ReattachDraft } from "@/components/reattach-draft";
 import { getSkillMeta } from "@/lib/skill-meta";
 import { whereItLands } from "@/lib/where-it-lands";
 
@@ -301,13 +302,40 @@ export default function SkillPublicPage() {
           />
         )}
 
-        {skillMarkdown && (
+        {skillMarkdown ? (
           <section className="space-y-2" aria-label="Skill body">
             <p className="text-[11px] uppercase tracking-wider text-muted">
               Skill for your agent
             </p>
             <SkillSectionAccordion markdown={skillMarkdown} />
           </section>
+        ) : (
+          !loading &&
+          skill && (
+            <ReattachDraft
+              skillHash={hash}
+              repo={metaRepo ?? skill.repo}
+              frameworks={skill.frameworks}
+              onAttached={(meta) => {
+                setMetaTitle(meta.title);
+                setMetaBlurb(meta.blurb ?? null);
+                if (meta.repo) setMetaRepo(meta.repo);
+                setSkill((s) =>
+                  s
+                    ? {
+                        ...s,
+                        title: meta.title,
+                        blurb: meta.blurb,
+                        repo: meta.repo ?? s.repo,
+                        markdown: meta.markdown,
+                        landings: meta.landings,
+                      }
+                    : s,
+                );
+                setNote("Skill artifact attached — copy ready for agents.");
+              }}
+            />
+          )
         )}
 
         <SignalStory

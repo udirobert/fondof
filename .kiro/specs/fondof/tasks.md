@@ -27,7 +27,7 @@ Unchecked items are deferred or partial — not abandoned.
 ### Task 2.1: SkillPool contract (demo contract)
 - [x] Implement `SkillPool.sol` (forge, use, challenge, resolve, signal, acquire, topSkills)
 - [x] Foundry tests for SkillPool
-- [x] Deploy to Monad testnet (`0x1c0b6C42acD41BE5582a8F34137Acb713107170a`)
+- [x] Deploy to Monad testnet (`0x75545e2C450897914df416d0D24aeB33a89a8b19`)
 - [x] Legacy `FondofAttestation.sol` retained but not the judge path
 
 ### Task 2.2: Relayer / API edge

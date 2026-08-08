@@ -120,7 +120,7 @@ skillsRoute.get("/skills/:hash", async (c) => {
 // Get top skills by signal
 skillsRoute.get("/skills", async (c) => {
   const limit = parseInt(c.req.query("limit") ?? "10");
-  const cacheKey = `skills:top:v2:${limit}`;
+  const cacheKey = `skills:top:v3:${limit}`;
 
   const hit = await cacheGetJson<{ skills: unknown[] }>(cacheKey);
   if (hit) {

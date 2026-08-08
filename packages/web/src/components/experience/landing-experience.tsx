@@ -386,7 +386,7 @@ export function LandingExperience() {
                 GitHub <ExternalLink size={10} />
               </a>
               <span className="font-mono text-[10px] sm:text-xs break-all">
-                0x1c0b6C42…7170a
+                0x75545e2C…8b19
               </span>
             </div>
           </div>

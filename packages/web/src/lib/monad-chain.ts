@@ -17,7 +17,7 @@ export const monadTestnet = defineChain({
 
 export const SKILL_POOL_ADDRESS = (process.env
   .NEXT_PUBLIC_FONDOF_CONTRACT_ADDRESS ??
-  "0x1c0b6C42acD41BE5582a8F34137Acb713107170a") as Hex;
+  "0x75545e2C450897914df416d0D24aeB33a89a8b19") as Hex;
 
 export const SKILL_POOL_ABI = [
   {
