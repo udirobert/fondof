@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Copy, ExternalLink, Flame } from "lucide-react";
+import { Copy, ExternalLink, Flame, FileText } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import type { Worthiness } from "@/lib/idea-insights";
+import { buildApplyPack } from "@/lib/apply-pack";
+import type { ConnectedRepo } from "@/lib/github-repo";
 
 interface IdeaShardProps {
   id: string;
@@ -16,14 +18,29 @@ interface IdeaShardProps {
   index?: number;
   worthiness?: Worthiness;
   worthinessReason?: string;
+  worthinessConfidence?: number;
   /** Active-repo fit line */
   fitDetail?: string | null;
   repoMatches?: { name: string; why: string }[];
+  activeRepo?: ConnectedRepo | null;
+  idea?: {
+    id: string;
+    title: string;
+    description: string;
+    domain: string[];
+    applicability: string[];
+    patternType: IdeaShardProps["patternType"];
+    sourceUrl: string;
+    sourceHash: string;
+    embedding: number[];
+  };
   similarSkill?: {
     title: string;
     url: string;
     label: "covers" | "partial";
     why: string;
+    snippet?: string;
+    method?: "embedding" | "lexical";
   } | null;
 }
 
@@ -53,14 +70,25 @@ export function IdeaShard({
   index = 0,
   worthiness,
   worthinessReason,
+  worthinessConfidence,
   fitDetail,
   repoMatches = [],
+  activeRepo,
+  idea,
   similarSkill,
 }: IdeaShardProps) {
-  const { selectedIdeaIds, toggleIdeaSelection, selectIdeas } = useAppStore();
+  const {
+    selectedIdeaIds,
+    toggleIdeaSelection,
+    selectIdeas,
+    setGapForIdea,
+    setForgeOpen,
+  } = useAppStore();
   const isSelected = selectedIdeaIds.has(id);
   const [reduceMotion, setReduceMotion] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [applyOpen, setApplyOpen] = useState(false);
+  const [applyText, setApplyText] = useState("");
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -79,25 +107,46 @@ export function IdeaShard({
     ...applicability.filter((a) => !domains.includes(a)).slice(0, 2),
   ];
 
-  const copyApply = async () => {
-    const note = `Apply once (not a skill):\n# ${title}\n${description}\n\nWhere: ${applicability.slice(0, 4).join(", ") || domains.join(", ") || "your codebase"}`;
+  const openApplyPack = async () => {
+    const packIdea = idea ?? {
+      id,
+      title,
+      description,
+      domain: domains,
+      applicability,
+      patternType,
+      sourceUrl: "",
+      sourceHash: "",
+      embedding: [],
+    };
+    const pack = buildApplyPack(packIdea, activeRepo);
+    setApplyText(pack);
+    setApplyOpen(true);
     try {
-      await navigator.clipboard.writeText(note);
+      await navigator.clipboard.writeText(pack);
       setCopied(true);
-      window.setTimeout(() => setCopied(false), 1400);
+      window.setTimeout(() => setCopied(false), 1600);
     } catch {
       // ignore
     }
   };
 
   const forgeTheGap = () => {
+    if (!similarSkill) return;
+    setGapForIdea(id, {
+      title: similarSkill.title,
+      url: similarSkill.url,
+      snippet: similarSkill.snippet ?? similarSkill.why,
+    });
     const next = new Set(selectedIdeaIds);
     next.add(id);
     selectIdeas([...next]);
+    setForgeOpen(true);
   };
 
   const skipReforge = () => {
     if (isSelected) toggleIdeaSelection(id);
+    setGapForIdea(id, null);
   };
 
   return (
@@ -147,6 +196,11 @@ export function IdeaShard({
                 className={`idea-shard__worth idea-shard__worth--${worthiness}`}
               >
                 {WORTH_LABEL[worthiness]}
+                {typeof worthinessConfidence === "number" && (
+                  <span className="ml-1 opacity-70">
+                    {Math.round(worthinessConfidence * 100)}%
+                  </span>
+                )}
               </span>
             )}
             {similarSkill && (
@@ -155,6 +209,7 @@ export function IdeaShard({
                 title={similarSkill.why}
               >
                 {similarSkill.label === "covers" ? "Exists" : "Partial"}
+                {similarSkill.method === "embedding" ? " · emb" : ""}
               </span>
             )}
             {repoMatches.slice(0, 2).map((m) => (
@@ -192,17 +247,17 @@ export function IdeaShard({
       </button>
 
       <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-ink/6 pt-2 pl-8">
-        {worthiness === "apply" && (
+        {(worthiness === "apply" || similarSkill?.label === "covers") && (
           <button
             type="button"
             onClick={(e) => {
               e.stopPropagation();
-              void copyApply();
+              void openApplyPack();
             }}
             className="inline-flex items-center gap-1 text-[11px] text-muted hover:text-ember"
           >
-            <Copy size={11} />
-            {copied ? "Copied apply note" : "Copy apply note"}
+            <FileText size={11} />
+            {copied && applyOpen ? "Apply pack copied" : "Apply to repo"}
           </button>
         )}
         {worthiness === "skip" && (
@@ -268,6 +323,28 @@ export function IdeaShard({
           </>
         )}
       </div>
+
+      {applyOpen && applyText && (
+        <div className="mt-2 ml-8 rounded-lg border border-ink/10 bg-paper/90 p-3">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <p className="text-[11px] font-medium text-ink">
+              Apply pack
+              {activeRepo ? ` · ${activeRepo.name}` : ""}
+            </p>
+            <button
+              type="button"
+              onClick={() => void navigator.clipboard.writeText(applyText)}
+              className="inline-flex items-center gap-1 text-[10px] text-muted hover:text-ember"
+            >
+              <Copy size={10} />
+              Copy
+            </button>
+          </div>
+          <pre className="max-h-40 overflow-auto whitespace-pre-wrap font-mono text-[10px] leading-relaxed text-foreground-secondary">
+            {applyText}
+          </pre>
+        </div>
+      )}
     </motion.div>
   );
 }

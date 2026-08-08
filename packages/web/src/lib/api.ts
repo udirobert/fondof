@@ -18,7 +18,10 @@ export interface ExistingSkillHit {
   title: string;
   url: string;
   snippet: string;
+  /** Best embedding cosine vs compared ideas (Compare stage) */
   score?: number;
+  /** Per-idea embedding scores when Compare ranked with embeddings */
+  ideaScores?: Array<{ ideaIndex: number; score: number }>;
 }
 
 export type IngestProvider =
@@ -178,12 +181,13 @@ export async function ingestURLStream(
 
 export async function forgeSkill(
   ideas: Array<{ title: string; description: string; sourceUrl: string }>,
-  repo?: { name: string; frameworks: string[]; languages: string[] }
+  repo?: { name: string; frameworks: string[]; languages: string[] },
+  gapAgainst?: { title: string; url: string; snippet?: string },
 ): Promise<ForgeResponse> {
   const res = await fetch(`${API_URL}/api/forge`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ideas, repo }),
+    body: JSON.stringify({ ideas, repo, gapAgainst }),
   });
   return res.json();
 }

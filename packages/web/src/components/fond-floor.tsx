@@ -17,6 +17,7 @@ import { ForgeMode } from "@/components/forge-mode";
 import { FitTarget } from "@/components/fit-target";
 import { FondofWordmark } from "@/components/fondof-wordmark";
 import { LiveSignalLine } from "@/components/live-signal-line";
+import { SignalPoolStrip } from "@/components/signal-pool-strip";
 import { useAppStore } from "@/lib/store";
 import { fondofPhrase } from "@/lib/fondof-phrase";
 import {
@@ -26,6 +27,7 @@ import {
 import {
   fitForRepo,
   matchRepos,
+  refineWorthinessWithOverlap,
   scoreWorthiness,
 } from "@/lib/idea-insights";
 import { asConnected } from "@/lib/github-repo";
@@ -396,11 +398,14 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
 
   const ideaInsights = useMemo(
     () =>
-      ideas.map((idea) => {
-        const worth = scoreWorthiness(idea);
+      ideas.map((idea, idx) => {
+        const overlaps = overlapsForIdea(idea, discoverySkills, idx);
+        const worth = refineWorthinessWithOverlap(
+          scoreWorthiness(idea),
+          overlaps[0],
+        );
         const repos = matchRepos(idea, allRepos);
         const fit = fitForRepo(idea, activeRepoObj);
-        const overlaps = overlapsForIdea(idea, discoverySkills);
         return { idea, worth, repos, fit, overlaps };
       }),
     [ideas, allRepos, activeRepoObj, discoverySkills],
@@ -650,6 +655,8 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
                   onCompareNote={setCompareNote}
                 />
 
+                <SignalPoolStrip />
+
                 <AgentExportBar
                   ideas={ideas}
                   sourceTitle={sources[0]?.title}
@@ -702,8 +709,11 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
                           domains={idea.domain}
                           applicability={idea.applicability}
                           index={i}
+                          idea={idea}
+                          activeRepo={activeRepoObj}
                           worthiness={worth.worthiness}
                           worthinessReason={worth.reason}
+                          worthinessConfidence={worth.confidence}
                           fitDetail={fit?.detail}
                           repoMatches={repos.map((r) => ({
                             name: r.name,
@@ -716,6 +726,8 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
                                   url: topOverlap.skill.url,
                                   label: topOverlap.label,
                                   why: topOverlap.why,
+                                  snippet: topOverlap.skill.snippet,
+                                  method: topOverlap.method,
                                 }
                               : null
                           }

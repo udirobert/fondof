@@ -5,7 +5,12 @@ import { Loader2, X } from "lucide-react";
 import { FondofWordmark } from "@/components/fondof-wordmark";
 import { IdeaShard } from "@/components/idea-shard";
 import type { IdeaFromAPI } from "@/lib/api";
-import { fitForRepo, matchRepos, scoreWorthiness } from "@/lib/idea-insights";
+import {
+  fitForRepo,
+  matchRepos,
+  refineWorthinessWithOverlap,
+  scoreWorthiness,
+} from "@/lib/idea-insights";
 import { asConnected } from "@/lib/github-repo";
 import { overlapsForIdea } from "@/lib/skill-overlap";
 import { demoRepos } from "@/lib/demo-data";
@@ -129,10 +134,13 @@ export function IngestStage({
                 </motion.div>
               ))
             : liveIdeas.map((idea, i) => {
-                const worth = scoreWorthiness(idea);
+                const top = overlapsForIdea(idea, discoverySkills, i)[0];
+                const worth = refineWorthinessWithOverlap(
+                  scoreWorthiness(idea),
+                  top,
+                );
                 const repos = matchRepos(idea, allRepos);
                 const fit = fitForRepo(idea, active);
-                const top = overlapsForIdea(idea, discoverySkills)[0];
                 return (
                   <IdeaShard
                     key={idea.id}
@@ -143,8 +151,11 @@ export function IngestStage({
                     domains={idea.domain}
                     applicability={idea.applicability}
                     index={i}
+                    idea={idea}
+                    activeRepo={active}
                     worthiness={worth.worthiness}
                     worthinessReason={worth.reason}
+                    worthinessConfidence={worth.confidence}
                     fitDetail={fit?.detail}
                     repoMatches={repos.map((r) => ({
                       name: r.name,
@@ -157,6 +168,8 @@ export function IngestStage({
                             url: top.skill.url,
                             label: top.label,
                             why: top.why,
+                            snippet: top.skill.snippet,
+                            method: top.method,
                           }
                         : null
                     }

@@ -49,6 +49,16 @@ export interface AppState {
   setIngestValue: (value: IngestValue | null) => void;
   compareNote: string | null;
   setCompareNote: (note: string | null) => void;
+  /** Partial-overlap targets — forge composes a delta vs these skills */
+  gapByIdeaId: Record<
+    string,
+    { title: string; url: string; snippet?: string }
+  >;
+  setGapForIdea: (
+    ideaId: string,
+    gap: { title: string; url: string; snippet?: string } | null,
+  ) => void;
+  clearGaps: () => void;
   /** Instant path: seed sources + ideas + optional preselection */
   loadSample: (
     sources: SourceEntry[],
@@ -123,12 +133,22 @@ export const useAppStore = create<AppState>((set) => ({
   setIngestValue: (value) => set({ ingestValue: value }),
   compareNote: null,
   setCompareNote: (note) => set({ compareNote: note }),
+  gapByIdeaId: {},
+  setGapForIdea: (ideaId, gap) =>
+    set((s) => {
+      const next = { ...s.gapByIdeaId };
+      if (!gap) delete next[ideaId];
+      else next[ideaId] = gap;
+      return { gapByIdeaId: next };
+    }),
+  clearGaps: () => set({ gapByIdeaId: {} }),
   loadSample: (sources, ideas, selectIds = []) =>
     set({
       sources,
       ideas,
       selectedIdeaIds: new Set(selectIds),
       discoverySkills: [],
+      gapByIdeaId: {},
       ingestValue: {
         providers: ["cache"],
         cacheHit: true,

@@ -4,6 +4,7 @@ export type ConnectedRepo = DemoRepo & {
   description?: string;
   topics?: string[];
   source: "demo" | "github";
+  private?: boolean;
 };
 
 const FRAMEWORK_HINTS: Array<{ re: RegExp; name: string }> = [
@@ -19,6 +20,27 @@ const FRAMEWORK_HINTS: Array<{ re: RegExp; name: string }> = [
   { re: /\bprisma\b/i, name: "Prisma" },
   { re: /\bdrizzle\b/i, name: "Drizzle" },
 ];
+
+const TOKEN_KEY = "fondof.githubToken";
+
+export function getGitHubToken(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return localStorage.getItem(TOKEN_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function setGitHubToken(token: string | null) {
+  if (typeof window === "undefined") return;
+  try {
+    if (!token?.trim()) localStorage.removeItem(TOKEN_KEY);
+    else localStorage.setItem(TOKEN_KEY, token.trim());
+  } catch {
+    // ignore
+  }
+}
 
 /** Parse `owner/repo` or GitHub URL. */
 export function parseGitHubRepo(
@@ -48,17 +70,24 @@ function detectFrameworks(blob: string): string[] {
 }
 
 /**
- * Fetch public repo metadata from GitHub (no token — public repos only).
+ * Fetch repo metadata. Optional PAT (localStorage) unlocks private repos.
+ * Token stays in the browser — never sent to fondof API.
  */
-export async function fetchGitHubRepo(input: string): Promise<ConnectedRepo> {
+export async function fetchGitHubRepo(
+  input: string,
+  token?: string | null,
+): Promise<ConnectedRepo> {
   const parsed = parseGitHubRepo(input);
   if (!parsed) {
     throw new Error("Use owner/repo or a github.com URL");
   }
 
   const { owner, repo } = parsed;
-  // Browsers forbid custom User-Agent; Accept is enough for public API.
-  const headers = { Accept: "application/vnd.github+json" };
+  const auth = (token ?? getGitHubToken())?.trim();
+  const headers: Record<string, string> = {
+    Accept: "application/vnd.github+json",
+  };
+  if (auth) headers.Authorization = `Bearer ${auth}`;
 
   const [metaRes, langRes] = await Promise.all([
     fetch(`https://api.github.com/repos/${owner}/${repo}`, { headers }),
@@ -68,7 +97,14 @@ export async function fetchGitHubRepo(input: string): Promise<ConnectedRepo> {
   ]);
 
   if (metaRes.status === 404) {
-    throw new Error("Repo not found (must be public)");
+    throw new Error(
+      auth
+        ? "Repo not found (check name or token scopes: repo)"
+        : "Repo not found — add a GitHub token for private repos",
+    );
+  }
+  if (metaRes.status === 401 || metaRes.status === 403) {
+    throw new Error("GitHub auth failed — check your token");
   }
   if (!metaRes.ok) {
     throw new Error(`GitHub error ${metaRes.status}`);
@@ -80,6 +116,7 @@ export async function fetchGitHubRepo(input: string): Promise<ConnectedRepo> {
     description?: string | null;
     topics?: string[];
     language?: string | null;
+    private?: boolean;
   };
 
   const langJson = langRes.ok
@@ -114,6 +151,7 @@ export async function fetchGitHubRepo(input: string): Promise<ConnectedRepo> {
     matchCount: 0,
     lastIndexed: new Date().toISOString(),
     source: "github",
+    private: !!meta.private,
   };
 }
 

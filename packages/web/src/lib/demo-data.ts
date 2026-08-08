@@ -230,8 +230,41 @@ export const liveExamples: LiveExample[] = [
   },
 ];
 
-export const skillDraftTemplate = (ideas: DemoIdea[], repo: string) => {
+export const skillDraftTemplate = (
+  ideas: DemoIdea[],
+  repo: string,
+  gapAgainst?: { title: string; url: string; snippet?: string },
+) => {
   const primary = ideas[0]?.title ?? "Composed Skill";
+  if (gapAgainst) {
+    return `# Gap: ${primary}
+
+> Delta skill for \`${repo}\` — fills what existing skill misses.
+
+## Depends on
+
+- [${gapAgainst.title}](${gapAgainst.url})
+${gapAgainst.snippet ? `  - Already covers: ${gapAgainst.snippet.slice(0, 160)}` : ""}
+
+## Gap to fill
+
+${ideas.map((idea) => `- **${idea.title}** — ${idea.description}`).join("\n")}
+
+## Guidance (delta only)
+
+Add only the missing steps for \`${repo}\`. Do not restate the parent skill.
+
+## Anti-patterns
+
+- Re-forging the parent skill wholesale
+- Ignoring stack conventions in \`${repo}\`
+
+## References
+
+- Parent: ${gapAgainst.url}
+${ideas.map((idea) => `- ${idea.title}`).join("\n")}
+`;
+  }
   return `# ${primary}
 
 > Forged for \`${repo}\` from ${ideas.length} source idea${ideas.length === 1 ? "" : "s"}.

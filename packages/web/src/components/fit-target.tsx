@@ -1,9 +1,13 @@
 "use client";
 
-import { useState } from "react";
-import { Check, GitFork, Loader2, Plus } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Check, GitFork, KeyRound, Loader2, Plus } from "lucide-react";
 import type { ConnectedRepo } from "@/lib/github-repo";
-import { fetchGitHubRepo } from "@/lib/github-repo";
+import {
+  fetchGitHubRepo,
+  getGitHubToken,
+  setGitHubToken,
+} from "@/lib/github-repo";
 import { useAppStore } from "@/lib/store";
 
 interface FitTargetProps {
@@ -16,7 +20,7 @@ interface FitTargetProps {
 }
 
 /**
- * Fit target — demo repos + paste your GitHub repo for real relevance.
+ * Fit target — demo repos + paste your GitHub repo (public or private w/ token).
  */
 export function FitTarget({
   repos,
@@ -32,6 +36,21 @@ export function FitTarget({
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [tokenOpen, setTokenOpen] = useState(false);
+  const [token, setToken] = useState("");
+  const [hasToken, setHasToken] = useState(false);
+
+  useEffect(() => {
+    const t = getGitHubToken();
+    setHasToken(!!t);
+    if (t) setToken(t);
+  }, []);
+
+  const saveToken = () => {
+    setGitHubToken(token.trim() || null);
+    setHasToken(!!token.trim());
+    setTokenOpen(false);
+  };
 
   const addRepo = async () => {
     const value = input.trim();
@@ -39,7 +58,7 @@ export function FitTarget({
     setBusy(true);
     setError(null);
     try {
-      const repo = await fetchGitHubRepo(value);
+      const repo = await fetchGitHubRepo(value, getGitHubToken());
       addUserRepo(repo);
       setActiveRepo(repo.fullName);
       setInput("");
@@ -78,7 +97,7 @@ export function FitTarget({
                 }`}
               >
                 {repo.name}
-                {repo.source === "github" ? " · you" : ""}
+                {repo.source === "github" ? (repo.private ? " · private" : " · you") : ""}
               </button>
             );
           })}
@@ -105,6 +124,32 @@ export function FitTarget({
             Add
           </button>
         </form>
+        <button
+          type="button"
+          onClick={() => setTokenOpen((v) => !v)}
+          className="inline-flex items-center gap-1 text-[10px] text-muted hover:text-ink"
+        >
+          <KeyRound size={10} />
+          {hasToken ? "GitHub token saved (private OK)" : "Private repo? Add token"}
+        </button>
+        {tokenOpen && (
+          <div className="flex gap-1.5">
+            <input
+              type="password"
+              value={token}
+              onChange={(e) => setToken(e.target.value)}
+              placeholder="ghp_… stays in this browser"
+              className="min-h-9 min-w-0 flex-1 rounded-full border border-ink/10 bg-paper px-3 text-xs"
+            />
+            <button
+              type="button"
+              onClick={saveToken}
+              className="rounded-full bg-mist px-3 text-xs"
+            >
+              Save
+            </button>
+          </div>
+        )}
         {error && <p className="text-[10px] text-ember">{error}</p>}
       </div>
     );
@@ -122,7 +167,7 @@ export function FitTarget({
             Your repo
           </h2>
           <p className="mt-1 text-[11px] leading-relaxed text-foreground-secondary">
-            Add a public GitHub repo — we show which shards fit that stack.
+            Public GitHub — or private with a token stored only in this browser.
           </p>
         </div>
       </div>
@@ -155,6 +200,36 @@ export function FitTarget({
         {error && <p className="text-[10px] text-ember">{error}</p>}
       </form>
 
+      <button
+        type="button"
+        onClick={() => setTokenOpen((v) => !v)}
+        className="mb-3 inline-flex items-center gap-1.5 text-[10px] text-muted hover:text-ink"
+      >
+        <KeyRound size={11} />
+        {hasToken ? "Token on · private repos enabled" : "Add GitHub token for private"}
+      </button>
+      {tokenOpen && (
+        <div className="mb-3 space-y-1.5">
+          <input
+            type="password"
+            value={token}
+            onChange={(e) => setToken(e.target.value)}
+            placeholder="ghp_… or github_pat_…"
+            className="min-h-9 w-full rounded-lg border border-ink/10 bg-paper px-3 text-xs"
+          />
+          <button
+            type="button"
+            onClick={saveToken}
+            className="w-full rounded-full bg-mist py-2 text-xs text-ink"
+          >
+            Save token locally
+          </button>
+          <p className="text-[9px] leading-snug text-muted">
+            Never sent to fondof — only to api.github.com from your browser.
+          </p>
+        </div>
+      )}
+
       <div className="space-y-2" role="radiogroup" aria-label="Repositories">
         {repos.map((repo) => {
           const selected = repo.fullName === (active?.fullName ?? "");
@@ -177,7 +252,7 @@ export function FitTarget({
                 </span>
                 {repo.source === "github" && (
                   <span className="rounded bg-ember/10 px-1 py-0.5 font-mono text-[9px] text-ember">
-                    you
+                    {repo.private ? "private" : "you"}
                   </span>
                 )}
                 {selected && (

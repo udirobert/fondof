@@ -7,6 +7,7 @@ import { Check, Copy, ExternalLink, Flame, Swords, Zap } from "lucide-react";
 import {
   challengeSkill,
   getSkillSignal,
+  getTopSkills,
   recordUsage,
   type SkillOnChainResponse,
 } from "@/lib/api";
@@ -28,6 +29,7 @@ export default function SkillPublicPage() {
   const [copied, setCopied] = useState(false);
   const [shareUrl, setShareUrl] = useState("");
   const [tick, setTick] = useState(0);
+  const [peers, setPeers] = useState<SkillOnChainResponse[]>([]);
 
   const refresh = useCallback(async () => {
     if (!hash) return;
@@ -47,6 +49,14 @@ export default function SkillPublicPage() {
   useEffect(() => {
     setShareUrl(skillShareUrl(hash));
     void refresh();
+    void getTopSkills(4)
+      .then((res) => {
+        const list = (res.skills ?? [])
+          .filter((s) => !s.error && s.skillHash !== hash)
+          .slice(0, 3);
+        setPeers(list);
+      })
+      .catch(() => setPeers([]));
     const id = window.setInterval(() => void refresh(), 12_000);
     return () => window.clearInterval(id);
   }, [hash, refresh]);
@@ -201,6 +211,31 @@ export default function SkillPublicPage() {
         </div>
 
         {note && <p className="text-center text-[11px] text-muted">{note}</p>}
+
+        {peers.length > 0 && (
+          <section className="border-t border-ink/8 pt-6">
+            <p className="text-center text-[11px] uppercase tracking-wider text-muted">
+              Also live on SkillPool
+            </p>
+            <ul className="mt-3 space-y-2">
+              {peers.map((p) => (
+                <li key={p.skillHash}>
+                  <Link
+                    href={`/s/${encodeURIComponent(p.skillHash)}`}
+                    className="flex items-center justify-between gap-2 rounded-lg border border-ink/8 bg-paper/60 px-3 py-2 text-sm hover:border-ember/30"
+                  >
+                    <span className="font-medium text-ink">
+                      sig {formatSignal(p.signal)}
+                    </span>
+                    <span className="font-mono text-[10px] text-muted">
+                      {p.usageCount} uses · challenge
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
         <div className="flex flex-col items-center gap-2 border-t border-ink/8 pt-6">
           <Link

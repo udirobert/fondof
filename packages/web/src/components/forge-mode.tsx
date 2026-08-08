@@ -73,6 +73,8 @@ const RITUAL_MS = 700;
 export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
   const activeRepo = useAppStore((s) => s.activeRepo);
   const setActiveRepo = useAppStore((s) => s.setActiveRepo);
+  const gapByIdeaId = useAppStore((s) => s.gapByIdeaId);
+  const clearGaps = useAppStore((s) => s.clearGaps);
   const sources = useAppStore((s) => s.sources);
   const phrase = fondofPhrase(sources);
   const [phase, setPhase] = useState<Phase>("ritual");
@@ -113,7 +115,15 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
   }, [open, activeRepo, repos]);
 
   const runForge = async (targetRepo: string, signal: { cancelled: boolean }) => {
-    const fallback = skillDraftTemplate(ideas, targetRepo || "your-repo");
+    // Read latest gaps (Forge the gap may set them in the same tick as open)
+    const gaps = useAppStore.getState().gapByIdeaId;
+    const gap =
+      ideas.map((i) => gaps[i.id]).find(Boolean) ?? undefined;
+    const fallback = skillDraftTemplate(
+      ideas,
+      targetRepo || "your-repo",
+      gap,
+    );
     const meta = repos.find((r) => r.fullName === targetRepo);
     try {
       const res = await Promise.race([
@@ -132,6 +142,7 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
               ? meta.languages.map((l) => l.language)
               : ["TypeScript"],
           },
+          gap,
         ),
         new Promise<never>((_, reject) => {
           window.setTimeout(() => reject(new Error("timeout")), 6000);
@@ -154,6 +165,7 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
   // Open → ritual covers latency; API starts immediately (not gated on fold).
   useEffect(() => {
     if (!open) {
+      clearGaps();
       setPhase("ritual");
       setDraft("");
       setHash("");
@@ -570,6 +582,14 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
                             </li>
                           ))}
                         </ul>
+                        {ideas.some((i) => gapByIdeaId[i.id]) && (
+                          <p className="mt-2 text-[11px] leading-snug text-ember">
+                            Delta forge — filling the gap vs{" "}
+                            {ideas
+                              .map((i) => gapByIdeaId[i.id]?.title)
+                              .find(Boolean)}
+                          </p>
+                        )}
                       </div>
                       <div className="min-h-[40vh] flex-1 overflow-auto px-4 py-4 pb-6 sm:px-5 lg:min-h-0">
                         <div className="mb-3 flex items-center justify-between gap-2">

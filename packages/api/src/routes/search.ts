@@ -67,11 +67,13 @@ searchRoute.post("/search/skills", rateLimit("search"), async (c) => {
         );
         scored = results
           .map((r, i) => {
-            let best = 0;
-            for (const ie of workingIdeaEmbeds) {
-              best = Math.max(best, cosineSimilarity(ie, skillEmbeds[i] ?? []));
-            }
-            return { ...r, score: best };
+            const se = skillEmbeds[i] ?? [];
+            const perIdea = workingIdeaEmbeds.map((ie, ideaIndex) => ({
+              ideaIndex,
+              score: cosineSimilarity(ie, se),
+            }));
+            const best = Math.max(0, ...perIdea.map((p) => p.score));
+            return { ...r, score: best, ideaScores: perIdea };
           })
           .sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
         embedScored = true;

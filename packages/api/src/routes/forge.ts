@@ -9,7 +9,9 @@ const COMPOSE_SYSTEM = `You are an expert skill author for AI coding agents. Com
 2. Grounded in source material (cites where ideas came from)
 3. Actionable (guides agent behavior on real tasks)
 
-Output a complete skill in markdown with sections: Context, Guidance (with code examples), Anti-patterns, References.`;
+Output a complete skill in markdown with sections: Context, Guidance (with code examples), Anti-patterns, References.
+
+When a gapAgainst skill is provided: do NOT restate what that skill already covers. Write a DELTA skill — only the missing guidance, with an "Depends on" section linking the existing skill.`;
 
 export const forgeRoute = new Hono<{ Bindings: Env }>();
 
@@ -19,6 +21,7 @@ forgeRoute.post("/forge", rateLimit("forge"), async (c) => {
   const body = await c.req.json<{
     ideas: Array<{ title: string; description: string; sourceUrl: string }>;
     repo?: { name: string; frameworks: string[]; languages: string[] };
+    gapAgainst?: { title: string; url: string; snippet?: string };
   }>();
 
   if (!body.ideas?.length) return c.json({ error: "ideas array is required" }, 400);
@@ -31,7 +34,11 @@ forgeRoute.post("/forge", rateLimit("forge"), async (c) => {
     ? `Target: ${body.repo.name} (${body.repo.frameworks.join(", ")}, ${body.repo.languages.join(", ")})`
     : "Target: general TypeScript project";
 
-  const cacheKey = `forge:v1:${await sha256Hex(`${repoStr}\n${ideasStr}`)}`;
+  const gapStr = body.gapAgainst
+    ? `GAP_AGAINST:${body.gapAgainst.url}:${body.gapAgainst.title}:${body.gapAgainst.snippet ?? ""}`
+    : "";
+
+  const cacheKey = `forge:v2:${await sha256Hex(`${repoStr}\n${ideasStr}\n${gapStr}`)}`;
   const hit = await cacheGetJson<{
     title: string;
     skillHash: string;
@@ -45,13 +52,24 @@ forgeRoute.post("/forge", rateLimit("forge"), async (c) => {
     return c.json(hit);
   }
 
+  const gapBlock = body.gapAgainst
+    ? `
+## Existing skill (do not duplicate — forge ONLY the gap)
+Title: ${body.gapAgainst.title}
+URL: ${body.gapAgainst.url}
+Snippet: ${body.gapAgainst.snippet ?? "(none)"}
+
+Write a delta skill: name it with "Gap:" prefix, include a "Depends on" section linking the URL, and only add guidance the existing skill lacks for these ideas / this repo.
+`
+    : "";
+
   const prompt = `Compose a skill from these ideas, fitted to the repository:
 
 ## Ideas:
 ${ideasStr}
 
 ## ${repoStr}
-
+${gapBlock}
 Write the skill as markdown. Include title, Context section, Guidance section with code examples, Anti-patterns section, and References section.`;
 
   try {

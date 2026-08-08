@@ -1,5 +1,6 @@
 import type { IdeaFromAPI } from "@/lib/api";
 import type { ConnectedRepo } from "@/lib/github-repo";
+import type { SkillOverlap } from "@/lib/skill-overlap";
 
 export type Worthiness = "forge" | "apply" | "skip";
 
@@ -7,6 +8,8 @@ export interface WorthinessInsight {
   worthiness: Worthiness;
   label: string;
   reason: string;
+  /** 0–1 evidence strength for the label */
+  confidence: number;
 }
 
 export interface RepoMatch {
@@ -18,41 +21,108 @@ export interface RepoMatch {
   score: number;
 }
 
-/** Should you forge this into a skill, apply once, or skip? */
+/**
+ * Evidence-based worthiness (not a model guess).
+ * Rules fire only when concrete signals are present.
+ */
 export function scoreWorthiness(idea: IdeaFromAPI): WorthinessInsight {
   const text = `${idea.title} ${idea.description}`.toLowerCase();
   const domains = [...(idea.domain ?? []), ...(idea.applicability ?? [])];
+  const descLen = idea.description.trim().length;
 
-  if (
-    idea.patternType === "anti-pattern" ||
-    /one-?off|hotfix|temporary|specific to/.test(text)
-  ) {
+  // Skip — one-off / anti-pattern signals
+  if (idea.patternType === "anti-pattern") {
     return {
       worthiness: "skip",
       label: "Skip",
-      reason: "Likely a one-time fix — not a reusable skill",
+      reason: "Marked anti-pattern — document, don’t forge",
+      confidence: 0.9,
+    };
+  }
+  if (/one-?off|hotfix|temporary|specific to this|just this once/.test(text)) {
+    return {
+      worthiness: "skip",
+      label: "Skip",
+      reason: "Language points to a one-time fix",
+      confidence: 0.85,
     };
   }
 
+  // Forge — reusable pattern evidence
+  const forgeSignals: string[] = [];
   if (
     idea.patternType === "technique" ||
     idea.patternType === "architecture" ||
-    idea.patternType === "mental-model" ||
-    domains.length >= 2 ||
-    idea.description.length > 120
+    idea.patternType === "mental-model"
   ) {
+    forgeSignals.push(idea.patternType.replace("-", " "));
+  }
+  if (domains.length >= 2) forgeSignals.push(`${domains.length} domains`);
+  if (descLen > 140) forgeSignals.push("detailed guidance");
+  if (
+    /when|always|prefer|pattern|convention|retry|timeout|compose|boundary/.test(
+      text,
+    )
+  ) {
+    forgeSignals.push("reusable framing");
+  }
+
+  if (forgeSignals.length >= 2) {
     return {
       worthiness: "forge",
       label: "Forge",
-      reason: "Repeatable pattern — strong skill candidate",
+      reason: `Evidence: ${forgeSignals.slice(0, 3).join(" · ")}`,
+      confidence: Math.min(0.92, 0.55 + forgeSignals.length * 0.1),
     };
   }
 
+  if (forgeSignals.length === 1 && descLen > 80) {
+    return {
+      worthiness: "forge",
+      label: "Forge",
+      reason: `Evidence: ${forgeSignals[0]} — forge if you’ll reuse it`,
+      confidence: 0.62,
+    };
+  }
+
+  // Apply — useful but thin reuse signal
   return {
     worthiness: "apply",
     label: "Apply",
-    reason: "Useful directly; forge only if you will reuse it",
+    reason:
+      domains.length > 0
+        ? `Thin reuse signal — apply once in ${domains.slice(0, 2).join(", ")}`
+        : "Useful once; forge only if you’ll reuse it",
+    confidence: 0.7,
   };
+}
+
+/** After Compare: covered shards become Apply; partial keep Forge with gap reason. */
+export function refineWorthinessWithOverlap(
+  base: WorthinessInsight,
+  overlap: SkillOverlap | null | undefined,
+): WorthinessInsight {
+  if (!overlap) return base;
+  if (base.worthiness === "skip") return base;
+
+  if (overlap.label === "covers") {
+    return {
+      worthiness: "apply",
+      label: "Apply",
+      reason: `Existing skill covers this (${overlap.method} ${(overlap.score * 100).toFixed(0)}%) — open it or apply once`,
+      confidence: Math.max(base.confidence, overlap.method === "embedding" ? 0.88 : 0.75),
+    };
+  }
+
+  if (overlap.label === "partial" && base.worthiness === "forge") {
+    return {
+      ...base,
+      reason: `Partial overlap — forge a delta vs “${overlap.skill.title.slice(0, 42)}”`,
+      confidence: Math.max(base.confidence, 0.7),
+    };
+  }
+
+  return base;
 }
 
 function repoBlob(repo: ConnectedRepo): string {
@@ -98,7 +168,6 @@ export function matchRepos(
       }
     }
 
-    // Soft domain bridges
     if (
       /gateway|worker|hono|retry|timeout|circuit|upstream|reliability/.test(
         hay,
@@ -148,7 +217,6 @@ export function matchRepos(
   return matches.sort((a, b) => b.score - a.score);
 }
 
-/** Fit sentence for the active repo, or null if weak. */
 export function fitForRepo(
   idea: IdeaFromAPI,
   repo: ConnectedRepo | undefined,
