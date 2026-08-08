@@ -18,4 +18,4 @@ export {
   type GitHubToken,
   type FondofConfig,
 } from "./project/index.js";
-export { attest } from "./relayer/index.js";
+export { attest, queryAttestation, loadRelayerConfig, FONDOF_ATTESTATION_ABI, type RelayerConfig } from "./relayer/index.js";
