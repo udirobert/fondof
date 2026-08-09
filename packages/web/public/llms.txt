@@ -1,0 +1,45 @@
+# fondof
+
+> You just learned something. Your agent still hasn't.
+
+fondof forges personalised coding skills from what you learn (podcasts, blogs, talks) or a concrete need — fitted to a specific repo's stack, conventions, and patterns. Output is a markdown skill file any AI coding agent can use.
+
+## How it works
+
+1. Paste a URL (YouTube, blog, podcast) or describe a need
+2. fondof extracts discrete idea shards from the content
+3. Select shards and forge them into a skill fitted to your repo
+4. Copy the skill into your agent, publish to GitHub, or share publicly
+
+## Key URLs
+
+- Homepage: https://fondof.netlify.app
+- Skill pages: https://fondof.netlify.app/s/[hash]
+- Source pages: https://fondof.netlify.app/from/[domain]
+- User portfolios: https://fondof.netlify.app/u/[github-login]
+- Pool (quality desk): https://fondof.netlify.app/pool
+- API: https://fondof-api.trustfall.workers.dev
+
+## API endpoints
+
+- POST /api/ingest — extract ideas from a URL or need
+- POST /api/forge — compose a skill from ideas + repo context
+- POST /api/publish — publish skill to SkillPool (on-chain)
+- GET /api/sources/:domain — list skills forged from a source
+- GET /api/sources/:domain/badge.svg — embeddable badge
+
+## Skill format
+
+Output is standard markdown with these sections:
+- # Title
+- ## Context (2-4 sentences, names the repo)
+- ## Guidance (one pattern + code example)
+- ## Anti-patterns (2-4 bullets)
+- ## References (source links)
+
+Skills work in .kiro/steering/, .cursor/rules/, CLAUDE.md, or any markdown-aware agent.
+
+## Contact
+
+- GitHub: https://github.com/udirobert/fondof
+- Twitter: @fondof_dev

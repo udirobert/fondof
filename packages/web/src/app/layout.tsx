@@ -29,13 +29,15 @@ export const metadata: Metadata = {
     siteName: "fondof",
     title: "fondof — Forge fitted skills from what you learn",
     description:
-      "Turn what you learn into a coding skill fitted to your repo. Works with Kiro, Claude, and Cursor.",
+      "You just learned something. Your agent still hasn't. Paste it — get a skill fitted to your repo.",
+    url: "https://fondof.netlify.app",
   },
   twitter: {
     card: "summary_large_image",
+    site: "@fondof_dev",
     title: "fondof — Forge fitted skills from what you learn",
     description:
-      "Turn what you learn into a coding skill fitted to your repo. Works with Kiro, Claude, and Cursor.",
+      "You just learned something. Your agent still hasn't. Paste it — get a skill fitted to your repo.",
   },
 };
 
