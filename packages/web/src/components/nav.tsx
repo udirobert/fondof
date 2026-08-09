@@ -66,10 +66,10 @@ export function Nav() {
           </ol>
         )}
 
-        <div className="flex items-center gap-1.5 sm:gap-2">
+        <div className="flex items-center gap-2">
           <Link
             href="/"
-            className={`rounded-full px-2.5 py-1 text-xs transition-colors ${
+            className={`rounded-full px-3 py-1.5 text-xs transition-colors ${
               onFloor
                 ? "bg-mist font-medium text-ink"
                 : "text-muted hover:text-ink"
@@ -79,7 +79,7 @@ export function Nav() {
           </Link>
           <Link
             href="/pool"
-            className={`rounded-full px-2.5 py-1 text-xs transition-colors ${
+            className={`rounded-full px-3 py-1.5 text-xs transition-colors ${
               onPool
                 ? "bg-ember/10 font-medium text-ember"
                 : "text-muted hover:text-ink"

@@ -612,7 +612,7 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
                 onTrySample={loadInstantSample}
               />
               {showFrame && (
-                <p className="mt-6 text-center text-[11px] text-muted">
+                <p className="mt-6 text-center text-xs text-muted">
                   Works with any coding agent
                 </p>
               )}

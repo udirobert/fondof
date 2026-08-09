@@ -30,7 +30,7 @@ export function AuthButton({ variant = "nav" }: AuthButtonProps) {
         <button
           type="button"
           onClick={() => void logout()}
-          className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] text-muted hover:text-ink"
+          className="inline-flex min-h-8 items-center gap-1 rounded-full px-2.5 py-1.5 text-[11px] text-muted hover:text-ink"
           title="Log out"
         >
           <LogOut size={12} />
@@ -43,7 +43,7 @@ export function AuthButton({ variant = "nav" }: AuthButtonProps) {
     <button
       type="button"
       onClick={() => login()}
-      className="inline-flex items-center gap-1.5 rounded-full border border-ink/10 bg-paper px-2.5 py-1 text-[11px] text-muted transition-colors hover:border-ember/35 hover:text-ink"
+      className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-ink/10 bg-paper px-3 py-1.5 text-[11px] text-muted transition-colors hover:border-ember/35 hover:text-ink"
     >
       <LogIn size={12} />
       Sign in

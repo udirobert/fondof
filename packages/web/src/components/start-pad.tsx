@@ -63,7 +63,7 @@ export function StartPad({
             type="button"
             onClick={() => !busy && setMode(id)}
             disabled={busy}
-            className={`min-h-8 rounded-full px-3 py-1 text-xs transition-colors ${
+            className={`min-h-10 rounded-full px-3.5 py-1.5 text-xs transition-colors ${
               mode === id
                 ? "bg-ink text-paper"
                 : "text-muted hover:bg-mist hover:text-ink"
@@ -115,7 +115,7 @@ export function StartPad({
               setValue(ex.url);
               inputRef.current?.focus();
             }}
-            className="inline-flex items-center gap-1.5 rounded-full border border-ink/10 bg-paper px-2.5 py-1 text-[11px] text-muted transition-colors hover:border-ember/40 hover:text-ember disabled:opacity-40"
+            className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-ink/10 bg-paper px-3 py-1.5 text-[11px] text-muted transition-colors hover:border-ember/40 hover:text-ember disabled:opacity-40"
           >
             <span aria-hidden className="text-[10px]">
               {ex.kind === "youtube" ? "▶" : ex.kind === "podcast" ? "🎙" : "📝"}
@@ -127,7 +127,7 @@ export function StartPad({
           type="button"
           onClick={onTrySample}
           disabled={busy}
-          className="inline-flex items-center gap-1 rounded-full border border-ink/10 bg-paper px-2.5 py-1 text-[11px] text-ember transition-colors hover:border-ember/40 disabled:opacity-40"
+          className="inline-flex min-h-9 items-center gap-1 rounded-full border border-ink/10 bg-paper px-3 py-1.5 text-[11px] text-ember transition-colors hover:border-ember/40 disabled:opacity-40"
         >
           <Sparkles size={10} />
           Sample
