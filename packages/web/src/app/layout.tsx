@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Fraunces, Outfit, Geist_Mono } from "next/font/google";
 import { Nav } from "@/components/nav";
-import { WorksWithStrip } from "@/components/works-with-strip";
 import { Providers } from "@/components/providers";
 import "./globals.css";
 
@@ -59,7 +58,6 @@ export default function RootLayout({
           </a>
           <Nav />
           <main id="main">{children}</main>
-          <WorksWithStrip />
         </Providers>
       </body>
     </html>
