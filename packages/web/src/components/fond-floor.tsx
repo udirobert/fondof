@@ -613,7 +613,7 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
               />
               {showFrame && (
                 <p className="mt-6 text-center text-[11px] text-muted">
-                  Works with Kiro, Claude, and Cursor
+                  Works with any coding agent
                 </p>
               )}
             </div>

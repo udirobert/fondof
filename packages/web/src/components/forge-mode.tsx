@@ -958,7 +958,7 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
                             )}
                             {copied
                               ? "Copied for your agent"
-                              : "Copy for Cursor / Claude / Kiro"}
+                              : "Copy for your agent"}
                           </button>
 
                           {skillHash && !forgePrivate && (

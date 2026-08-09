@@ -567,7 +567,7 @@ export default function SkillPublicPage() {
               {copiedMd ? <Check size={14} /> : <Copy size={14} />}
               {copiedMd
                 ? "Copied for your agent"
-                : "Copy for Cursor / Claude / Kiro"}
+                : "Copy for your agent"}
             </button>
           ) : null}
           <button
