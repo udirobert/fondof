@@ -597,8 +597,11 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
               {showFrame && (
                 <div className="mb-6 text-center">
                   <FondofWordmark size="hero" />
-                  <p className="mx-auto mt-3 max-w-sm text-base text-foreground-secondary">
-                    Paste what you learned. Get a skill for your repo.
+                  <p className="mx-auto mt-3 max-w-sm font-serif text-lg text-ink sm:text-xl">
+                    You just learned something. Your agent still hasn't.
+                  </p>
+                  <p className="mx-auto mt-2 max-w-sm text-sm text-foreground-secondary">
+                    Paste it — get a skill fitted to your repo.
                   </p>
                 </div>
               )}
@@ -732,6 +735,18 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
                       sourceHash={sources[0].sourceHash}
                       ingestValue={ingestValue}
                     />
+                    {sources[0].url && !sources[0].url.startsWith("need://") && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const shareLink = `${window.location.origin}/?url=${encodeURIComponent(sources[0].url)}`;
+                          void navigator.clipboard.writeText(shareLink);
+                        }}
+                        className="mt-2 text-[11px] text-muted hover:text-ember"
+                      >
+                        Copy shareable link — let others fondof this source
+                      </button>
+                    )}
                   </div>
                 )}
 
