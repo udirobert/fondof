@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Fraunces, Outfit, Geist_Mono } from "next/font/google";
 import { Nav } from "@/components/nav";
+import { WorksWithStrip } from "@/components/works-with-strip";
 import { Providers } from "@/components/providers";
 import "./globals.css";
 
@@ -21,21 +22,21 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://fondof.netlify.app"),
-  title: "fondof — Skill quality discovery on Monad",
+  title: "fondof — Forge fitted skills from what you learn",
   description:
-    "fondof the pod. fond of the blog. Paste what you learn, forge a skill for your repo, publish quality on Monad.",
+    "Paste a podcast, blog, or need. Get a short skill fitted to your repo. Hand it to any coding agent.",
   openGraph: {
     type: "website",
     siteName: "fondof",
-    title: "fondof — Skill quality discovery on Monad",
+    title: "fondof — Forge fitted skills from what you learn",
     description:
-      "fondof the pod. fond of the blog. Forge agent skills with verifiable provenance on Monad.",
+      "Turn what you learn into a coding skill fitted to your repo. Works with Kiro, Claude, and Cursor.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "fondof — Skill quality discovery on Monad",
+    title: "fondof — Forge fitted skills from what you learn",
     description:
-      "fondof the pod. fond of the blog. Forge agent skills with verifiable provenance on Monad.",
+      "Turn what you learn into a coding skill fitted to your repo. Works with Kiro, Claude, and Cursor.",
   },
 };
 
@@ -58,6 +59,7 @@ export default function RootLayout({
           </a>
           <Nav />
           <main id="main">{children}</main>
+          <WorksWithStrip />
         </Providers>
       </body>
     </html>

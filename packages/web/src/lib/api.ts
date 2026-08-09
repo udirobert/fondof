@@ -1,6 +1,6 @@
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ??
-  "https://fondof-api.trustfall.workers.dev";
+import { API_BASE } from "@/lib/api-base";
+
+const API_URL = API_BASE;
 
 export interface IdeaFromAPI {
   id: string;
@@ -203,11 +203,12 @@ export async function forgeSkill(
   ideas: Array<{ title: string; description: string; sourceUrl: string }>,
   repo?: { name: string; frameworks: string[]; languages: string[] },
   gapAgainst?: { title: string; url: string; snippet?: string },
+  options?: { private?: boolean },
 ): Promise<ForgeResponse> {
   const res = await fetch(`${API_URL}/api/forge`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ideas, repo, gapAgainst }),
+    body: JSON.stringify({ ideas, repo, gapAgainst, private: options?.private }),
   });
   return res.json();
 }

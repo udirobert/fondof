@@ -53,6 +53,7 @@ import { WalletButton } from "@/components/wallet-button";
 import { SkillPoolLoop } from "@/components/skill-pool-loop";
 import { SkillSectionAccordion } from "@/components/skill-section-accordion";
 import { SkillFitStrip } from "@/components/skill-fit-strip";
+import { SkillSharePanel } from "@/components/skill-share-panel";
 import { WhereItLandsList } from "@/components/where-it-lands";
 import { useAppStore } from "@/lib/store";
 import { fondofPhrase } from "@/lib/fondof-phrase";
@@ -63,6 +64,8 @@ import {
 import { skillFitCheck } from "@/lib/skill-fit-check";
 import { parseSkillSections } from "@/lib/skill-sections";
 import { whereItLands } from "@/lib/where-it-lands";
+import { track } from "@/lib/track";
+import { checkForge, recordForge, type ForgeCheck } from "@/lib/billing";
 import Link from "next/link";
 
 type Phase = "ritual" | "compose" | "attested";
@@ -112,6 +115,8 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
   const [showFullDraft, setShowFullDraft] = useState(false);
   const [forgeTitle, setForgeTitle] = useState<string | null>(null);
   const [showPoolMore, setShowPoolMore] = useState(false);
+  const [forgeBlocked, setForgeBlocked] = useState<ForgeCheck | null>(null);
+  const [forgePrivate, setForgePrivate] = useState(false);
   const setPublished = useAppStore((s) => s.setPublished);
   const { address, isConnected, chainId } = useConnection();
   const { switchChainAsync } = useSwitchChain();
@@ -136,8 +141,18 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
   const runForge = async (targetRepo: string, signal: { cancelled: boolean }) => {
     // Read latest gaps (Forge the gap may set them in the same tick as open)
     const gaps = useAppStore.getState().gapByIdeaId;
-    const gap =
-      ideas.map((i) => gaps[i.id]).find(Boolean) ?? undefined;
+    const gap = ideas.length === 1 ? gaps[ideas[0].id] : undefined;
+
+    // Check forge limits before calling API
+    const limit = await checkForge();
+    if (!limit.allowed) {
+      setForgeBlocked(limit);
+      setComposing(false);
+      return;
+    }
+    setForgeBlocked(null);
+
+    track("forge_started", { ideaCount: ideas.length, repo: targetRepo });
     const fallback = skillDraftTemplate(
       ideas,
       targetRepo || "your-repo",
@@ -162,6 +177,7 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
               : ["TypeScript"],
           },
           gap,
+          { private: forgePrivate },
         ),
         new Promise<never>((_, reject) => {
           window.setTimeout(() => reject(new Error("timeout")), 6000);
@@ -174,6 +190,8 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
         setSourceHashes(res.sourceHashes ?? []);
         if (res.title) setForgeTitle(res.title);
         pendingMarkdown.current = res.markdown;
+        track("forge_completed", { repo: targetRepo, hasHash: !!res.skillHash });
+        void recordForge();
         return;
       }
     } catch {
@@ -681,6 +699,40 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
                   </motion.div>
                 )}
 
+                {forgeBlocked && !forgeBlocked.allowed && (
+                  <motion.div
+                    key="blocked"
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="rounded-xl border border-ember/20 bg-ember/5 p-5 text-center"
+                  >
+                    <p className="font-medium text-sm text-ember">
+                      Free forges used this month
+                    </p>
+                    <p className="mt-2 text-[12px] text-foreground-secondary">
+                      You've used all 3 free forges. Share a skill publicly to
+                      unlock unlimited forges — build your brand while you build
+                      skills.
+                    </p>
+                    <p className="mt-3 text-[11px] text-muted">
+                      Or upgrade to Pro for unlimited private forges.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        import("@/lib/billing").then(({ getCheckoutUrl }) => {
+                          void getCheckoutUrl().then((url) => {
+                            if (url) window.location.href = url;
+                          });
+                        });
+                      }}
+                      className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-ink/12 bg-paper px-3 py-1.5 text-xs text-muted hover:text-ink"
+                    >
+                      Upgrade to Pro
+                    </button>
+                  </motion.div>
+                )}
+
                 {(phase === "compose" || phase === "attested") && (
                   <motion.div
                     key="compose"
@@ -746,6 +798,14 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
                               {" · "}
                               {ideas.length} shard
                               {ideas.length === 1 ? "" : "s"}
+                              {" · "}
+                              <button
+                                type="button"
+                                onClick={() => setForgePrivate((p) => !p)}
+                                className={`inline-flex items-center gap-0.5 transition-colors ${forgePrivate ? "text-ember" : "text-muted hover:text-ink"}`}
+                              >
+                                {forgePrivate ? "private" : "public"}
+                              </button>
                             </p>
 
                             {fitResult && (
@@ -900,6 +960,15 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
                               ? "Copied for your agent"
                               : "Copy for Cursor / Claude / Kiro"}
                           </button>
+
+                          {skillHash && !forgePrivate && (
+                            <SkillSharePanel
+                              skillHash={skillHash}
+                              title={draftPreview.title}
+                              sourceTitle={sources[0]?.title}
+                              repoName={repo || undefined}
+                            />
+                          )}
 
                           {skillHash && (
                             <Link

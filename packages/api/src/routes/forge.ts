@@ -4,6 +4,15 @@ import { chat } from "../lib/llm.js";
 import { cacheGetJson, cachePutJson, sha256Hex } from "../lib/edge-cache.js";
 import { rateLimit } from "../lib/rate-limit-mw.js";
 
+/** Entry in the source → skills mapping (stored in KV per domain). */
+interface SourceEntry {
+  skillHash: string;
+  title: string;
+  sourceUrl: string;
+  fittedTo: string;
+  forgedAt: string;
+}
+
 const COMPOSE_SYSTEM = `You are an expert skill author for AI coding agents. Compose a skill that is:
 1. Fitted to the target codebase (respects its stack and conventions)
 2. Grounded in source material (cites where ideas came from)
@@ -35,9 +44,12 @@ forgeRoute.post("/forge", rateLimit("forge"), async (c) => {
     ideas: Array<{ title: string; description: string; sourceUrl: string }>;
     repo?: { name: string; frameworks: string[]; languages: string[] };
     gapAgainst?: { title: string; url: string; snippet?: string };
+    private?: boolean;
   }>();
 
   if (!body.ideas?.length) return c.json({ error: "ideas array is required" }, 400);
+
+  const isPrivate = body.private === true;
 
   const ideasStr = body.ideas
     .map((i, idx) => `${idx + 1}. ${i.title}: ${i.description}`)
@@ -92,9 +104,22 @@ Write markdown with # title then ## Context, ## Guidance (one code example), ## 
     const titleMatch = skillMarkdown.match(/^#\s+(.+)$/m);
     const title = titleMatch ? titleMatch[1] : "Forged Skill";
 
+    // Add attribution preamble
+    const sourceUrls = [...new Set(body.ideas.map((i) => i.sourceUrl))];
+    const sourceList = sourceUrls
+      .filter((u) => u && !u.startsWith("https://fondof.local"))
+      .map((u) => `  - ${u}`)
+      .join("\n");
+    const repoLabel = body.repo?.name ?? "general";
+
+    const preamble = `<!-- Forged with fondof | Fitted for: ${repoLabel} | Sources:\n${sourceList || "  - (direct input)"}\n-->\n\n`;
+    const attribution = `\n\n---\n*Forged with [fondof](https://fondof.netlify.app) · Fitted for ${repoLabel}*\n`;
+
+    const fullMarkdown = preamble + skillMarkdown + attribution;
+
     // Hash the skill content
     const encoder = new TextEncoder();
-    const hashBuffer = await crypto.subtle.digest("SHA-256", encoder.encode(skillMarkdown));
+    const hashBuffer = await crypto.subtle.digest("SHA-256", encoder.encode(fullMarkdown));
     const skillHash = Array.from(new Uint8Array(hashBuffer))
       .map((b) => b.toString(16).padStart(2, "0"))
       .join("");
@@ -113,11 +138,43 @@ Write markdown with # title then ## Context, ## Guidance (one code example), ## 
       title,
       skillHash,
       sourceHashes,
-      markdown: skillMarkdown,
+      markdown: fullMarkdown,
       fittedTo: body.repo?.name ?? "general",
       composedAt: new Date().toISOString(),
+      private: isPrivate,
     };
     await cachePutJson(cacheKey, payload, FORGE_TTL);
+
+    // Track source → skill mappings for /from/[source] pages (skip if private)
+    if (!isPrivate) {
+      const realSources = sourceUrls.filter(
+        (u) => u && !u.startsWith("https://fondof.local") && u.startsWith("http"),
+      );
+      for (const url of realSources) {
+        try {
+          const domain = new URL(url).hostname.replace(/^www\./, "");
+          const sourceKey = `source:${domain}`;
+          const existing =
+            (await c.env.SESSIONS.get(sourceKey, "json")) as SourceEntry[] | null;
+          const entries = existing || [];
+          if (!entries.some((e) => e.skillHash === skillHash)) {
+            entries.push({
+              skillHash,
+              title,
+              sourceUrl: url,
+              fittedTo: body.repo?.name ?? "general",
+              forgedAt: new Date().toISOString(),
+            });
+            await c.env.SESSIONS.put(sourceKey, JSON.stringify(entries), {
+              expirationTtl: 60 * 60 * 24 * 365,
+            });
+          }
+        } catch {
+          // Skip malformed URLs
+        }
+      }
+    }
+
     c.header("X-Cache", "MISS");
     return c.json(payload);
   } catch (e) {

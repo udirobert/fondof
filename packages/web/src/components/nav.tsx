@@ -6,7 +6,7 @@ import { useMemo } from "react";
 import { useAppStore } from "@/lib/store";
 import { fondofPhrase } from "@/lib/fondof-phrase";
 import { FondofWordmark } from "@/components/fondof-wordmark";
-import { WalletButton } from "@/components/wallet-button";
+import { AuthButton } from "@/components/auth-button";
 
 export function Nav() {
   const pathname = usePathname();
@@ -87,7 +87,7 @@ export function Nav() {
           >
             Pool
           </Link>
-          <WalletButton variant="nav" />
+          <AuthButton variant="nav" />
         </div>
       </div>
     </nav>

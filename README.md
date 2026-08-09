@@ -35,6 +35,17 @@ This repo also targets **Ready, Spec, Ship** (Kiro) and Monad demo contexts. See
 3. **Forge** — Compose a skill preview fitted to your stack. Publish puts skin in escrow on SkillPool.
 4. **SkillPool** — Agents use and dispute skills; score is quality signaling on Monad. Wallet optional (you = forger) or fondof relayer publishes for you.
 
+## For content creators (supply-side)
+
+Your podcast / blog / talk is being turned into actionable skills by developers. fondof gives you:
+
+- **`/from/[your-domain]`** — a public page showing all skills forged from your content, who forged them, and where they landed
+- **Permanent backlinks** — every skill file in every repo credits your content as the source
+- **Embeddable badge** — show forge count in your show notes: `![forged from](fondof.netlify.app/badge/from/your-domain.svg)`
+- **Honest signal** — forge count from real developers who fitted skills to real repos (not vanity downloads)
+
+Creators don't need an account. Pages auto-populate from forge data. Optionally verify your domain for analytics.
+
 ## Two entry points
 
 **Content-first:** "I just listened to a great podcast — where do these ideas apply across my projects?"
@@ -92,7 +103,7 @@ We don’t claim prompt-injection detection, sandboxing, or audited skill binari
 ## Quick start (judges — hosted first)
 
 **Live app:** [https://fondof.netlify.app](https://fondof.netlify.app)  
-**API:** [https://fondof-api.trustfall.workers.dev](https://fondof-api.trustfall.workers.dev)  
+**API:** [https://fondof-api.fondof.workers.dev](https://fondof-api.fondof.workers.dev)  
 **Contract:** SkillPool on Monad testnet — `0x75545e2C450897914df416d0D24aeB33a89a8b19`
 
 ### Testing / demo clicks
@@ -173,8 +184,17 @@ FONDOF_RELAYER_KEY=0x…                  # Relayer wallet (Worker secret)
 FONDOF_CONTRACT_ADDRESS=0x75545e2C450897914df416d0D24aeB33a89a8b19
 
 # Web
-NEXT_PUBLIC_API_URL=https://fondof-api.trustfall.workers.dev
+NEXT_PUBLIC_API_URL=https://fondof-api.fondof.workers.dev
 NEXT_PUBLIC_FONDOF_CONTRACT_ADDRESS=0x75545e2C450897914df416d0D24aeB33a89a8b19
+
+# Auth (GitHub OAuth)
+GITHUB_CLIENT_ID=…                      # GitHub OAuth app
+GITHUB_CLIENT_SECRET=…                  # GitHub OAuth app
+
+# Billing (Stripe)
+STRIPE_SECRET_KEY=sk_test_…             # Stripe secret key
+STRIPE_WEBHOOK_SECRET=whsec_…           # Stripe webhook signing
+STRIPE_PRICE_ID=price_…                 # Pro plan Price ID
 
 # LLM / ingest (Worker secrets)
 CLOUDFLARE_ACCOUNT_ID=…
@@ -184,6 +204,50 @@ ELEVENLABS_API_KEY=…                    # optional podcasts
 EXA_API_KEY=…                           # optional Compare
 FIRECRAWL_API_KEY=…                     # optional articles
 ```
+
+## Deployment
+
+### API (Cloudflare Worker)
+
+```bash
+cd packages/api
+
+# Create KV namespace for sessions + billing
+wrangler kv namespace create SESSIONS
+# Copy the ID into wrangler.toml → [[kv_namespaces]] id = "…"
+
+# Set secrets
+wrangler secret put FONDOF_RELAYER_KEY
+wrangler secret put GITHUB_CLIENT_ID
+wrangler secret put GITHUB_CLIENT_SECRET
+wrangler secret put STRIPE_SECRET_KEY
+wrangler secret put STRIPE_WEBHOOK_SECRET
+wrangler secret put STRIPE_PRICE_ID
+
+# Deploy
+wrangler deploy
+```
+
+### Web (Netlify)
+
+Set these env vars in Netlify dashboard (or `netlify.toml`):
+- `NEXT_PUBLIC_API_URL` → your Worker URL
+- `NEXT_PUBLIC_FONDOF_CONTRACT_ADDRESS` → SkillPool address
+
+### GitHub OAuth App
+
+1. Go to [github.com/settings/developers](https://github.com/settings/developers)
+2. Create a new OAuth App
+3. **Authorization callback URL:** `https://YOUR-WORKER.workers.dev/api/auth/callback`
+4. Copy Client ID and Client Secret into Worker secrets
+
+### Stripe
+
+1. Create a Product + Price in the [Stripe Dashboard](https://dashboard.stripe.com)
+2. Set `STRIPE_PRICE_ID` to the Price ID
+3. Create a Webhook endpoint → `https://YOUR-WORKER.workers.dev/api/billing/webhook`
+4. Events to listen for: `checkout.session.completed`, `customer.subscription.deleted`, `customer.subscription.paused`
+5. Copy the signing secret into `STRIPE_WEBHOOK_SECRET`
 
 ## Contributing
 

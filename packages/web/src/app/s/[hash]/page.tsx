@@ -5,10 +5,12 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
   Check,
+  ChevronDown,
   Copy,
   Dices,
   Flame,
   Loader2,
+  Shield,
   Swords,
   Zap,
 } from "lucide-react";
@@ -50,6 +52,164 @@ import { ReattachDraft } from "@/components/reattach-draft";
 import { SkillOutcomePanel } from "@/components/skill-outcome";
 import { getSkillMeta } from "@/lib/skill-meta";
 import { whereItLands } from "@/lib/where-it-lands";
+import { track } from "@/lib/track";
+
+/* ─── Collapsible on-chain provenance section ─── */
+interface ProvenanceDisclosureProps {
+  skill: SkillOnChainResponse;
+  hash: string;
+  sourceHashes: string[];
+  openChallenges: OnChainChallenge[];
+  resolvingId: number | null;
+  signalPlayKey: number;
+  pulseBeat: number;
+  challenging: boolean;
+  acquiring: boolean;
+  onChallenge: () => Promise<void>;
+  onResolve: (id: number, won: boolean) => Promise<void>;
+  onAcquire: () => Promise<void>;
+  onReceiptComplete: () => void;
+}
+
+function ProvenanceDisclosure({
+  skill,
+  hash,
+  sourceHashes,
+  openChallenges,
+  resolvingId,
+  signalPlayKey,
+  pulseBeat,
+  challenging,
+  acquiring,
+  onChallenge,
+  onResolve,
+  onAcquire,
+  onReceiptComplete,
+}: ProvenanceDisclosureProps) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <section className="border-t border-ink/8 pt-4">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center justify-between gap-2 text-left"
+        aria-expanded={open}
+      >
+        <span className="flex items-center gap-1.5 text-[12px] font-medium text-muted">
+          <Shield size={13} />
+          Provenance & Proof · on-chain
+        </span>
+        <ChevronDown
+          size={14}
+          className={`text-muted transition-transform ${open ? "rotate-180" : ""}`}
+        />
+      </button>
+      {!open && (
+        <p className="mt-1.5 text-[11px] text-muted">
+          Signal {formatSignal(skill.signal)} · {skill.usageCount ?? 0} uses
+          {skill.challengeLosses ? ` · ${skill.challengeLosses} losses` : ""} ·
+          verified on Monad
+        </p>
+      )}
+      {open && (
+        <div className="mt-4 space-y-6">
+          <SignalStory
+            signal={skill.signal}
+            backing={skill.backing}
+            usageCount={skill.usageCount}
+            challengeLosses={skill.challengeLosses}
+            loading={false}
+            playKey={`${hash}-${signalPlayKey}`}
+            pulseBeat={pulseBeat}
+          />
+
+          {skill.forger && (
+            <p className="flex items-center justify-center gap-1.5 text-[12px] text-muted">
+              Forged by <IdentityLabel address={skill.forger} avatar />
+            </p>
+          )}
+
+          <EconomicsHonesty variant="line" />
+
+          {(sourceHashes.length > 0) && (
+            <ProvenanceTree
+              sourceHashes={sourceHashes}
+              verifiedHref={addressExplorer(SKILL_POOL_ADDRESS)}
+              verifiedLabel="Verified on Monad · SkillPool"
+            />
+          )}
+
+          <ChallengeQueue
+            challenges={openChallenges}
+            resolvingId={resolvingId}
+            onResolve={(id, won) => void onResolve(id, won)}
+            losses={skill.challengeLosses}
+          />
+
+          <div className="flex flex-col gap-2">
+            <Tip tip="challenge" className="w-full">
+              <button
+                type="button"
+                onClick={() => void onChallenge()}
+                disabled={challenging}
+                className="flex min-h-11 w-full items-center justify-center gap-2 rounded-full border border-ink/12 bg-paper px-4 text-sm text-ink hover:border-ember/35 disabled:opacity-40"
+              >
+                <Swords size={14} />
+                {challenging
+                  ? "Staking…"
+                  : `Dispute quality · stake ${CHALLENGE_STAKE} MON`}
+              </button>
+            </Tip>
+            <Tip tip="acquire" className="w-full">
+              <button
+                type="button"
+                onClick={() => void onAcquire()}
+                disabled={acquiring}
+                className="flex min-h-10 w-full items-center justify-center gap-2 text-xs text-ember hover:underline disabled:opacity-40"
+              >
+                {acquiring ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <Dices size={14} />
+                )}
+                {acquiring ? "Drawing…" : "Draw next skill for my agent"}
+              </button>
+            </Tip>
+          </div>
+
+          <ReceiptStormButton
+            skillHash={hash}
+            count={12}
+            gated
+            onComplete={onReceiptComplete}
+          />
+
+          <OnChainDetails
+            skillHash={hash}
+            forger={skill.forger}
+            sourceHashes={sourceHashes}
+            createdAt={skill.createdAt}
+            explorerLinks={[
+              {
+                label: "SkillPool contract",
+                href: addressExplorer(SKILL_POOL_ADDRESS),
+              },
+              ...(skill.forger
+                ? [
+                    {
+                      label: `Forger ${shortAddress(skill.forger)}`,
+                      href: addressExplorer(skill.forger),
+                    },
+                  ]
+                : []),
+            ]}
+          />
+        </div>
+      )}
+    </section>
+  );
+}
 
 /** Public skill identity — quality story first, chain as detail. */
 export default function SkillPublicPage() {
@@ -141,10 +301,30 @@ export default function SkillPublicPage() {
   const skillMarkdown = skill?.markdown?.trim() || "";
   const showLanding = Boolean(metaRepo || skill?.repo || landingHits.length);
 
+  // Extract source domains from the attribution preamble comment
+  const sourceDomains = (() => {
+    const match = skillMarkdown.match(
+      /<!-- Forged with fondof[^]*?Sources:\n([\s\S]*?)-->/,
+    );
+    if (!match) return [];
+    const urls = match[1]
+      .split("\n")
+      .map((l) => l.replace(/^\s*-\s*/, "").trim())
+      .filter((u) => u.startsWith("http"));
+    const domains = new Set<string>();
+    for (const u of urls) {
+      try {
+        domains.add(new URL(u).hostname.replace(/^www\./, ""));
+      } catch { /* skip */ }
+    }
+    return [...domains];
+  })();
+
   const onCopy = async () => {
     try {
       await navigator.clipboard.writeText(shareUrl || skillShareUrl(hash));
       setCopied(true);
+      track("share_link_copied", { skillHash: hash });
       window.setTimeout(() => setCopied(false), 1600);
     } catch {
       // ignore
@@ -156,6 +336,7 @@ export default function SkillPublicPage() {
     try {
       await navigator.clipboard.writeText(skillMarkdown);
       setCopiedMd(true);
+      track("skill_copied", { skillHash: hash });
       window.setTimeout(() => setCopiedMd(false), 1600);
     } catch {
       // ignore
@@ -295,6 +476,30 @@ export default function SkillPublicPage() {
           )}
         </div>
 
+        {/* Forger attribution + Fork */}
+        {skill?.forger && (
+          <p className="text-center text-[12px] text-muted">
+            Forged by <IdentityLabel address={skill.forger} avatar className="inline" />
+          </p>
+        )}
+
+        {sourceDomains.length > 0 && (
+          <p className="text-center text-[11px] text-muted">
+            Forged from{" "}
+            {sourceDomains.map((d, i) => (
+              <span key={d}>
+                {i > 0 && " · "}
+                <Link
+                  href={`/from/${encodeURIComponent(d)}`}
+                  className="text-ember hover:underline"
+                >
+                  {d}
+                </Link>
+              </span>
+            ))}
+          </p>
+        )}
+
         {showLanding && (
           <WhereItLandsList
             hits={landingHits}
@@ -351,30 +556,7 @@ export default function SkillPublicPage() {
           />
         )}
 
-        <SignalStory
-          signal={skill?.signal}
-          backing={skill?.backing}
-          usageCount={skill?.usageCount}
-          challengeLosses={skill?.challengeLosses}
-          loading={loading}
-          playKey={`${hash}-${signalPlayKey}`}
-          pulseBeat={pulseBeat}
-        />
-
-        {skill?.forger && (
-          <p className="flex items-center justify-center gap-1.5 text-[12px] text-muted">
-            Forged by <IdentityLabel address={skill.forger} avatar />
-          </p>
-        )}
-
-        <EconomicsHonesty variant="line" />
-
-        {!loading && !skill && (
-          <p className="text-center text-sm text-foreground-secondary">
-            Not on SkillPool yet — share the link, or forge and publish to mint.
-          </p>
-        )}
-
+        {/* Primary actions — skill usage */}
         <div className="flex flex-col gap-2">
           {skillMarkdown ? (
             <button
@@ -409,19 +591,6 @@ export default function SkillPublicPage() {
             <Zap size={14} />
             {using ? "Recording…" : "I used this — grow Proof"}
           </button>
-          <Tip tip="challenge" className="w-full">
-            <button
-              type="button"
-              onClick={() => void onChallenge()}
-              disabled={challenging || !skill}
-              className="flex min-h-11 w-full items-center justify-center gap-2 rounded-full border border-ink/12 bg-paper px-4 text-sm text-ink hover:border-ember/35 disabled:opacity-40"
-            >
-              <Swords size={14} />
-              {challenging
-                ? "Staking…"
-                : `Dispute quality · stake ${CHALLENGE_STAKE} MON`}
-            </button>
-          </Tip>
           <a
             href={skillTweetIntent({ hash, title: metaTitle ?? undefined })}
             target="_blank"
@@ -430,48 +599,24 @@ export default function SkillPublicPage() {
           >
             Post to X
           </a>
-          <Tip tip="acquire" className="w-full">
-            <button
-              type="button"
-              onClick={() => void onAcquire()}
-              disabled={acquiring}
-              className="flex min-h-10 w-full items-center justify-center gap-2 text-xs text-ember hover:underline disabled:opacity-40"
-            >
-              {acquiring ? (
-                <Loader2 size={14} className="animate-spin" />
-              ) : (
-                <Dices size={14} />
-              )}
-              {acquiring ? "Drawing…" : "Draw next skill for my agent"}
-            </button>
-          </Tip>
         </div>
 
-        {(skill || sourceHashes.length > 0) && (
-          <ProvenanceTree
+        {/* Provenance & Proof — collapsible on-chain detail */}
+        {!loading && skill && (
+          <ProvenanceDisclosure
+            skill={skill}
+            hash={hash}
             sourceHashes={sourceHashes}
-            verifiedHref={
-              skill
-                ? addressExplorer(SKILL_POOL_ADDRESS)
-                : undefined
-            }
-            verifiedLabel="Verified on Monad · SkillPool"
-          />
-        )}
-
-        <ChallengeQueue
-          challenges={openChallenges}
-          resolvingId={resolvingId}
-          onResolve={(id, won) => void onResolve(id, won)}
-          losses={skill?.challengeLosses}
-        />
-
-        {skill && (
-          <ReceiptStormButton
-            skillHash={hash}
-            count={12}
-            gated
-            onComplete={() => {
+            openChallenges={openChallenges}
+            resolvingId={resolvingId}
+            signalPlayKey={signalPlayKey}
+            pulseBeat={pulseBeat}
+            challenging={challenging}
+            acquiring={acquiring}
+            onChallenge={onChallenge}
+            onResolve={onResolve}
+            onAcquire={onAcquire}
+            onReceiptComplete={() => {
               setNote(
                 "Burst of agent uses landed — watch the proven score climb.",
               );
@@ -482,26 +627,11 @@ export default function SkillPublicPage() {
           />
         )}
 
-        <OnChainDetails
-          skillHash={hash}
-          forger={skill?.forger}
-          sourceHashes={sourceHashes}
-          createdAt={skill?.createdAt}
-          explorerLinks={[
-            {
-              label: "SkillPool contract",
-              href: addressExplorer(SKILL_POOL_ADDRESS),
-            },
-            ...(skill?.forger
-              ? [
-                  {
-                    label: `Forger ${shortAddress(skill.forger)}`,
-                    href: addressExplorer(skill.forger),
-                  },
-                ]
-              : []),
-          ]}
-        />
+        {!loading && !skill && (
+          <p className="text-center text-sm text-foreground-secondary">
+            Not on SkillPool yet — share the link, or forge and publish to mint.
+          </p>
+        )}
 
         {note && (
           <p
@@ -555,6 +685,14 @@ export default function SkillPublicPage() {
             <Flame size={14} />
             Forge your own · extract → select → publish
           </Link>
+          {skillMarkdown && (
+            <Link
+              href={`/?url=${encodeURIComponent(shareUrl || skillShareUrl(hash))}`}
+              className="inline-flex items-center gap-2 text-xs text-muted hover:text-ink"
+            >
+              Fork this skill · re-fit to your repo
+            </Link>
+          )}
           <p className="text-center text-[10px] text-muted">
             Viral ingest:{" "}
             <span className="font-mono">fondof.app/?url=…</span>

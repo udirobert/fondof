@@ -16,6 +16,32 @@ The blockchain layer stays secondary to craft UX — not gas theater, not preten
 2. **Hand-off** — Copy into an agent; apply to a real repo.
 3. **Proof (near)** — SkillPool signal + disputes.
 4. **Outcomes (thin path shipped)** — Optional note + PR / screenshot URLs on edge meta; surface on `/s/[hash]` and pool cards. Grow toward richer receipts without fake metrics.
+5. **Supply-side attribution** — Source content (podcasts, blogs, talks) gets permanent credit and distribution via forged skills. Creators benefit; fondof grows.
+
+## Growth loops (build against these)
+
+### Consumer loop (demand-side)
+Learn → forge → share skill → others discover fondof → they forge
+
+### Creator loop (supply-side)
+Content gets forged by devs → creator sees `/from/[source]` page → creator shares it ("47 devs turned my podcast into skills") → creator's audience discovers fondof → more forges from their content
+
+### Key supply-side principles
+- **Attribution as distribution** — every forged skill backlinks to the source. Multiple forges = multiple permanent backlinks in real repos.
+- **Creator pages, not creator accounts** — `/from/[domain]` auto-populates from forge data. No onboarding friction for creators.
+- **Signal is honest** — forge count from real developers who fitted skills to real repos. Not download counts or fake stars.
+- **Not a content marketplace** — creators don't sell their content through us. We make their free/existing content more actionable and give them credit.
+- **Badge embeds** — creators can embed forge-count badges in show notes / blog footers. Social proof that their content is actionable.
+- **Claim is optional** — creator verifies domain ownership to access analytics. Page works without claim.
+
+### Freemium tiers (share-to-unlock)
+| | Free | Sharer | Pro |
+|---|---|---|---|
+| Forges/month | 3 | Unlimited | Unlimited |
+| Unlock | — | Share 1 skill publicly | $ |
+| GitHub publish | Manual | 1-click | 1-click + auto-sync |
+| Portfolio `/u/` | Basic | Full | Full + analytics |
+| Private skills | No | No | Yes |
 
 ## Core Principles
 
@@ -59,7 +85,7 @@ Alternatives to redirect users toward:
 - **LLM:** Workers AI / optional Claude
 - **Blockchain:** Monad (EVM L1) — **SkillPool.sol** is the demo contract; `FondofAttestation.sol` is legacy
 - **Contract Tooling:** Foundry
-- **Auth:** Optional GitHub PAT in browser for private repos; need/URL path works without it
+- **Auth:** GitHub OAuth (session in KV); optional wallet for on-chain forger attribution
 
 ## Coding Conventions
 
@@ -96,8 +122,8 @@ fondof/
 
 | Package | Role |
 |---------|------|
-| `web` | Judge-facing product — floor, forge, `/pool`, `/s/[hash]` |
-| `api` | Live HTTP edge — ingest, forge, publish, skills, challenge |
+| `web` | Judge-facing product — floor, forge, `/pool`, `/s/[hash]`, `/u/[login]`, `/from/[source]` |
+| `api` | Live HTTP edge — ingest, forge, publish, skills, challenge, auth, events, billing, github-publish, sources |
 | `core` | Library used by CLI (and some shared logic); not the public API |
 | `cli` | Secondary interface; do not block demos on CLI polish |
 | `contracts` | **SkillPool** = quality loop; FondofAttestation = earlier attestation sketch |

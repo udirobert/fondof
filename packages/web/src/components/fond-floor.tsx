@@ -22,6 +22,7 @@ import { SourceTextDrawer } from "@/components/source-text-drawer";
 import { Tip } from "@/components/tip";
 import { useAppStore } from "@/lib/store";
 import { fondofPhrase } from "@/lib/fondof-phrase";
+import { track } from "@/lib/track";
 import {
   resolveIngestStream,
   toApiIdea,
@@ -364,6 +365,10 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
           });
         }
         setMode("work");
+        track("ingest_completed", {
+          ideaCount: finalIdeas.length,
+          contentType: streamContentType,
+        });
       } catch (err) {
         if (err instanceof DOMException && err.name === "AbortError") {
           removeSource(placeholderUrl);
@@ -593,11 +598,11 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
                 <div className="mb-5 text-center">
                   <FondofWordmark size="hero" />
                   <p className="mx-auto mt-3 max-w-md text-sm text-foreground-secondary">
-                    Paste or state a need. Forge a short skill fitted to your
-                    repo. Agents prove it on SkillPool.
+                    Turn what you learn into a coding skill fitted to your repo.
+                    Hand it to Kiro, Claude, or Cursor.
                   </p>
                   <p className="mx-auto mt-2 font-mono text-[10px] tracking-wide text-muted">
-                    Extract → Forge → hand to your agent
+                    Paste → Extract → Forge → Hand to your agent
                   </p>
                 </div>
               )}
@@ -610,10 +615,15 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
               />
               {showFrame && (
                 <>
-                  <SkillPoolPulse compact className="mt-6 w-full max-w-md" />
-                  <p className="mt-4 max-w-xs text-center text-[11px] leading-relaxed text-muted">
-                    Not a marketplace — a forge. Wallet optional (you = forger,
-                    else relayer).
+                  <div className="mt-8 w-full max-w-md border-t border-ink/6 pt-5">
+                    <p className="mb-2 text-center text-[11px] font-medium uppercase tracking-wider text-muted">
+                      How quality works
+                    </p>
+                    <SkillPoolPulse compact className="w-full" />
+                  </div>
+                  <p className="mt-3 max-w-xs text-center text-[11px] leading-relaxed text-muted">
+                    Skills are proven on-chain via SkillPool — wallet optional,
+                    relayer handles the demo.
                   </p>
                 </>
               )}

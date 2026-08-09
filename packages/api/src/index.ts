@@ -6,12 +6,24 @@ import { publishRoute } from "./routes/publish.js";
 import { skillsRoute } from "./routes/skills.js";
 import { challengeRoute } from "./routes/challenge.js";
 import { searchRoute } from "./routes/search.js";
+import { authRoute } from "./routes/auth.js";
+import { eventsRoute } from "./routes/events.js";
+import { billingRoute } from "./routes/billing.js";
+import { githubPublishRoute } from "./routes/github-publish.js";
+import { sourcesRoute } from "./routes/sources.js";
 
 export interface Env {
   AI: Ai;
+  SESSIONS: KVNamespace;
   MONAD_RPC_URL: string;
   FONDOF_CONTRACT_ADDRESS: string;
   FONDOF_RELAYER_KEY: string;
+  FRONTEND_URL: string;
+  GITHUB_CLIENT_ID: string;
+  GITHUB_CLIENT_SECRET: string;
+  STRIPE_SECRET_KEY?: string;
+  STRIPE_WEBHOOK_SECRET?: string;
+  STRIPE_PRICE_ID?: string;
   CF_API_TOKEN?: string;
   /** Alias some envs use instead of CF_API_TOKEN */
   CLOUDFLARE_API_TOKEN?: string;
@@ -31,7 +43,7 @@ app.use(
   cors({
     origin: "*",
     allowMethods: ["GET", "POST", "OPTIONS"],
-    allowHeaders: ["Content-Type"],
+    allowHeaders: ["Content-Type", "Authorization"],
     exposeHeaders: [
       "X-Cache",
       "X-RateLimit-Limit",
@@ -65,5 +77,10 @@ app.route("/api", publishRoute);
 app.route("/api", skillsRoute);
 app.route("/api", challengeRoute);
 app.route("/api", searchRoute);
+app.route("/api", authRoute);
+app.route("/api", eventsRoute);
+app.route("/api", billingRoute);
+app.route("/api", githubPublishRoute);
+app.route("/api", sourcesRoute);
 
 export default app;
