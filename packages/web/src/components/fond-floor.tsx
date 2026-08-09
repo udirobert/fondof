@@ -610,7 +610,6 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
                 onSubmitUrl={(url) => void runIngest({ url })}
                 onSubmitNeed={(need) => void runIngest({ need })}
                 onTrySample={loadInstantSample}
-                onExample={onExample}
               />
               {showFrame && (
                 <p className="mt-6 text-center text-[11px] text-muted">

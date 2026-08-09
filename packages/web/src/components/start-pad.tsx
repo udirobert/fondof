@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowRight, Sparkles } from "lucide-react";
-import { liveExamples, type LiveExample } from "@/lib/demo-data";
+import { liveExamples } from "@/lib/demo-data";
 
 type Mode = "url" | "need";
 
@@ -13,7 +13,6 @@ interface StartPadProps {
   onSubmitUrl: (url: string) => void;
   onSubmitNeed: (need: string) => void;
   onTrySample: () => void;
-  onExample?: (example: LiveExample) => void;
 }
 
 /** Minimal entry point — input dominates, everything else recedes. */
@@ -23,7 +22,6 @@ export function StartPad({
   onSubmitUrl,
   onSubmitNeed,
   onTrySample,
-  onExample,
 }: StartPadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [value, setValue] = useState("");
@@ -115,10 +113,13 @@ export function StartPad({
             onClick={() => {
               setMode("url");
               setValue(ex.url);
-              onExample?.(ex);
+              inputRef.current?.focus();
             }}
-            className="rounded-full border border-ink/10 bg-paper px-2.5 py-1 text-[11px] text-muted transition-colors hover:border-ember/40 hover:text-ember disabled:opacity-40"
+            className="inline-flex items-center gap-1.5 rounded-full border border-ink/10 bg-paper px-2.5 py-1 text-[11px] text-muted transition-colors hover:border-ember/40 hover:text-ember disabled:opacity-40"
           >
+            <span aria-hidden className="text-[10px]">
+              {ex.kind === "youtube" ? "▶" : ex.kind === "podcast" ? "🎙" : "📝"}
+            </span>
             {ex.label}
           </button>
         ))}
