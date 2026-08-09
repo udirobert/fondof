@@ -595,14 +595,10 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
           >
             <div className="flex flex-1 flex-col items-center justify-center px-4 pb-[max(2rem,env(safe-area-inset-bottom))] pt-6">
               {showFrame && (
-                <div className="mb-5 text-center">
+                <div className="mb-6 text-center">
                   <FondofWordmark size="hero" />
-                  <p className="mx-auto mt-3 max-w-md text-sm text-foreground-secondary">
-                    Turn what you learn into a coding skill fitted to your repo.
-                    Hand it to Kiro, Claude, or Cursor.
-                  </p>
-                  <p className="mx-auto mt-2 font-mono text-[10px] tracking-wide text-muted">
-                    Paste → Extract → Forge → Hand to your agent
+                  <p className="mx-auto mt-3 max-w-sm text-base text-foreground-secondary">
+                    Paste what you learned. Get a skill for your repo.
                   </p>
                 </div>
               )}
@@ -614,18 +610,9 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
                 onExample={onExample}
               />
               {showFrame && (
-                <>
-                  <div className="mt-8 w-full max-w-md border-t border-ink/6 pt-5">
-                    <p className="mb-2 text-center text-[11px] font-medium uppercase tracking-wider text-muted">
-                      How quality works
-                    </p>
-                    <SkillPoolPulse compact className="w-full" />
-                  </div>
-                  <p className="mt-3 max-w-xs text-center text-[11px] leading-relaxed text-muted">
-                    Skills are proven on-chain via SkillPool — wallet optional,
-                    relayer handles the demo.
-                  </p>
-                </>
+                <p className="mt-6 text-center text-[11px] text-muted">
+                  Works with Kiro, Claude, and Cursor
+                </p>
               )}
             </div>
           </motion.div>
