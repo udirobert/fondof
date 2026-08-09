@@ -1,9 +1,14 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { lazy, Suspense, useState, type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { WagmiProvider } from "wagmi";
-import { wagmiConfig } from "@/lib/wagmi-config";
+
+/**
+ * Lazy-load WagmiProvider — wagmi + viem are heavy (~100KB+) and only needed
+ * when users interact with wallet features (pool page, forge publish).
+ * Most users never touch crypto, so we defer the cost.
+ */
+const WagmiWrapper = lazy(() => import("@/components/wagmi-wrapper"));
 
 export function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(
@@ -16,8 +21,10 @@ export function Providers({ children }: { children: ReactNode }) {
   );
 
   return (
-    <WagmiProvider config={wagmiConfig}>
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    </WagmiProvider>
+    <QueryClientProvider client={queryClient}>
+      <Suspense fallback={children}>
+        <WagmiWrapper>{children}</WagmiWrapper>
+      </Suspense>
+    </QueryClientProvider>
   );
 }
