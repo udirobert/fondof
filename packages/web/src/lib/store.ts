@@ -35,6 +35,7 @@ export interface AppState {
   /** User-added GitHub repos (public) */
   userRepos: ConnectedRepo[];
   addUserRepo: (repo: ConnectedRepo) => void;
+  removeUserRepo: (fullName: string) => void;
 
   // Ideas
   ideas: IdeaFromAPI[];
@@ -113,6 +114,15 @@ export const useAppStore = create<AppState>((set) => ({
         userRepos: [repo, ...s.userRepos],
         activeRepo: repo.fullName,
       };
+    }),
+  removeUserRepo: (fullName) =>
+    set((s) => {
+      const userRepos = s.userRepos.filter((r) => r.fullName !== fullName);
+      const activeRepo =
+        s.activeRepo === fullName
+          ? userRepos[0]?.fullName || "udirobert/fondof"
+          : s.activeRepo;
+      return { userRepos, activeRepo };
     }),
 
   // Ideas

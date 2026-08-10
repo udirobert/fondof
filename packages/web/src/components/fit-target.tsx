@@ -61,6 +61,7 @@ export function FitTarget({
   const activeRepo = useAppStore((s) => s.activeRepo);
   const setActiveRepo = useAppStore((s) => s.setActiveRepo);
   const addUserRepo = useAppStore((s) => s.addUserRepo);
+  const removeUserRepo = useAppStore((s) => s.removeUserRepo);
   const active = repos.find((r) => r.fullName === activeRepo) ?? repos[0];
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -198,26 +199,38 @@ export function FitTarget({
           </span>
           {repos.map((repo) => {
             const selected = repo.fullName === (active?.fullName ?? "");
+            const isUserAdded = repo.source === "github";
             return (
-              <button
-                key={repo.fullName}
-                type="button"
-                role="radio"
-                aria-checked={selected}
-                onClick={() => setActiveRepo(repo.fullName)}
-                className={`shrink-0 rounded-full px-3 py-1.5 text-xs transition-colors ${
-                  selected
-                    ? "bg-ink text-paper"
-                    : "bg-mist text-ink hover:bg-ink/10"
-                }`}
-              >
-                {repo.name}
-                {repo.source === "github"
-                  ? repo.private
-                    ? " · private"
-                    : " · you"
-                  : ""}
-              </button>
+              <span key={repo.fullName} className="relative shrink-0">
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  onClick={() => setActiveRepo(repo.fullName)}
+                  className={`shrink-0 rounded-full px-3 py-1.5 text-xs transition-colors ${
+                    selected
+                      ? "bg-ink text-paper"
+                      : "bg-mist text-ink hover:bg-ink/10"
+                  } ${isUserAdded ? "pr-7" : ""}`}
+                >
+                  {repo.name}
+                  {isUserAdded
+                    ? repo.private
+                      ? " · private"
+                      : " · you"
+                    : ""}
+                </button>
+                {isUserAdded && (
+                  <button
+                    type="button"
+                    onClick={() => removeUserRepo(repo.fullName)}
+                    className="absolute top-1/2 right-1.5 -translate-y-1/2 rounded-full p-0.5 text-[10px] text-muted hover:text-ember"
+                    aria-label={`Remove ${repo.name}`}
+                  >
+                    ×
+                  </button>
+                )}
+              </span>
             );
           })}
         </div>

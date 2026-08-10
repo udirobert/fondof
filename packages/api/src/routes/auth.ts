@@ -32,6 +32,7 @@ authRoute.get("/auth/github", (c) => {
   const state = btoa(JSON.stringify({ redirect }));
   const params = new URLSearchParams({
     client_id: c.env.GITHUB_CLIENT_ID,
+    redirect_uri: `${c.req.url.split("/api/auth/github")[0]}/api/auth/callback`,
     scope: "read:user",
     state,
   });
