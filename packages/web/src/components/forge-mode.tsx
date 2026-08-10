@@ -112,7 +112,7 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
   const [linkCopied, setLinkCopied] = useState(false);
   const [celebrate, setCelebrate] = useState(false);
   const [attestKey, setAttestKey] = useState(0);
-  const [showFullDraft, setShowFullDraft] = useState(false);
+  const [showFullDraft, setShowFullDraft] = useState(true);
   const [forgeTitle, setForgeTitle] = useState<string | null>(null);
   const [showPoolMore, setShowPoolMore] = useState(false);
   const [forgeBlocked, setForgeBlocked] = useState<ForgeCheck | null>(null);
@@ -767,6 +767,26 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
                         )}
                       </div>
                       <div className="min-h-[40vh] flex-1 overflow-auto px-4 py-4 pb-6 sm:px-5 lg:min-h-0">
+                        {/* Privacy + visibility control */}
+                        <div className="mb-4 flex items-center justify-between rounded-lg border border-ink/8 bg-mist/40 px-3 py-2">
+                          <div className="text-[11px] text-foreground-secondary">
+                            {forgePrivate
+                              ? "Private — won't appear on your profile or source pages"
+                              : "Public — appears on your profile and source pages"}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setForgePrivate((p) => !p)}
+                            className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                              forgePrivate
+                                ? "bg-ember/10 text-ember"
+                                : "bg-ink/8 text-ink"
+                            }`}
+                          >
+                            {forgePrivate ? "Private" : "Public"}
+                          </button>
+                        </div>
+
                         <div className="mb-4">
                           <p className="text-[11px] uppercase tracking-wider text-muted">
                             Skill preview
@@ -798,14 +818,6 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
                               {" · "}
                               {ideas.length} shard
                               {ideas.length === 1 ? "" : "s"}
-                              {" · "}
-                              <button
-                                type="button"
-                                onClick={() => setForgePrivate((p) => !p)}
-                                className={`inline-flex items-center gap-0.5 transition-colors ${forgePrivate ? "text-ember" : "text-muted hover:text-ink"}`}
-                              >
-                                {forgePrivate ? "private" : "public"}
-                              </button>
                             </p>
 
                             {fitResult && (
@@ -822,50 +834,55 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
                             />
 
                             {draft && (
-                              <div className="pt-1">
-                                <p className="mb-2 text-[11px] uppercase tracking-wider text-muted">
-                                  Sections
-                                </p>
-                                <SkillSectionAccordion markdown={draft} />
-                              </div>
-                            )}
+                              <>
+                                {showFullDraft ? (
+                                  <div className="rounded-xl border border-ink/8 bg-paper/60 p-3">
+                                    <div className="mb-2 flex items-center justify-between">
+                                      <p className="text-[10px] uppercase tracking-wider text-muted">
+                                        Skill file
+                                      </p>
+                                      <button
+                                        type="button"
+                                        onClick={copyDraft}
+                                        disabled={!draft}
+                                        className="inline-flex min-h-8 items-center gap-1.5 rounded-full px-2 text-[11px] text-muted hover:bg-mist hover:text-ink disabled:opacity-30"
+                                      >
+                                        {copied ? (
+                                          <Check size={12} className="text-ember" />
+                                        ) : (
+                                          <Copy size={12} />
+                                        )}
+                                        {copied ? "Copied" : "Copy"}
+                                      </button>
+                                    </div>
+                                    <pre className="max-h-64 overflow-auto font-mono text-[11px] leading-relaxed whitespace-pre-wrap text-foreground-secondary">
+                                      {draft}
+                                    </pre>
+                                  </div>
+                                ) : (
+                                  <div className="pt-1">
+                                    <p className="mb-2 text-[11px] uppercase tracking-wider text-muted">
+                                      Sections
+                                    </p>
+                                    <SkillSectionAccordion markdown={draft} />
+                                  </div>
+                                )}
 
-                            <button
-                              type="button"
-                              onClick={() => setShowFullDraft((v) => !v)}
-                              className="inline-flex min-h-9 items-center gap-1.5 text-[11px] text-muted hover:text-ink"
-                              aria-expanded={showFullDraft}
-                            >
-                              <ChevronDown
-                                size={13}
-                                className={`transition-transform ${showFullDraft ? "rotate-180" : ""}`}
-                              />
-                              {showFullDraft
-                                ? "Hide raw markdown"
-                                : "View raw markdown"}
-                            </button>
-
-                            {showFullDraft && (
-                              <div className="rounded-xl border border-ink/8 bg-paper/60 p-3">
-                                <div className="mb-2 flex justify-end">
-                                  <button
-                                    type="button"
-                                    onClick={copyDraft}
-                                    disabled={!draft}
-                                    className="inline-flex min-h-8 items-center gap-1.5 rounded-full px-2 text-[11px] text-muted hover:bg-mist hover:text-ink disabled:opacity-30"
-                                  >
-                                    {copied ? (
-                                      <Check size={12} className="text-ember" />
-                                    ) : (
-                                      <Copy size={12} />
-                                    )}
-                                    {copied ? "Copied" : "Copy markdown"}
-                                  </button>
-                                </div>
-                                <pre className="max-h-48 overflow-auto font-mono text-[11px] leading-relaxed whitespace-pre-wrap text-foreground-secondary">
-                                  {draft}
-                                </pre>
-                              </div>
+                                <button
+                                  type="button"
+                                  onClick={() => setShowFullDraft((v) => !v)}
+                                  className="inline-flex min-h-9 items-center gap-1.5 text-[11px] text-muted hover:text-ink"
+                                  aria-expanded={showFullDraft}
+                                >
+                                  <ChevronDown
+                                    size={13}
+                                    className={`transition-transform ${showFullDraft ? "rotate-180" : ""}`}
+                                  />
+                                  {showFullDraft
+                                    ? "Show formatted"
+                                    : "Show skill file"}
+                                </button>
+                              </>
                             )}
                           </div>
                         )}
