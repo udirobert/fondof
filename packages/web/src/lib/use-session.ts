@@ -16,6 +16,7 @@ interface UseSessionReturn {
   forgesThisMonth: number;
   forgeLimit: number | null;
   loading: boolean;
+  authError: string | null;
   login: (redirect?: string) => void;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
@@ -29,6 +30,7 @@ interface UseSessionReturn {
 export function useSession(): UseSessionReturn {
   const [session, setSession] = useState<AuthSession | null>(null);
   const [loading, setLoading] = useState(true);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const s = await fetchSession();
@@ -36,15 +38,23 @@ export function useSession(): UseSessionReturn {
     setLoading(false);
   }, []);
 
-  // Capture token from OAuth callback redirect (reads URL directly, no useSearchParams)
+  // Capture token or auth_error from OAuth callback redirect
   useEffect(() => {
     if (typeof window === "undefined") return;
     const url = new URL(window.location.href);
     const tokenParam = url.searchParams.get("token");
+    const errorParam = url.searchParams.get("auth_error");
     if (tokenParam) {
       setToken(tokenParam);
       url.searchParams.delete("token");
       window.history.replaceState({}, "", url.toString());
+    }
+    if (errorParam) {
+      setAuthError(errorParam);
+      url.searchParams.delete("auth_error");
+      window.history.replaceState({}, "", url.toString());
+      // Auto-dismiss after 8 seconds
+      window.setTimeout(() => setAuthError(null), 8000);
     }
   }, []);
 
@@ -68,6 +78,7 @@ export function useSession(): UseSessionReturn {
     forgesThisMonth: session?.usage?.forgesThisMonth ?? 0,
     forgeLimit: session?.usage?.limit ?? 3,
     loading,
+    authError,
     login,
     logout,
     refresh: load,

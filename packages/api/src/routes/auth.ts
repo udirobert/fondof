@@ -44,8 +44,17 @@ authRoute.get("/auth/github", (c) => {
  * Exchanges code for access token, fetches user profile, creates session.
  */
 authRoute.get("/auth/callback", async (c) => {
+  const frontendUrl = c.env.FRONTEND_URL || "https://fondof.netlify.app";
   const code = c.req.query("code");
-  if (!code) return c.json({ error: "Missing code parameter" }, 400);
+  const error = c.req.query("error");
+
+  // GitHub returned an error (user denied, or other issue)
+  if (error || !code) {
+    const desc = c.req.query("error_description") || "GitHub sign-in was cancelled or failed. Make sure you're logged into GitHub, then try again.";
+    const url = new URL("/", frontendUrl);
+    url.searchParams.set("auth_error", desc);
+    return c.redirect(url.toString());
+  }
 
   const stateRaw = c.req.query("state") || "";
   let redirect = "/";
@@ -77,10 +86,9 @@ authRoute.get("/auth/callback", async (c) => {
   };
 
   if (!tokenData.access_token) {
-    return c.json(
-      { error: tokenData.error_description || "GitHub token exchange failed" },
-      401,
-    );
+    const url = new URL("/", frontendUrl);
+    url.searchParams.set("auth_error", tokenData.error_description || "GitHub authentication failed. Please try again.");
+    return c.redirect(url.toString());
   }
 
   // Fetch user profile
@@ -93,7 +101,9 @@ authRoute.get("/auth/callback", async (c) => {
   });
 
   if (!userRes.ok) {
-    return c.json({ error: "Failed to fetch GitHub user profile" }, 502);
+    const url = new URL("/", frontendUrl);
+    url.searchParams.set("auth_error", "Couldn't fetch your GitHub profile. Please try again.");
+    return c.redirect(url.toString());
   }
 
   const user = (await userRes.json()) as {
@@ -124,7 +134,6 @@ authRoute.get("/auth/callback", async (c) => {
   });
 
   // Redirect back to frontend with token as query param (frontend stores it)
-  const frontendUrl = c.env.FRONTEND_URL || "https://fondof.netlify.app";
   const url = new URL(redirect, frontendUrl);
   url.searchParams.set("token", token);
   return c.redirect(url.toString());
