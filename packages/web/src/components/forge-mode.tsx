@@ -27,7 +27,6 @@ import {
   publishSkillMeta,
 } from "@/lib/api";
 import {
-  CHALLENGE_STAKE,
   FORGE_BACKING,
   SKILL_POOL_ABI,
   SKILL_POOL_ADDRESS,
@@ -96,7 +95,7 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
   const [_explorer, setExplorer] = useState<string | null>(null);
   const [liveSignal, setLiveSignal] = useState<string | null>(null);
   const [usageCount, setUsageCount] = useState<number | null>(null);
-  const [_challenging, setChallenging] = useState(false);
+  const [_challenging, _setChallenging] = useState(false);
   const [_challengeNote, setChallengeNote] = useState<string | null>(null);
   const [publishNote, setPublishNote] = useState<string | null>(null);
   const [_linkCopied, setLinkCopied] = useState(false);
@@ -503,65 +502,6 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
       void refreshSignal(skillHash);
     }
   }, [walletTxConfirmed, skillHash]);
-
-  const _onChallenge = async () => {
-    if (!skillHash) return;
-    setChallenging(true);
-    setChallengeNote(null);
-
-    if (isConnected) {
-      try {
-        if (!(await ensureMonadChain())) {
-          setChallenging(false);
-          return;
-        }
-        const txHash = await writeContractAsync({
-          address: SKILL_POOL_ADDRESS,
-          abi: SKILL_POOL_ABI,
-          functionName: "challenge",
-          args: [toBytes32(skillHash)],
-          value: parseEther(CHALLENGE_STAKE),
-          chainId: monadTestnet.id,
-        });
-        setExplorer(txExplorer(txHash));
-        setChallengeNote(
-          address
-            ? `Dispute from ${shortAddress(address)} — stake locked until the demo oracle resolves.`
-            : "Dispute submitted — win takes skin from the skill; lose funds its reputation.",
-        );
-        void refreshSignal(skillHash);
-        setChallenging(false);
-        return;
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : "Challenge failed";
-        if (msg.includes("User rejected") || msg.includes("rejected")) {
-          setChallengeNote("Wallet rejected the challenge.");
-          setChallenging(false);
-          return;
-        }
-        // fall through to API
-      }
-    }
-
-    try {
-      const res = await challengeSkill(skillHash);
-      if (res.error) {
-        setChallengeNote(res.error);
-      } else if (res.txHash) {
-        setChallengeNote(
-          typeof res.challengeId === "number"
-            ? `Dispute #${res.challengeId} — open the skill page; demo oracle resolves (not decentralized yet).`
-            : "Dispute submitted via relayer — demo oracle settles the score.",
-        );
-        if (res.explorer) setExplorer(res.explorer);
-        void refreshSignal(skillHash);
-      }
-    } catch {
-      setChallengeNote("Challenge endpoint unavailable — try again later.");
-    } finally {
-      setChallenging(false);
-    }
-  };
 
   const ready = draft.length >= 40 && !composing;
   const draftPreview = skillPreviewFromMarkdown(
