@@ -20,14 +20,21 @@ fondof was specified and steered in [Kiro](https://kiro.dev), then shipped as a 
 
 **Spec → ship:** the live product is the web floor (extract → forge → SkillPool) backed by a Cloudflare Worker API and `SkillPool.sol` on Monad testnet — built under that Kiro spec, not a separate rewrite.
 
-This repo also targets **Ready, Spec, Ship** (Kiro) and Monad demo contexts. See [`.kiro/`](.kiro/) for the full steering + specs package required by the hackathon.
+**How Kiro shaped the build** (concrete, verifiable in the diff + specs):
+
+- **Spec first, code second.** `requirements.md` (FR1–FR8) → `design.md` (3-layer architecture, component schemas) → `tasks.md` (phased checklist). The phases in `tasks.md` map 1:1 onto the commit history (Phase 1 scaffold → … → Phase 9 web UI), and the git log dates all fall inside the competition period.
+- **Steering file as a living constraint.** `.kiro/steering/project.md` pins the decisions the agent had to respect: *"Not a security scanner"*, *"Craft hero, Proof secondary"*, *"Never fake 'published' when the chain is down"*, *"No generic skill templates."* These are visible in the shipped code — e.g. the relayer fallback keeps publish a local draft, fit-check copy says "structural heuristics, not a live agent eval", and forge always names the target repo.
+- **Honest-degradation principle.** The steering rule *"explicit failures to the user; never call offline attest 'published'"* is implemented across the floor: need-extract labels its offline fallback, forge shows a visible notice on template fallback, publish stays a draft when the chain is unreachable.
+- **Example steering output.** `.kiro/steering/optimizing-next-js-performance-with-turbopack-and-.md` is a real skill *fondof itself forged* (from a Next.js perf article, fitted to this repo) — dogfooding the product with the tool that built it.
+
+This repo targets **Ready, Spec, Ship** (Kiro). See [`.kiro/`](.kiro/) for the full steering + specs package required by the hackathon.
 
 ## Product hierarchy
 
 1. **Craft (primary)** — A short skill fitted to *your* stack, conventions, and paths — personalised and specifically useful.
 2. **Hand-off** — Copy into Cursor / Claude / Kiro; use it on a real repo.
-3. **Proof (near)** — SkillPool signal (backing + uses − challenge losses); disputes police junk and malice without becoming a scanner product.
-4. **Outcomes (next)** — Attach what the skill *resulted in* (PR, UI delta, repo improvement) so quality is “did it help?” not only “did people stake/use it?” Thin path: `/s/[hash]` → Attach outcome (note + optional PR / screenshot URL) via edge meta; pool cards show a Result line when present.
+3. **Proof** — SkillPool signal (backing + uses − challenge losses); disputes police junk and malice without becoming a scanner product.
+4. **Outcomes** — Attach what the skill *resulted in* (PR, UI delta, repo improvement) so quality is “did it help?” not only “did people stake/use it?” Thin path: `/s/[hash]` → Attach outcome (note + optional PR / screenshot URL) via edge meta; pool cards show a Result line when present.
 ## What fondof does
 
 1. **Ingest** — Paste a podcast/blog URL *or* state a need in plain text (no GitHub required). fondof extracts discrete idea shards.
@@ -98,44 +105,56 @@ We don’t claim prompt-injection detection, sandboxing, or audited skill binari
 - Want **provenance** — know where a skill’s thinking came from
 - Want to **compose** from multiple sources, then copy into your agent
 - Want a **quality loop** — uses raise score; disputes police slop and bad actors
-- (Soon) Want to **show outcomes** — better UI, cleaner PR, measurable repo delta attached to the skill
+- Want to **show outcomes** — better UI, cleaner PR, measurable repo delta attached to the skill
 
 ## Quick start (judges — hosted first)
 
 **Live app:** [https://fondof.netlify.app](https://fondof.netlify.app)  
-**API:** [https://fondof-api.fondof.workers.dev](https://fondof-api.fondof.workers.dev)  
+**API:** [https://fondof-api.trustfall.workers.dev](https://fondof-api.trustfall.workers.dev)  
 **Contract:** SkillPool on Monad testnet — `0x75545e2C450897914df416d0D24aeB33a89a8b19`
 
-### Testing / demo clicks
+### Judges: 5-minute click path (live, no install)
 
-1. Open the live app (no install).
-2. **Need** tab → type e.g. `retry budgets for async TypeScript fetch` → Extract (no GitHub).
-   - Or **URL** tab → paste a public article URL.
-3. Select 1–2 Forge-worthy shards → open Forge → **Skill for {repo}** → Fit check → **Where it lands** → expandable sections.
-4. **Publish** → paper skill card → **Copy for Cursor / Claude / Kiro** (primary). Open skill for Proof if you want.
-5. Skill page → skim sections → **Copy for Cursor / Claude / Kiro** → **I used this** for Proof. Optional Dispute.
-6. Visit [**/pool**](https://fondof.netlify.app/pool) → Draw a skill / browse paper cards.
+Open [https://fondof.netlify.app](https://fondof.netlify.app). Every step below is live — the shards you see are extracted by an LLM from **your** input at click time, not pre-baked:
 
-**Honesty:** If chain/relayer is unreachable, publish stays a local draft — we do not fake “published.” Challenge **resolve** is a demo oracle (relayer), not decentralized adjudication. **Fit check** is structural heuristics (sections / citations / repo tokens) — not a live agent eval on your repo (FR6 validation engine is deferred). Offline LLM fallbacks may seed demo shards when extract fails — labeled as such in the UI when possible.
+1. **Extract from a need (no account, no GitHub).** **Need** tab → type `retry budgets for async TypeScript fetch` → **Forge**. The API extracts discrete idea shards from your exact text (~5–15 s). Type something else (e.g. `structured logging for worker services`) and you'll get different shards — it's a live call, not a canned list.
+2. **Or extract from a URL.** **URL** tab → click a sample (talk / docs / blog) or paste any public article URL. YouTube pulls real captions; articles are read + LLM-extracted.
+3. **Forge.** Select 1–2 shards → open Forge → **Skill for {repo}**. The draft is LLM-composed against the repo's stack: Fit check (structural heuristics), **Where it lands**, expandable sections. Copy it for **Cursor / Claude / Kiro** — the primary hand-off.
+4. **Proof (optional).** Publish (relayer signs on Monad testnet, or wallet) → skill page → **I used this** (raises on-chain signal) → optional **Attach outcome** (what it actually improved). Dispute to police slop.
+5. **Pool.** [**/pool**](https://fondof.netlify.app/pool) → Draw a skill / browse paper cards with live signal.
 
-Demo video script: [`docs/demo-video.md`](docs/demo-video.md).  
-Package roles: [`docs/architecture.md`](docs/architecture.md).
+Each step degrades **honestly** if a dependency is down: need-extract shows “API unreachable — local shards” (labeled, not silent); forge failure shows a local template draft with a visible notice, never passed off as LLM output; chain/relayer unreachable keeps publish a local draft. Nothing is faked on the happy path.
 
-### Local secondary path
+### Verification / testing instructions
+
+From a fresh clone:
 
 ```bash
+git clone https://github.com/udirobert/fondof.git
+cd fondof
 pnpm install
+pnpm typecheck        # all packages
+pnpm test             # vitest: LLM parse, fit heuristics, section parsing, meta/outcome sanitization
+pnpm build            # web + api + core + cli
 
-# API (Cloudflare Worker)
-cd packages/api && pnpm dev
-
-# Web (another terminal) — point at local or deployed API
-cd packages/web
-# optional: NEXT_PUBLIC_API_URL=http://127.0.0.1:8787
-pnpm dev
+# Contracts (needs Foundry):
+cd packages/contracts && forge build && forge test
 ```
 
-Copy [`.env.example`](.env.example) to `.env` / Worker secrets. Never commit real keys. Relayer + LLM secrets live in Wrangler secrets / Netlify env, not in git.
+**Live stack checks (no keys needed):**
+
+```bash
+# API up + pool has skills
+curl -s https://fondof-api.trustfall.workers.dev/ | head -c 200
+curl -s https://fondof-api.trustfall.workers.dev/api/skills | head -c 300
+
+# Need extraction is live (different text → different shards)
+curl -s -X POST https://fondof-api.trustfall.workers.dev/api/ingest \
+  -H 'content-type: application/json' \
+  -d '{"need":"idempotency keys for webhook consumers"}' | head -c 400
+```
+
+**Local dev (optional):** `pnpm install`, then `cd packages/api && pnpm dev` and `cd packages/web && pnpm dev` (set `NEXT_PUBLIC_API_URL=http://127.0.0.1:8787` for the local Worker). Copy [`.env.example`](.env.example) to `.env` / Worker secrets; relayer + LLM keys live in Wrangler secrets / Netlify env, never in git.
 
 ### CLI (secondary / WIP)
 
@@ -159,6 +178,8 @@ packages/
 ```
 
 **Package roles:** `api` is the live HTTP edge; `core` backs the CLI and reusable logic; `web` talks to `api` over HTTPS. SkillPool is the on-chain quality loop — not a marketplace listing fee.
+
+**Future of the trust layer (not shipped):** we're evaluating **Arkiv** — a queryable, time-scoped, tamper-proof Ethereum data layer — as a candidate home for provenance + contestable quality, explored **alongside** the existing Monad SkillPool (no retirement decision made). See [`docs/roadmap-arkiv.md`](docs/roadmap-arkiv.md) for the hybrid-layer boundary and why a plain DB can't credibly serve the provenance slice.
 
 ## Tech stack
 
@@ -184,7 +205,7 @@ FONDOF_RELAYER_KEY=0x…                  # Relayer wallet (Worker secret)
 FONDOF_CONTRACT_ADDRESS=0x75545e2C450897914df416d0D24aeB33a89a8b19
 
 # Web
-NEXT_PUBLIC_API_URL=https://fondof-api.fondof.workers.dev
+NEXT_PUBLIC_API_URL=https://fondof-api.trustfall.workers.dev
 NEXT_PUBLIC_FONDOF_CONTRACT_ADDRESS=0x75545e2C450897914df416d0D24aeB33a89a8b19
 
 # Auth (GitHub OAuth)

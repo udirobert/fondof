@@ -49,9 +49,10 @@ A podcast host or blog author who wants attribution when their ideas are distill
 
 ### FR4: Discovery & Matching (Need-First Entry)
 - FR4.1: Accept a natural language description of a need/problem
-- FR4.2: Search existing skill catalogs for matches, ranked by fit to user's environment
-- FR4.3: Identify gaps — where existing skills partially cover the need but miss context
-- FR4.4: Suggest source material (podcasts, blogs) that contains relevant thinking for uncovered gaps
+- FR4.2: ~~Search existing skill catalogs~~ → **Extract discrete technique shards from the stated need via LLM** (`POST /api/ingest {need}`), live at click time — no GitHub, no URL required. Shards are derived strictly from the typed need; a labeled local-shard fallback appears only when the API is unreachable.
+- FR4.3: Search existing skill catalogs for matches (Exa Compare stage, on demand), ranked by fit to user's environment
+- FR4.4: Identify gaps — where existing skills partially cover the need but miss context
+- FR4.5: Suggest source material (podcasts, blogs) that contains relevant thinking for uncovered gaps
 
 ### FR5: Skill Composition
 - FR5.1: Compose skills from multiple sources (not just single-source extraction)
@@ -74,10 +75,11 @@ A podcast host or blog author who wants attribution when their ideas are distill
 - FR7.5: All on-chain operations must be invisible to the user (no wallet prompts, no gas management, no confirmation screens)
 
 ### FR8: Skill Lifecycle
-- FR8.1: Install skills locally for immediate use
-- FR8.2: Publish skills to a registry with provenance attestation
+- FR8.1: Install skills locally for immediate use (copy for Cursor / Claude / Kiro — primary hand-off)
+- FR8.2: Publish skills to SkillPool with provenance attestation (source hashes on chain, artifact in edge meta)
 - FR8.3: Track skill decay — flag when source content has been updated or codebase has evolved
 - FR8.4: Propose skill updates when underlying thinking or project context changes
+- FR8.5: **Outcome receipts** — attach what a skill resulted in (short note + optional PR / screenshot URL) on the skill page and pool cards; quality becomes “did it help?” not only stake/use counts. Optional, honest, no fake metrics.
 
 ## Non-Functional Requirements
 
@@ -103,15 +105,17 @@ A podcast host or blog author who wants attribution when their ideas are distill
 
 ## Constraints
 
-- C1: Monad Blitz is a 1-day hackathon — v1 must be demo-able in that timeframe
+- C1: Built for **Ready, Spec, Ship** (Kiro hackathon) — spec → build → ship within the competition period
 - C2: Team size up to 3 members
-- C3: Must deploy on Monad (EVM-compatible L1)
+- C3: SkillPool deploys on Monad (EVM-compatible L1)
 - C4: The user-facing experience must work without any blockchain knowledge
+- C5: No simulated features presented as working — every judge-visible path is live or explicitly labeled as a fallback
 
-## Success Criteria (Blitz Demo)
+## Success Criteria (Judge Path)
 
-1. User connects GitHub → repos are indexed and summarized
-2. User pastes a podcast URL → transcription + idea extraction completes
-3. System shows: "Idea A applies to repo X (here's where). Idea B already has a skill (here it is). Idea C is novel and high-value."
-4. User forges a skill for Idea C → skill is fitted to their repo's patterns
-5. Skill is attested on Monad (invisible to user) → provenance is verifiable via explorer
+1. User types a need (no GitHub) → LLM extracts idea shards from the typed text in <30 s
+2. User pastes a URL (talk / blog / podcast) → real transcript/content + idea extraction completes
+3. Shards show repo fit: "Idea A applies to repo X (here's where). Idea B already has a skill (Compare)."
+4. User forges a skill → LLM composes it fitted to the repo's stack; copy to Cursor / Claude / Kiro
+5. Skill publishes to SkillPool on Monad (relayer, invisible to user) → provenance verifiable via explorer
+6. "I used this" raises the signal; outcome attachment (note / PR) shows on skill page + pool card

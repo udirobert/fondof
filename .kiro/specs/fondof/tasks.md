@@ -43,6 +43,7 @@ Unchecked items are deferred or partial — not abandoned.
 - [x] Detect URL / need / podcast / article paths in API ingest
 - [x] Article extraction (Firecrawl / Readability)
 - [x] Source hashing for provenance
+- [x] **Need-mode is live** — `POST /api/ingest {need}` extracts shards from the typed need via LLM (with `need:v1` cache); web need path calls it and shows a *labeled* local-shard fallback only when the API is unreachable
 - [ ] Full podcast RSS → audio URL automation polish
 
 ### Task 3.2: Transcription
@@ -93,7 +94,8 @@ Unchecked items are deferred or partial — not abandoned.
 ### Task 6.2: Skill synthesis
 - [x] `/api/forge` multi-idea + repo context
 - [x] Markdown skill draft with citations when model provides them
-- [x] Local draft template fallback (honest offline)
+- [x] Real provenance — forges send each idea's actual `sourceUrl` (URL or `need://…`), so published skills credit the real source
+- [x] Local draft template fallback (honest offline) — visible in-UI notice when the forge API is down; no silent template, no hard timeout race
 
 ### Task 6.3: Skill output
 - [x] Preview + publish to SkillPool
@@ -119,6 +121,10 @@ Unchecked items are deferred or partial — not abandoned.
 - [x] Instant sample + live examples on pad
 - [x] Demo video script in `docs/demo-video.md`
 - [x] Demo oracle disclosed for challenge resolve
+- [x] Test suites — vitest (LLM `parseIdeas`, need-URL provenance, source-URL canonicalization, embedding compact/cosine, skill-meta + outcome sanitization, section parsing, fit heuristics, where-it-lands) + Foundry contract tests; `pnpm test` at root
+- [x] README: 5-minute judge click path + verification/testing instructions (fresh-clone + live curl checks)
+- [x] Fixed dead API host in README / `.env.example` (→ `fondof-api.trustfall.workers.dev`)
+- [x] Fixed `skill-sections` classification bug — "Anti-patterns" matched the `pattern` rule and was classified `guidance` (caught by test suite)
 
 ## Phase 9: Frontend (Web UI — primary product)
 
@@ -145,19 +151,20 @@ Unchecked items are deferred or partial — not abandoned.
 
 ---
 
-## Blitz / hackathon prioritization (current)
+## Hackathon prioritization (current)
 
 **Must stay green for judges:**
 - Hosted web + API + SkillPool publish/use
-- Need path without GitHub
-- Honest offline / demo-oracle disclosure
+- **Need path without GitHub — live LLM extraction** (not canned shards)
+- Honest offline / demo-oracle disclosure (labeled fallbacks, no silent simulation)
 - `.kiro/` specs + steering tracked
-- README Built with Kiro + testing clicks
+- README Built with Kiro + 5-minute judge click path + `pnpm test` green
 
-**Nice before Aug 23:**
-- Demo video recorded from `docs/demo-video.md`
-- More durable meta than Cache API if titles evaporate
-- CLI parity only if time left
+**Remaining before Aug 23:**
+- Demo video recorded from `docs/demo-video.md`, uploaded (unlisted YouTube)
+- Google Form submission (repo + video + details) before 23:59 UTC
+- More durable meta than Cache API if titles evaporate (stretch)
+- CLI parity only if time left (low priority — web is primary)
 
 ## Direction (post–craft-first)
 

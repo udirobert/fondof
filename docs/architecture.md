@@ -1,6 +1,6 @@
 # Package roles
 
-Short map so contributors don't conflate edges. Full product story: [README](../README.md). Steering: [`.kiro/steering/project.md`](../.kiro/steering/project.md).
+Short map so contributors don't conflate edges. Full product story: [README](../README.md). Steering: [`.kiro/steering/project.md`](../.kiro/steering/project.md). Future-of-data-layer note: [Arkiv roadmap item](roadmap-arkiv.md) — eval only, not shipped.
 
 **Product hierarchy:** personalised craft → copy to agent → SkillPool proof → outcome receipts → supply-side attribution. Not a marketplace, registry, or AI security scanner.
 

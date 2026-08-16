@@ -4,7 +4,7 @@
 
 fondof forges **customised, personalised skills** for a specific coding environment — from what you learn (podcasts, blogs) or a concrete need. The hero job is a short fitted skill you can hand to Cursor / Claude / Kiro. **SkillPool** on Monad records provenance and a contestable quality signal (backing, uses, challenge losses).
 
-**North star:** skills that are *specifically useful for my repo*, with growing proof that they helped (near: signal + use receipts; next: outcome attachments — PR / UI / repo delta).
+**North star:** skills that are *specifically useful for my repo*, with growing proof that they helped (signal + use receipts shipped; outcome attachments shipped — PR / UI / repo delta).
 
 **Not a security product:** directories are full of slop, clones, and occasionally hostile skills; stars lag. That context motivates contestability — it does not make fondof a scanner, sandbox, or injection firewall.
 
@@ -14,7 +14,7 @@ The blockchain layer stays secondary to craft UX — not gas theater, not preten
 
 1. **Craft** — Fitted, personalised skill (primary).
 2. **Hand-off** — Copy into an agent; apply to a real repo.
-3. **Proof (near)** — SkillPool signal + disputes.
+3. **Proof (shipped)** — SkillPool signal + disputes + use receipts.
 4. **Outcomes (thin path shipped)** — Optional note + PR / screenshot URLs on edge meta; surface on `/s/[hash]` and pool cards. Grow toward richer receipts without fake metrics.
 5. **Supply-side attribution** — Source content (podcasts, blogs, talks) gets permanent credit and distribution via forged skills. Creators benefit; fondof grows.
 
