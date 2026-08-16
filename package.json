@@ -8,6 +8,7 @@
     "build": "pnpm -r --filter=!@fondof/contracts build",
     "clean": "pnpm -r clean",
     "typecheck": "pnpm -r typecheck",
+    "test": "vitest run",
     "lint": "eslint 'packages/*/src/**/*.ts'",
     "prepare": "husky"
   },
@@ -20,7 +21,8 @@
     "eslint": "9.20.0",
     "husky": "9.1.7",
     "lint-staged": "15.4.3",
-    "typescript-eslint": "8.24.1"
+    "typescript-eslint": "8.24.1",
+    "vitest": "4.1.10"
   },
   "lint-staged": {
     "*.{ts,tsx}": [

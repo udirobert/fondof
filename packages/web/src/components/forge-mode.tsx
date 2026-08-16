@@ -61,7 +61,9 @@ type Phase = "ritual" | "compose" | "attested";
 
 interface ForgeModeProps {
   open: boolean;
-  ideas: DemoIdea[];
+  ideas: Array<
+    DemoIdea & { sourceUrl?: string; sourceHash?: string }
+  >;
   repos: {
     fullName: string;
     name: string;
@@ -87,6 +89,7 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
   const [phase, setPhase] = useState<Phase>("ritual");
   const [repo, setRepo] = useState(activeRepo || repos[0]?.fullName || "");
   const [draft, setDraft] = useState("");
+  const [draftNote, setDraftNote] = useState<string | null>(null);
   const [skillHash, setSkillHash] = useState<string | null>(null);
   const [sourceHashes, setSourceHashes] = useState<string[]>([]);
   const [publishing, setPublishing] = useState(false);
@@ -149,12 +152,14 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
     );
     const meta = repos.find((r) => r.fullName === targetRepo);
     try {
-      const res = await Promise.race([
-        forgeSkill(
+      const res = await forgeSkill(
           ideas.map((idea) => ({
             title: idea.title,
             description: idea.description,
-            sourceUrl: "https://fondof.local/demo",
+            sourceUrl:
+              idea.sourceUrl && idea.sourceUrl.length > 0
+                ? idea.sourceUrl
+                : "https://fondof.local/demo",
           })),
           {
             name: targetRepo,
@@ -167,11 +172,7 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
           },
           gap,
           { private: forgePrivate },
-        ),
-        new Promise<never>((_, reject) => {
-          window.setTimeout(() => reject(new Error("timeout")), 6000);
-        }),
-      ]);
+        );
 
       if (signal.cancelled) return;
       if (!res.error && res.markdown) {
@@ -184,9 +185,14 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
         return;
       }
     } catch {
-      // local draft
+      // fall through to labeled local draft
     }
-    if (!signal.cancelled) pendingMarkdown.current = fallback;
+    if (!signal.cancelled) {
+      setDraftNote(
+        "Forge API unavailable — showing a local template draft (not LLM-composed). Retry when the API recovers.",
+      );
+      pendingMarkdown.current = fallback;
+    }
   };
 
   // Open → ritual covers latency; API starts immediately (not gated on fold).
@@ -201,6 +207,7 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
         setSkillHash(null);
         setSourceHashes([]);
         setComposing(false);
+        setDraftNote(null);
         setExplorer(null);
         setLiveSignal(null);
         setUsageCount(null);
@@ -260,6 +267,7 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
     setComposing(true);
     pendingMarkdown.current = null;
     setDraft("");
+    setDraftNote(null);
     void runForge(repo, signal).then(() => {
       if (signal.cancelled || !pendingMarkdown.current) return;
       setDraft(pendingMarkdown.current);
@@ -762,6 +770,15 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
                               ready={ready || draft.length > 80}
                               repo={repo}
                             />
+
+                            {draftNote && (
+                              <p
+                                role="status"
+                                className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[11px] leading-snug text-amber-800"
+                              >
+                                {draftNote}
+                              </p>
+                            )}
 
                             {draft && (
                               <>

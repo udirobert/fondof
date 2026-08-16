@@ -25,8 +25,8 @@ function classify(title: string): SkillSectionKind {
   if (/depend/.test(t)) return "depends";
   if (/gap|delta/.test(t)) return "gap";
   if (/context|intent|fit notes|overview/.test(t)) return "context";
-  if (/guidance|pattern|code|steps/.test(t)) return "guidance";
   if (/anti/.test(t)) return "anti";
+  if (/guidance|pattern|code|steps/.test(t)) return "guidance";
   if (/reference|source/.test(t)) return "references";
   return "other";
 }

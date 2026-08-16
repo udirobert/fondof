@@ -521,6 +521,8 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
       description: i.description,
       patternType: i.patternType,
       domains: i.domain,
+      sourceUrl: i.sourceUrl,
+      sourceHash: i.sourceHash,
       worthiness: "forge-skill" as const,
       worthinessScore: 0.8,
       matchType: "novel" as const,

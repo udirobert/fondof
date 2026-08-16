@@ -104,13 +104,13 @@ export interface SkillOnChainResponse {
 }
 
 export async function ingestURL(
-  url: string,
+  input: { url: string } | { need: string },
   signal?: AbortSignal,
 ): Promise<IngestResponse> {
   const res = await fetch(`${API_URL}/api/ingest`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ url }),
+    body: JSON.stringify(input),
     signal,
   });
   return res.json();
@@ -147,16 +147,16 @@ export type IngestStreamEvent =
     }
   | { type: "error"; error: string };
 
-/** NDJSON ingest progress stream. */
+/** NDJSON ingest progress stream. Accepts a URL or a stated need. */
 export async function ingestURLStream(
-  url: string,
+  input: { url: string } | { need: string },
   onEvent: (event: IngestStreamEvent) => void,
   signal?: AbortSignal,
 ): Promise<void> {
   const res = await fetch(`${API_URL}/api/ingest/stream`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ url }),
+    body: JSON.stringify(input),
     signal,
   });
 

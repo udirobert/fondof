@@ -21,6 +21,22 @@ export type IngestProvider =
   | "workers-ai"
   | "cache";
 
+const NEED_SYSTEM = `You are a JSON-only response bot. A developer states a concrete need for their codebase. You turn it into 2–4 discrete, forge-worthy technique shards an agent could apply.
+
+IMPORTANT: You MUST respond with ONLY a valid JSON array. No explanations, no markdown, no code fences. Just the raw JSON array.
+
+Each idea in the array must have: title (string, ≤8 words), description (string, 1–2 sentences: the pattern and when to apply it), domain (array of strings), applicability (array of strings, e.g. frameworks/languages), patternType (one of: "technique", "mental-model", "anti-pattern", "architecture").
+
+Derive shards strictly from the stated need — do not invent unrelated ideas. If the need is thin, fewer better shards beat filler.
+
+Example response:
+[{"title":"Retry Budgets","description":"Cap aggregate retries per request tree so cascading retries cannot amplify load. Pair with jittered exponential backoff.","domain":["reliability","error-handling"],"applicability":["typescript","fetch","node"],"patternType":"technique"}]`;
+
+/** need:// pseudo-URL — provenance for need-mode forges. */
+export function needUrl(need: string): string {
+  return `need://${encodeURIComponent(need.slice(0, 96))}`;
+}
+
 const EXTRACT_SYSTEM = `You are a JSON-only response bot. You extract actionable technical ideas from content.
 
 IMPORTANT: You MUST respond with ONLY a valid JSON array. No explanations, no markdown, no code fences. Just the raw JSON array.
@@ -30,7 +46,12 @@ Each idea in the array must have: title (string), description (string), domain (
 Example response:
 [{"title":"Error Boundaries","description":"Use catchError for custom error handling that does not interfere with routing.","domain":["error-handling"],"applicability":["react","next.js"],"patternType":"technique"}]`;
 
-export type IngestContentType = "audio" | "article" | "youtube" | "podcast";
+export type IngestContentType =
+  | "audio"
+  | "article"
+  | "youtube"
+  | "podcast"
+  | "text";
 
 export type IngestValue = {
   providers: IngestProvider[];
@@ -151,7 +172,9 @@ async function replayCachedIngest(cached: IngestResult, emit: Emit) {
       ? { phase: "captions", label: "Replaying captions…" }
       : cached.contentType === "podcast" || cached.contentType === "audio"
         ? { phase: "transcribe", label: "Replaying the transcript…" }
-        : { phase: "read", label: "Replaying the piece…" };
+        : cached.contentType === "text"
+          ? { phase: "read", label: "Replaying the need…" }
+          : { phase: "read", label: "Replaying the piece…" };
   emit({ type: "phase", ...materialPhase });
   await sleep(520);
 
@@ -200,7 +223,113 @@ function fondObjectFor(contentType: IngestContentType): string {
       return "the pod";
     case "article":
       return "the piece";
+    case "text":
+      return "the need";
   }
+}
+
+async function runNeedPipeline(
+  need: string,
+  env: Env,
+  emit: Emit,
+): Promise<IngestResult> {
+  const canonicalNeed = need.trim().toLowerCase().slice(0, 500);
+  const cacheKey = `need:v1:${await sha256Hex(canonicalNeed)}`;
+  const cached = await cacheGetJson<IngestResult>(cacheKey);
+  if (cached?.ideas?.length) {
+    await replayCachedIngest(cached, emit);
+    return {
+      ...cached,
+      cacheHit: true,
+      providers: ["cache", ...(cached.providers ?? [])],
+      existingSkills: [],
+    };
+  }
+
+  const sourceUrl = needUrl(need);
+  const providers: IngestProvider[] = ["workers-ai"];
+  const extractProvider: IngestProvider = "workers-ai";
+
+  const title = need.trim().slice(0, 80) || "Stated need";
+
+  emit({ type: "kind", contentType: "text", fondObject: "the need" });
+  emit({ type: "meta", title });
+  emit({ type: "sourceText", text: need.trim(), contentType: "text" });
+  emit({ type: "phase", phase: "extract", label: "Mapping your need into shards…" });
+
+  const llmResponse = await chat(
+    env.AI,
+    NEED_SYSTEM,
+    `Developer stated need:\n${need.trim().slice(0, 1200)}\n\nRespond with ONLY the JSON array:`,
+    env,
+  );
+
+  const encoder = new TextEncoder();
+  const hashBuffer = await crypto.subtle.digest(
+    "SHA-256",
+    encoder.encode(need.trim()),
+  );
+  const sourceHash = Array.from(new Uint8Array(hashBuffer))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+
+  const responseStr =
+    typeof llmResponse === "string" ? llmResponse : JSON.stringify(llmResponse);
+  const ideas = parseIdeas(responseStr, sourceUrl, sourceHash);
+
+  emit({ type: "phase", phase: "embed", label: "Settling shards…" });
+
+  if (ideas.length > 0) {
+    const texts = ideas.map((i) => `${i.title}: ${i.description}`);
+    const embeddings = await embed(env.AI, texts);
+    ideas.forEach((idea, i) => {
+      idea.embedding = compactEmbedding(embeddings[i] ?? []);
+    });
+  }
+
+  for (const idea of ideas) {
+    emit({ type: "idea", idea });
+  }
+
+  const value: IngestValue = {
+    providers,
+    extractProvider,
+    cacheHit: false,
+    sourceHash,
+    textLength: need.trim().length,
+    ideaCount: ideas.length,
+    deferred: ["exa", "forge", "publish"],
+  };
+  emit({ type: "value", value });
+  emit({
+    type: "done",
+    sourceHash,
+    contentType: "text",
+    title,
+    textLength: need.trim().length,
+    ideaCount: ideas.length,
+    cacheHit: false,
+    providers,
+  });
+
+  const result: IngestResult = {
+    contentType: "text",
+    sourceHash,
+    title,
+    ideas,
+    textLength: need.trim().length,
+    text: need.trim(),
+    existingSkills: [],
+    cacheHit: false,
+    providers,
+    extractProvider,
+  };
+
+  if (ideas.length > 0) {
+    await cachePutJson(cacheKey, result, 60 * 60 * 24 * 7);
+  }
+
+  return result;
 }
 
 async function runIngestPipeline(
@@ -438,18 +567,31 @@ async function runIngestPipeline(
 
 export const ingestRoute = new Hono<{ Bindings: Env }>();
 
-/** NDJSON stream of ingest progress for the Fond Floor theater. */
+/**
+ * NDJSON stream of ingest progress for the Fond Floor theater.
+ * Body: { url } for content, or { need } for a stated need (no URL).
+ */
 ingestRoute.post("/ingest/stream", rateLimit("ingest"), async (c) => {
-  const { url } = await c.req.json<{ url: string }>();
-  if (!url) {
-    return c.json({ error: "url is required" }, 400);
+  const { url, need } = await c.req.json<{ url?: string; need?: string }>();
+  if (!url && !need) {
+    return c.json({ error: "url or need is required" }, 400);
   }
 
-  const canonical = normalizeSourceUrl(url);
-  const peek = await cacheGetJson<IngestResult>(
-    `ingest:v3:${await sha256Hex(canonical)}`,
-  );
-  const cacheStatus = peek?.ideas?.length ? "HIT" : "MISS";
+  let cacheStatus = "MISS";
+  if (need) {
+    const n = need.trim();
+    if (!n) return c.json({ error: "need is required" }, 400);
+    const peek = await cacheGetJson<IngestResult>(
+      `need:v1:${await sha256Hex(n.toLowerCase().slice(0, 500))}`,
+    );
+    cacheStatus = peek?.ideas?.length ? "HIT" : "MISS";
+  } else {
+    const canonical = normalizeSourceUrl(url!);
+    const peek = await cacheGetJson<IngestResult>(
+      `ingest:v3:${await sha256Hex(canonical)}`,
+    );
+    cacheStatus = peek?.ideas?.length ? "HIT" : "MISS";
+  }
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
@@ -459,7 +601,8 @@ ingestRoute.post("/ingest/stream", rateLimit("ingest"), async (c) => {
       };
 
       try {
-        await runIngestPipeline(url, c.env, send);
+        if (need) await runNeedPipeline(need, c.env, send);
+        else await runIngestPipeline(url!, c.env, send);
       } catch (e) {
         const msg = e instanceof Error ? e.message : "Unknown error";
         send({ type: "error", error: msg });
@@ -479,11 +622,14 @@ ingestRoute.post("/ingest/stream", rateLimit("ingest"), async (c) => {
 });
 
 ingestRoute.post("/ingest", rateLimit("ingest"), async (c) => {
-  const { url } = await c.req.json<{ url: string }>();
-  if (!url) return c.json({ error: "url is required" }, 400);
+  const { url, need } = await c.req.json<{ url?: string; need?: string }>();
+  if (!url && !need)
+    return c.json({ error: "url or need is required" }, 400);
 
   try {
-    const result = await runIngestPipeline(url, c.env, () => {});
+    const result = need
+      ? await runNeedPipeline(need, c.env, () => {})
+      : await runIngestPipeline(url!, c.env, () => {});
     c.header("X-Cache", result.cacheHit ? "HIT" : "MISS");
     return c.json({
       contentType: result.contentType,
@@ -504,7 +650,7 @@ ingestRoute.post("/ingest", rateLimit("ingest"), async (c) => {
   }
 });
 
-function parseIdeas(
+export function parseIdeas(
   response: string,
   sourceUrl: string,
   sourceHash: string,

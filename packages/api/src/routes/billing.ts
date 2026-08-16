@@ -59,7 +59,7 @@ billingRoute.post("/billing/record-share", async (c) => {
   const body = await c.req.json<{
     skillHash?: string;
     platform?: string;
-  }>().catch(() => ({}));
+  }>().catch(() => ({ skillHash: undefined, platform: undefined }));
 
   const shareKey = `shared:${session.userId}:${billingMonth()}`;
   const shareData = JSON.stringify({

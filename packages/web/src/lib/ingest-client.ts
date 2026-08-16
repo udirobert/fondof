@@ -104,6 +104,60 @@ export async function resolveIngestStream(
   const { onEvent } = handlers;
 
   if (mode === "need") {
+    const needUrl = `need://${encodeURIComponent(value.slice(0, 96))}`;
+    const needIdeas: DemoIdea[] = [];
+    let needTitle = value.slice(0, 64) || "Stated need";
+    let needSourceHash = "need";
+    let needTextLength = value.length;
+    let needSawDone = false;
+    const needErr = { msg: null as string | null };
+
+    try {
+      await ingestURLStream(
+        { need: value },
+        (event) => {
+          onEvent?.(event);
+          if (event.type === "meta") needTitle = event.title;
+          if (event.type === "idea") needIdeas.push(mapApiIdea(event.idea, needIdeas.length));
+          if (event.type === "done") {
+            needSawDone = true;
+            needSourceHash = event.sourceHash || needSourceHash;
+            needTextLength = event.textLength ?? needTextLength;
+          }
+          if (event.type === "error") needErr.msg = event.error;
+        },
+        signal,
+      );
+
+      if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
+
+      if (needSawDone && needIdeas.length > 0) {
+        return {
+          source: {
+            type: "text",
+            title: needTitle,
+            author: "Need-first",
+            url: needUrl,
+            ideasCount: needIdeas.length,
+          },
+          ideas: needIdeas,
+          fromApi: true,
+          textLength: needTextLength,
+          contentType: "text",
+        };
+      }
+    } catch (err) {
+      if (isAbort(err)) throw err;
+    }
+
+    // Offline fallback — clearly labeled in the theater, never passed off
+    // as live extraction.
+    if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
+
+    const fallbackIdeas = seededNeedIdeas.map((idea, i) => ({
+      ...idea,
+      id: `${idea.id}-${Date.now()}-${i}`,
+    }));
     onEvent?.({
       type: "kind",
       contentType: "text",
@@ -112,23 +166,21 @@ export async function resolveIngestStream(
     onEvent?.({
       type: "phase",
       phase: "extract",
-      label: "Mapping your need…",
+      label:
+        needErr.msg
+          ? `Extract failed (${needErr.msg.slice(0, 60)}) — local shards…`
+          : "API unreachable — local shards…",
     });
-    await sleep(420, signal);
-    const ideas = seededNeedIdeas.map((idea, i) => ({
-      ...idea,
-      id: `${idea.id}-${Date.now()}-${i}`,
-    }));
-    onEvent?.({ type: "meta", title: value.slice(0, 64) || "Stated need" });
+    onEvent?.({ type: "meta", title: needTitle });
     onEvent?.({
       type: "sourceText",
       text: value,
       contentType: "text",
     });
-    for (const idea of ideas) {
+    for (const idea of fallbackIdeas) {
       onEvent?.({
         type: "idea",
-        idea: toApiIdea(idea, `need://${encodeURIComponent(value.slice(0, 48))}`, "need"),
+        idea: toApiIdea(idea, needUrl, "need"),
       });
     }
     onEvent?.({
@@ -138,7 +190,7 @@ export async function resolveIngestStream(
         cacheHit: true,
         sourceHash: "need",
         textLength: value.length,
-        ideaCount: ideas.length,
+        ideaCount: fallbackIdeas.length,
         deferred: ["exa", "forge", "publish"],
       },
     });
@@ -146,21 +198,21 @@ export async function resolveIngestStream(
       type: "done",
       sourceHash: "need",
       contentType: "text",
-      title: value.slice(0, 64) || "Stated need",
+      title: needTitle,
       textLength: value.length,
-      ideaCount: ideas.length,
+      ideaCount: fallbackIdeas.length,
       cacheHit: true,
       providers: ["cache"],
     });
     return {
       source: {
         type: "text",
-        title: value.slice(0, 64) || "Stated need",
-        author: "Need-first",
-        url: `need://${encodeURIComponent(value.slice(0, 48))}`,
-        ideasCount: ideas.length,
+        title: needTitle,
+        author: "Need-first (offline shards)",
+        url: needUrl,
+        ideasCount: fallbackIdeas.length,
       },
-      ideas,
+      ideas: fallbackIdeas,
       fromApi: false,
     };
   }
@@ -175,7 +227,7 @@ export async function resolveIngestStream(
 
   try {
     await ingestURLStream(
-      value,
+      { url: value },
       (event) => {
         onEvent?.(event);
         if (event.type === "meta") title = event.title;
@@ -236,7 +288,7 @@ export async function resolveIngestStream(
   // JSON fallback
   try {
     const res = await Promise.race([
-      ingestURL(value, signal),
+      ingestURL({ url: value }, signal),
       rejectAfter(45_000, signal),
     ]);
 
@@ -368,24 +420,6 @@ function isAbort(err: unknown) {
     (err instanceof DOMException && err.name === "AbortError") ||
     (err instanceof Error && err.name === "AbortError")
   );
-}
-
-function sleep(ms: number, signal?: AbortSignal) {
-  return new Promise<void>((resolve, reject) => {
-    if (signal?.aborted) {
-      reject(new DOMException("Aborted", "AbortError"));
-      return;
-    }
-    const t = window.setTimeout(() => resolve(), ms);
-    signal?.addEventListener(
-      "abort",
-      () => {
-        window.clearTimeout(t);
-        reject(new DOMException("Aborted", "AbortError"));
-      },
-      { once: true },
-    );
-  });
 }
 
 function rejectAfter(ms: number, signal?: AbortSignal) {
