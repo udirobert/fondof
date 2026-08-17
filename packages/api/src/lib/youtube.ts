@@ -246,7 +246,12 @@ export function rankCaptionTracks(tracks: CaptionTrack[]): CaptionTrack[] {
 async function fetchTrackXml(baseUrl: string): Promise<string | null> {
   try {
     const cleanUrl = baseUrl.replace(/\\u0026/g, "&");
-    const response = await fetch(cleanUrl);
+    const response = await fetch(cleanUrl, {
+      headers: {
+        Referer: "https://www.youtube.com/",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+      },
+    });
     if (!response.ok) return null;
     const xml = await response.text();
     return parseYouTubeCaptions(xml);
