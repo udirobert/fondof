@@ -112,7 +112,7 @@ export function FitTarget({
   const fitActions = hasFit ? (
     <div className="rounded-xl border border-ember/25 bg-paper/80 p-3 shadow-sm">
       <p className="text-[12px] leading-snug text-ink">
-        <span className="font-medium tabular-nums">{fitCount}</span> shard
+        <span className="font-medium tabular-nums">{fitCount}</span> idea
         {fitCount === 1 ? "" : "s"} fit{" "}
         <span className="font-medium">{active?.name}</span>
       </p>
@@ -180,7 +180,7 @@ export function FitTarget({
         <span className="font-medium">{active.name}</span> yet
       </p>
       <p className="mt-1 text-[10px] leading-snug text-muted">
-        Forge any shards you like — fit chips appear when language or frameworks
+        Forge any ideas you like — fit chips appear when language or frameworks
         overlap.
       </p>
     </div>
@@ -326,10 +326,10 @@ export function FitTarget({
           </h2>
           <p className="mt-1 text-[11px] leading-relaxed text-foreground-secondary">
             {hasFit
-              ? `Fitting shards to ${active?.name}`
+              ? `Fitting ideas to ${active?.name}`
               : active
                 ? "No strong stack matches yet — forge broadly or switch repo."
-                : "Add a GitHub repo to see which shards fit."}
+                : "Add a GitHub repo to see which ideas fit."}
           </p>
         </div>
       </div>

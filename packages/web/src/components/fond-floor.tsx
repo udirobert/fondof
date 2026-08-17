@@ -554,14 +554,14 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
     const n = selectedIdeaIds.size;
     if (n === 0) return undefined;
     if (n === 1) {
-      return "Add another Forge shard → one hallmark skill, not N weak ones";
+      return "Add another idea → one hallmark skill, not N weak ones";
     }
     const selected = ideaInsights.filter((r) =>
       selectedIdeaIds.has(r.idea.id),
     );
     const types = new Set(selected.map((r) => r.idea.patternType));
     if (types.size >= 2) {
-      return `${n} shards · ${types.size} pattern types → stronger skill`;
+      return `${n} ideas · ${types.size} pattern types → stronger skill`;
     }
     const repoHits = new Set(
       selected.flatMap((r) => r.repos.map((m) => m.name)),
@@ -575,8 +575,8 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
   const idleComposeHint =
     selectedIdeaIds.size === 0
       ? relatedPair.length === 2
-        ? "These two shards are related — select both, then forge once"
-        : "Select 2+ Forge shards · one skill beats many thin ones"
+        ? "These two ideas are related — select both, then forge once"
+        : "Select 2+ ideas · one skill beats many thin ones"
       : null;
 
   const showPad = mode === "pad" && ideas.length === 0;
@@ -661,7 +661,7 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
                   Sources · {sources.length}
                 </span>
                 <span className="flex items-center gap-2 text-[10px] text-muted">
-                  {ideas.length} shards
+                  {ideas.length} ideas
                   <ChevronDown
                     size={14}
                     className={`transition-transform lg:hidden ${sourcesOpen ? "rotate-180" : ""}`}
@@ -808,7 +808,7 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
                             className="font-medium text-ember underline-offset-2 hover:underline"
                           >
                             {fitFilterActive
-                              ? "Show all shards"
+                              ? "Show all ideas"
                               : `${activeFitCount} fit ${activeRepoObj.name}`}
                           </button>
                         </>
@@ -855,7 +855,7 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
                 <div className="idea-shard-plane flex flex-col gap-2.5 pb-6 sm:gap-3">
                   {fitFilterActive && activeFitCount === 0 ? (
                     <p className="rounded-lg bg-mist/60 px-3 py-4 text-sm text-muted">
-                      No shards match this repo&apos;s stack —{" "}
+                      No ideas match this repo&apos;s stack —{" "}
                       <button
                         type="button"
                         onClick={clearFitFilter}

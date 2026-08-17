@@ -135,10 +135,11 @@ function sleep(ms: number) {
 }
 
 /**
- * Cache hits still play the story — short beats so examples feel intentional,
- * not instant teleport.
+ * Cache hits replay the story at fast-forward speed — short beats so the
+ * flow still reads, without artificial theater.
  */
 async function replayCachedIngest(cached: IngestResult, emit: Emit) {
+  // Cache hit — short beats, not theater. Kept non-zero so the story still reads.
   const providers: IngestProvider[] = [
     "cache",
     ...(cached.providers ?? []).filter((p) => p !== "cache"),
@@ -149,14 +150,14 @@ async function replayCachedIngest(cached: IngestResult, emit: Emit) {
     contentType: cached.contentType,
     fondObject: fondObjectFor(cached.contentType),
   });
-  await sleep(320);
+  await sleep(120);
 
   emit({
     type: "phase",
     phase: "resolve",
     label: "Recognizing the source…",
   });
-  await sleep(480);
+  await sleep(160);
   emit({ type: "meta", title: cached.title });
 
   if (cached.text) {
@@ -176,18 +177,18 @@ async function replayCachedIngest(cached: IngestResult, emit: Emit) {
           ? { phase: "read", label: "Replaying the need…" }
           : { phase: "read", label: "Replaying the piece…" };
   emit({ type: "phase", ...materialPhase });
-  await sleep(520);
+  await sleep(180);
 
   emit({
     type: "phase",
     phase: "extract",
     label: "Settling discrete ideas…",
   });
-  await sleep(400);
+  await sleep(140);
 
   for (const idea of cached.ideas) {
     emit({ type: "idea", idea });
-    await sleep(240);
+    await sleep(90);
   }
 
   const value: IngestValue = {
@@ -201,7 +202,7 @@ async function replayCachedIngest(cached: IngestResult, emit: Emit) {
   };
   emit({ type: "value", value });
 
-  await sleep(220);
+  await sleep(80);
   emit({
     type: "done",
     sourceHash: cached.sourceHash,

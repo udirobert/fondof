@@ -62,7 +62,7 @@ export function AgentExportBar({
   const scope =
     selectedIds && selectedIds.size > 0
       ? `${selectedIds.size} selected`
-      : `${target.length} shards`;
+      : `${target.length} ideas`;
 
   return (
     <div className={`flex flex-wrap items-center gap-2 ${className}`}>

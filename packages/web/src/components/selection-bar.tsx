@@ -10,13 +10,13 @@ interface SelectionBarProps {
   onClear: () => void;
   /** e.g. "the pod" — brand object from sources */
   fondObject?: string;
-  /** Titles of selected shards for the tray */
+  /** Titles of selected ideas for the tray */
   selectedTitles?: string[];
-  /** Why combining these shards is useful */
+  /** Why combining these ideas is useful */
   composeHint?: string;
 }
 
-/** Forge tray — selected shards gather here before composition. */
+/** Forge tray — selected ideas gather here before composition. */
 export function SelectionBar({
   count,
   onForge,
@@ -56,7 +56,7 @@ export function SelectionBar({
 
             <p className="text-[12px] leading-snug text-ink/80">
               {composeHint ??
-                "Compose selected shards into one fitted skill"}
+                "Compose selected ideas into one fitted skill"}
             </p>
 
             <div className="flex items-center gap-2">

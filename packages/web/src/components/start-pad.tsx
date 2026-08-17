@@ -99,7 +99,7 @@ export function StartPad({
             className="flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-xl bg-ember px-4 py-2.5 text-sm font-medium text-paper transition-colors hover:bg-ember-hot disabled:cursor-not-allowed disabled:opacity-35"
           >
             <ArrowRight size={16} />
-            {mode === "url" ? "Extract" : "Forge"}
+            Extract
           </button>
         </div>
       </form>
