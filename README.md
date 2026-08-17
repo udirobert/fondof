@@ -35,6 +35,7 @@ This repo targets **Ready, Spec, Ship** (Kiro). See [`.kiro/`](.kiro/) for the f
 2. **Hand-off** — Copy into Cursor / Claude / Kiro; use it on a real repo.
 3. **Proof** — SkillPool signal (backing + uses − challenge losses); disputes police junk and malice without becoming a scanner product.
 4. **Outcomes** — Attach what the skill *resulted in* (PR, UI delta, repo improvement) so quality is “did it help?” not only “did people stake/use it?” Thin path: `/s/[hash]` → Attach outcome (note + optional PR / screenshot URL) via edge meta; pool cards show a Result line when present.
+
 ## What fondof does
 
 1. **Ingest** — Paste a podcast/blog URL *or* state a need in plain text (no GitHub required). fondof extracts discrete idea shards.
@@ -117,13 +118,16 @@ We don’t claim prompt-injection detection, sandboxing, or audited skill binari
 
 Open [https://fondof.netlify.app](https://fondof.netlify.app). Every step below is live — the shards you see are extracted by an LLM from **your** input at click time, not pre-baked:
 
-1. **Extract from a need (no account, no GitHub).** **Need** tab → type `retry budgets for async TypeScript fetch` → **Forge**. The API extracts discrete idea shards from your exact text (~5–15 s). Type something else (e.g. `structured logging for worker services`) and you'll get different shards — it's a live call, not a canned list.
-2. **Or extract from a URL.** **URL** tab → click a sample (talk / docs / blog) or paste any public article URL. YouTube pulls real captions; articles are read + LLM-extracted.
-3. **Forge.** Select 1–2 shards → open Forge → **Skill for {repo}**. The draft is LLM-composed against the repo's stack: Fit check (structural heuristics), **Where it lands**, expandable sections. Copy it for **Cursor / Claude / Kiro** — the primary hand-off.
-4. **Proof (optional).** Publish (relayer signs on Monad testnet, or wallet) → skill page → **I used this** (raises on-chain signal) → optional **Attach outcome** (what it actually improved). Dispute to police slop.
+1. **Extract from a need (no account, no GitHub).** **Need** tab → type `retry budgets for async TypeScript fetch` → click **Forge** (Need-tab submit runs extraction, not the forge panel). The API extracts discrete idea shards from your exact text (~5–15 s). Type something else (e.g. `structured logging for worker services`) and you'll get different shards — it's a live call, not a canned list.
+2. **Or extract from a URL.** **URL** tab → click a sample (talk / docs / blog) or paste any public article URL → **Extract**. YouTube pulls real captions; articles are read + LLM-extracted.
+3. **Compose a skill.** Select 1–2 shards → open the **Forge** panel → **Skill for {repo}**. The draft is LLM-composed against the repo's stack: Fit check (structural heuristics — not a live agent eval), **Where it lands**, expandable sections. Copy it for **Cursor / Claude / Kiro** — the primary hand-off.
+4. **Proof (optional).** Publish (relayer signs on Monad testnet, or wallet) → skill page → **I used this** (raises on-chain signal) → optional **Attach outcome** (what it actually improved). Dispute to police slop — challenge **resolve** is a demo oracle (relayer), not decentralized adjudication.
 5. **Pool.** [**/pool**](https://fondof.netlify.app/pool) → Draw a skill / browse paper cards with live signal.
 
-Each step degrades **honestly** if a dependency is down: need-extract shows “API unreachable — local shards” (labeled, not silent); forge failure shows a local template draft with a visible notice, never passed off as LLM output; chain/relayer unreachable keeps publish a local draft. Nothing is faked on the happy path.
+Each step degrades **honestly** if a dependency is down: need-extract shows “API unreachable — local shards” (labeled, not silent); forge failure shows a local template draft with a visible notice, never passed off as LLM output; chain/relayer unreachable keeps publish a local draft — we do not fake “published.” Happy-path extraction and forge are live; dispute resolve stays a disclosed demo oracle.
+
+Demo video script: [`docs/demo-video.md`](docs/demo-video.md).  
+Package roles: [`docs/architecture.md`](docs/architecture.md).
 
 ### Verification / testing instructions
 
