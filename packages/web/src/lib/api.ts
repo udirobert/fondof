@@ -378,6 +378,39 @@ export async function resolveChallenge(
   return res.json();
 }
 
+/** One-shot compose: ingest → top shards → forge → skill markdown. */
+export interface ComposeResponse {
+  markdown?: string;
+  ideas?: IdeaFromAPI[];
+  skillHash?: string;
+  skillUrl?: string | null;
+  title?: string;
+  sourceUrl?: string;
+  sourceHash?: string;
+  contentType?: string;
+  fittedTo?: string;
+  onChain?: boolean;
+  private?: boolean;
+  ingestCacheHit?: boolean;
+  providers?: string[];
+  error?: string;
+}
+
+export async function composeSkill(body: {
+  url?: string;
+  need?: string;
+  repo?: string | { name: string; frameworks?: string[]; languages?: string[] };
+  topShards?: number;
+  private?: boolean;
+}): Promise<ComposeResponse> {
+  const res = await fetch(`${API_URL}/api/compose`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  return res.json();
+}
+
 /** Compare stage — Exa catalogs (not run during extract). */
 export async function searchExistingSkills(
   query: string,

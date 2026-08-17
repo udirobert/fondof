@@ -20,6 +20,7 @@ export function Nav() {
   const step = forgeOpen ? 3 : ideas.length > 0 ? 2 : isIngesting ? 1 : 1;
   const showObject = ideas.length > 0 || isIngesting;
   const onFloor = pathname === "/" || pathname === "/canvas";
+  const onCompose = pathname === "/compose";
   const onPool = pathname === "/pool" || pathname?.startsWith("/s/");
 
   return (
@@ -76,6 +77,16 @@ export function Nav() {
             }`}
           >
             Fond
+          </Link>
+          <Link
+            href="/compose"
+            className={`rounded-full px-3 py-1.5 text-xs transition-colors ${
+              onCompose
+                ? "bg-mist font-medium text-ink"
+                : "text-muted hover:text-ink"
+            }`}
+          >
+            Compose
           </Link>
           <Link
             href="/pool"
