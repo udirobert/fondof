@@ -5,6 +5,7 @@ import { Flame } from "lucide-react";
 import { FondofWordmark } from "@/components/fondof-wordmark";
 import { SignalPoolStrip } from "@/components/signal-pool-strip";
 import { EconomicsHonesty } from "@/components/economics-honesty";
+import { RecentPublicSkills } from "@/components/recent-public-skills";
 
 /**
  * SkillPool craft desk — one composition: brand, draw ritual, paper skills.
@@ -24,6 +25,13 @@ export default function PoolPage() {
         </header>
 
         <SignalPoolStrip desk />
+
+        <section aria-label="Public skills">
+          <p className="mb-3 text-center text-[11px] uppercase tracking-wider text-muted">
+            Public skills · the shelf
+          </p>
+          <RecentPublicSkills limit={8} />
+        </section>
 
         <div className="border-t border-ink/8 pt-4">
           <EconomicsHonesty variant="line" />

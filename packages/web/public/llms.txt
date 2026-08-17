@@ -24,14 +24,22 @@ fondof forges personalised coding skills from what you learn (podcasts, blogs, t
 
 - POST /api/ingest — extract ideas from a URL or need
 - POST /api/compose — one-shot: ingest → top shards → forge → skill markdown
-  Body: `{ "url": "https://youtu.be/...", "repo": { "name": "myapp", "frameworks": ["next"], "languages": ["typescript"] } }`
-  or `{ "need": "describe your problem", "repo": { ... } }`
-  Returns: `{ "markdown": "...", "ideas": [...], "skillHash": "...", "sourceUrl": "..." }`
-  Write `markdown` to `.kiro/steering/` or `.cursor/rules/`.
+  Body: `{ "url": "https://youtu.be/...", "repo": "owner/name" }` (or `{ "need": "...", "repo": ... }`)
+  `repo` accepts "owner/name", a GitHub URL (frameworks/languages auto-detected), or `{ "name", "frameworks", "languages" }`.
+  Public by default — returns `{ "markdown", "ideas", "skillHash", "skillUrl", "sourceUrl", "onChain", ... }`.
+  `skillUrl` is a real shareable page (https://fondof.netlify.app/s/{skillHash}) that resolves without on-chain attestation.
+  Pass `"private": true` to skip the public page. Write `markdown` to `.kiro/steering/` or `.cursor/rules/`.
 - POST /api/forge — compose a skill from ideas + repo context
-- POST /api/publish — publish skill to SkillPool (on-chain)
+- POST /api/publish — stamp a public skill on-chain (attestation, optional second click)
+- GET /api/skills — recent public skills (the pool)
 - GET /api/sources/:domain — list skills forged from a source
 - GET /api/sources/:domain/badge.svg — embeddable badge
+
+## Skill lifecycle
+
+Forge/compose → public off-chain skill at /s/[hash] by default (copy link, share).
+Private is opt-in. Stamping on-chain (SkillPool attestation) is an optional
+second click: craft first, proof second.
 
 ## Skill format
 

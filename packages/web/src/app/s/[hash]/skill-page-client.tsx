@@ -20,6 +20,7 @@ import {
   getSkillSignal,
   getTopSkills,
   listOpenChallenges,
+  publishSkill,
   recordUsage,
   resolveChallenge,
   type OnChainChallenge,
@@ -219,6 +220,7 @@ export default function SkillPublicPage() {
   const [skill, setSkill] = useState<SkillOnChainResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [using, setUsing] = useState(false);
+  const [attesting, setAttesting] = useState(false);
   const [challenging, setChallenging] = useState(false);
   const [resolvingId, setResolvingId] = useState<number | null>(null);
   const [acquiring, setAcquiring] = useState(false);
@@ -362,6 +364,24 @@ export default function SkillPublicPage() {
     }
   };
 
+  const onAttest = async () => {
+    setAttesting(true);
+    setNote(null);
+    try {
+      const res = await publishSkill(hash, skill?.sourceHashes ?? []);
+      if (res.error) setNote(res.error);
+      else
+        setNote(
+          "Stamped on-chain — attested on the Monad SkillPool (contestable quality signal).",
+        );
+      void refresh();
+    } catch {
+      setNote("Stamp unavailable right now.");
+    } finally {
+      setAttesting(false);
+    }
+  };
+
   const onChallenge = async () => {
     setChallenging(true);
     setNote(null);
@@ -464,13 +484,17 @@ export default function SkillPublicPage() {
                 </p>
               )}
               <p className="mt-2 text-[11px] text-muted">
-                Live skill · agents prove what works
+                {skill?.onChain === false
+                  ? "Public skill · off-chain (not yet stamped on-chain)"
+                  : "Live skill · agents prove what works"}
                 {tick > 0 ? " · updating" : ""}
               </p>
             </>
           ) : (
             <p className="mt-2 text-[11px] text-muted">
-              Live skill · agents prove what works
+              {skill?.onChain === false
+                ? "Public skill · off-chain (not yet stamped on-chain)"
+                : "Live skill · agents prove what works"}
               {tick > 0 ? " · updating" : ""}
             </p>
           )}
@@ -585,7 +609,7 @@ export default function SkillPublicPage() {
           <button
             type="button"
             onClick={() => void onUse()}
-            disabled={using || !skill}
+            disabled={using || !skill || skill.onChain === false}
             className="flex min-h-11 items-center justify-center gap-2 rounded-full border border-ink/12 bg-paper px-4 text-sm text-ink hover:border-ember/35 disabled:opacity-40"
           >
             <Zap size={14} />
@@ -602,7 +626,7 @@ export default function SkillPublicPage() {
         </div>
 
         {/* Provenance & Proof — collapsible on-chain detail */}
-        {!loading && skill && (
+        {!loading && skill && skill.onChain !== false && (
           <ProvenanceDisclosure
             skill={skill}
             hash={hash}
@@ -625,6 +649,26 @@ export default function SkillPublicPage() {
               void refresh();
             }}
           />
+        )}
+
+        {/* Off-chain public skill — the thing is the markdown; attestation is a second click */}
+        {!loading && skill && skill.onChain === false && (
+          <section className="flex flex-col gap-2" aria-label="On-chain attestation">
+            <p className="text-[11px] leading-snug text-muted">
+              This is a public off-chain skill — already shareable and copyable
+              above. Stamping it on-chain is optional and adds a contestable
+              quality signal.
+            </p>
+            <button
+              type="button"
+              onClick={() => void onAttest()}
+              disabled={attesting}
+              className="flex min-h-11 w-full items-center justify-center gap-2 rounded-full border border-ink/12 bg-paper px-4 text-sm text-ink hover:border-ember/35 disabled:opacity-40"
+            >
+              <Shield size={14} />
+              {attesting ? "Stamping…" : "Stamp on-chain (attest)"}
+            </button>
+          </section>
         )}
 
         {!loading && !skill && (

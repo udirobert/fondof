@@ -9,12 +9,16 @@ import {
 } from "../lib/monad.js";
 import { cacheGetJson, cachePutJson } from "../lib/edge-cache.js";
 import { mergeSkillMeta, putSkillMeta, type LandingHitRecord } from "../lib/skill-meta.js";
+import { getPublicSkill, listPublicSkills } from "../lib/skill-registry.js";
 import { rateLimit } from "../lib/rate-limit-mw.js";
 
 export const skillsRoute = new Hono<{ Bindings: Env }>();
 
 const SKILL_TTL = 60; // KV/Cache min practical TTL
 const TOP_TTL = 60;
+
+const clampLimit = (n: number) =>
+  Math.min(Math.max(Number.isFinite(n) ? n : 10, 1), 50);
 
 /**
  * Acquire a skill by on-chain weighted signal (view).
@@ -115,12 +119,13 @@ skillsRoute.post("/skills/:hash/meta", rateLimit("publish"), async (c) => {
       ),
     )
     .catch(() => undefined);
-  // Best-effort list cache bust (common limits)
+  // Best-effort list cache bust (pool + legacy top)
   for (const lim of [5, 10, 20]) {
     await caches.default
-      .delete(
-        new Request(`https://fondof-cache.internal/skills:top:v4:${lim}`),
-      )
+      .delete(new Request(`https://fondof-cache.internal/skills:pool:v1:${lim}`))
+      .catch(() => undefined);
+    await caches.default
+      .delete(new Request(`https://fondof-cache.internal/skills:top:v4:${lim}`))
       .catch(() => undefined);
   }
 
@@ -138,6 +143,50 @@ skillsRoute.get("/skills/:hash", async (c) => {
     return c.json(hit);
   }
 
+  // Durable public registry first — /s/[hash] must resolve without a chain
+  // round-trip. Attested skills still pull live signal from the chain.
+  const pub = await getPublicSkill(c.env, hash);
+  if (pub) {
+    const offChainBase = {
+      skillHash: pub.hash,
+      forger: "",
+      backing: "0",
+      usageCount: 0,
+      challengeLosses: 0,
+      createdAt: Date.parse(pub.composedAt) || 0,
+      signal: "0",
+      sourceHashes: pub.sourceHashes,
+    };
+
+    const chain = pub.onChain
+      ? await getSkillFromChain(
+          c.env.MONAD_RPC_URL,
+          c.env.FONDOF_CONTRACT_ADDRESS,
+          hash,
+        )
+      : null;
+
+    const withMeta = await mergeSkillMeta(chain ?? offChainBase, {
+      includeBody: true,
+    });
+    const out = {
+      ...withMeta,
+      title: withMeta.title ?? pub.title,
+      blurb: withMeta.blurb ?? pub.blurb,
+      repo: withMeta.repo ?? pub.repo,
+      frameworks: withMeta.frameworks ?? pub.frameworks,
+      markdown: withMeta.markdown ?? pub.markdown,
+      sourceUrls: pub.sourceUrls,
+      languages: pub.languages,
+      onChain: Boolean(pub.onChain) || Boolean(chain),
+      attestedTxHash: pub.attestedTxHash,
+      attestedAt: pub.attestedAt,
+    };
+    await cachePutJson(cacheKey, out, SKILL_TTL);
+    c.header("X-Cache", "MISS");
+    return c.json(out);
+  }
+
   try {
     const skill = await getSkillFromChain(
       c.env.MONAD_RPC_URL,
@@ -147,9 +196,10 @@ skillsRoute.get("/skills/:hash", async (c) => {
 
     if (!skill) return c.json({ error: "Skill not found in pool" }, 404);
     const withMeta = await mergeSkillMeta(skill, { includeBody: true });
-    await cachePutJson(cacheKey, withMeta, SKILL_TTL);
+    const out = { ...withMeta, onChain: true };
+    await cachePutJson(cacheKey, out, SKILL_TTL);
     c.header("X-Cache", "MISS");
-    return c.json(withMeta);
+    return c.json(out);
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Unknown error";
     return c.json({ error: msg }, 500);
@@ -158,8 +208,8 @@ skillsRoute.get("/skills/:hash", async (c) => {
 
 // Get top skills by signal
 skillsRoute.get("/skills", async (c) => {
-  const limit = parseInt(c.req.query("limit") ?? "10");
-  const cacheKey = `skills:top:v4:${limit}`;
+  const limit = clampLimit(parseInt(c.req.query("limit") ?? "10"));
+  const cacheKey = `skills:pool:v1:${limit}`;
 
   const hit = await cacheGetJson<{ skills: unknown[] }>(cacheKey);
   if (hit) {
@@ -167,6 +217,45 @@ skillsRoute.get("/skills", async (c) => {
     return c.json(hit);
   }
 
+  // Durable public pool first — a pool of skills, not txs.
+  const pub = await listPublicSkills(c.env, limit);
+  if (pub.length > 0) {
+    const skills = await Promise.all(
+      pub.map(async (rec) => {
+        const offChainBase = {
+          skillHash: rec.hash,
+          forger: "",
+          backing: "0",
+          usageCount: 0,
+          challengeLosses: 0,
+          createdAt: Date.parse(rec.composedAt) || 0,
+          signal: "0",
+          sourceHashes: rec.sourceHashes,
+        };
+        const chain = rec.onChain
+          ? await getSkillFromChain(
+              c.env.MONAD_RPC_URL,
+              c.env.FONDOF_CONTRACT_ADDRESS,
+              rec.hash,
+            )
+          : null;
+        const withMeta = await mergeSkillMeta(chain ?? offChainBase);
+        return {
+          ...withMeta,
+          title: withMeta.title ?? rec.title,
+          repo: withMeta.repo ?? rec.repo,
+          sourceUrls: rec.sourceUrls,
+          onChain: Boolean(rec.onChain) || Boolean(chain),
+        };
+      }),
+    );
+    const payload = { skills };
+    await cachePutJson(cacheKey, payload, TOP_TTL);
+    c.header("X-Cache", "MISS");
+    return c.json(payload);
+  }
+
+  // Legacy: on-chain top skills only (empty registry fallback)
   try {
     const hashes = await getTopSkillsFromChain(
       c.env.MONAD_RPC_URL,
@@ -187,7 +276,7 @@ skillsRoute.get("/skills", async (c) => {
     const withMeta = await Promise.all(
       skills.filter(Boolean).map((s) => mergeSkillMeta(s!)),
     );
-    const payload = { skills: withMeta };
+    const payload = { skills: withMeta.map((s) => ({ ...s, onChain: true })) };
     await cachePutJson(cacheKey, payload, TOP_TTL);
     c.header("X-Cache", "MISS");
     return c.json(payload);

@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import type { Env } from "../index.js";
 import { chat } from "../lib/llm.js";
 import { cacheGetJson, cachePutJson, sha256Hex } from "../lib/edge-cache.js";
+import { recordPublicSkill } from "../lib/skill-registry.js";
 import { rateLimit } from "../lib/rate-limit-mw.js";
 
 /** Entry in the source → skills mapping (stored in KV per domain). */
@@ -79,7 +80,9 @@ export async function forgeSkillCore(
     ? `GAP_AGAINST:${body.gapAgainst.url}:${body.gapAgainst.title}:${body.gapAgainst.snippet ?? ""}`
     : "";
 
-  const cacheKey = `forge:v3:${await sha256Hex(`${repoStr}\n${ideasStr}\n${gapStr}`)}`;
+  const cacheKey = `forge:v4:${await sha256Hex(
+    `${repoStr}\n${ideasStr}\n${gapStr}\nprivate:${isPrivate}`,
+  )}`;
   const hit = await cacheGetJson<ForgePayload>(cacheKey);
   if (hit?.markdown) {
     return { payload: hit, cacheHit: true };
@@ -157,6 +160,24 @@ Write markdown with # title then ## Context, ## Guidance (one code example), ## 
     const realSources = sourceUrls.filter(
       (u) => u && !u.startsWith("https://fondof.local") && u.startsWith("http"),
     );
+
+    // Durable public record → /s/[skillHash] resolves without touching the chain
+    try {
+      await recordPublicSkill(env, {
+        hash: skillHash,
+        title,
+        markdown: fullMarkdown,
+        repo: body.repo?.name,
+        frameworks: body.repo?.frameworks,
+        languages: body.repo?.languages,
+        sourceUrls: realSources,
+        sourceHashes,
+        composedAt: payload.composedAt,
+      });
+    } catch {
+      /* best-effort — never fail the forge for registry issues */
+    }
+
     for (const url of realSources) {
       try {
         const domain = new URL(url).hostname.replace(/^www\./, "");

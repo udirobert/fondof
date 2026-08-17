@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import type { Env } from "../index.js";
 import { forgeOnChain } from "../lib/monad.js";
 import { putSkillMeta, type LandingHitRecord } from "../lib/skill-meta.js";
+import { markSkillAttested } from "../lib/skill-registry.js";
 import { rateLimit } from "../lib/rate-limit-mw.js";
 
 export const publishRoute = new Hono<{ Bindings: Env }>();
@@ -47,6 +48,11 @@ publishRoute.post("/publish", rateLimit("publish"), async (c) => {
         frameworks,
       });
     }
+
+    // Second click complete — stamp the durable public record as on-chain.
+    await markSkillAttested(c.env, skillHash, receipt.txHash).catch(
+      () => undefined,
+    );
 
     return c.json({
       success: true,

@@ -54,6 +54,45 @@ app.use(
   }),
 );
 
+// API-oriented llms.txt for agents hitting the worker host directly
+const API_LLMS_TXT = `# fondof API
+
+Base URL: https://fondof-api.trustfall.workers.dev
+
+> fondof forges personalised coding skills from a URL (YouTube, blog, podcast) or a stated need — fitted to a repo's stack. Agents get one endpoint: POST /api/compose.
+
+## Endpoints
+
+### POST /api/compose — one-shot skill composition (use this)
+
+Body: { "url": "<source url>" | "need": "<stated need>", "repo": "owner/name" | { "name": "…", "frameworks": ["…"], "languages": ["…"] }, "topShards": 2, "private": false }
+
+- Exactly one of url / need. repo as "owner/name" or a GitHub URL is auto-detected (frameworks + languages from the repo's package.json).
+- Public by default — the response includes skillUrl, a real shareable page (https://fondof.netlify.app/s/{skillHash}). No auth, no chain.
+- Response: { markdown, ideas: [{ title, description, domain, applicability, patternType, sourceUrl }], skillHash, skillUrl, title, sourceUrl, sourceHash, contentType, fittedTo, onChain, private, providers }
+- Errors: 400 bad body, 422 nothing extractable, 429 rate limit (10/hour/IP), 500 upstream.
+
+Example:
+curl -s -X POST https://fondof-api.trustfall.workers.dev/api/compose -H 'content-type: application/json' -d '{"url":"https://www.youtube.com/watch?v=7wuYBfE131U","repo":"udirobert/fondof"}'
+
+What to do with it: save markdown into .kiro/steering/ or .cursor/rules/ (or CLAUDE.md), then share skillUrl.
+
+### Other endpoints
+
+- POST /api/ingest { url | need } → { ideas, sourceHash, … } — extract shards only (no forge)
+- POST /api/forge { ideas, repo? } → { markdown, skillHash, … } — forge from your own idea list
+- POST /api/publish { skillHash, sourceHashes, … } — stamp a public skill on-chain (attestation, second click)
+- GET /api/skills — recent public skills (the pool)
+- GET /api/skills/{hash} — one skill (off-chain or attested)
+- POST /api/skills/{hash}/use — record a use (on-chain skills)
+
+## Notes
+
+- Rate limits: compose 10/h, ingest 10/h, forge 20/h per IP. X-Cache: HIT means a cached result.
+- Skill markdown sections: # Title, ## Context, ## Guidance, ## Anti-patterns, ## References.
+- Full product docs: https://fondof.netlify.app/llms.txt
+`;
+
 // Health check
 app.get("/", (c) =>
   c.json({
@@ -72,6 +111,9 @@ app.get("/", (c) =>
 );
 
 // API routes
+app.get("/llms.txt", (c) =>
+  c.text(API_LLMS_TXT, 200, { "Content-Type": "text/plain; charset=utf-8" }),
+);
 app.route("/api", ingestRoute);
 app.route("/api", composeRoute);
 app.route("/api", forgeRoute);

@@ -13,7 +13,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   // Try to fetch skill title/blurb from the API for rich metadata
   try {
-    const res = await fetch(`${API_BASE}/api/skills/${hash}/signal`, {
+    const res = await fetch(`${API_BASE}/api/skills/${hash}`, {
       next: { revalidate: 300 }, // cache 5 min
     });
     if (res.ok) {

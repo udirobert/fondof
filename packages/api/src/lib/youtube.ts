@@ -49,13 +49,83 @@ export interface CaptionTrack {
 /**
  * Fetch transcript from YouTube.
  * Tries: timedtext API → watch-page captionTracks (en → a.en/ASR → any) → Firecrawl.
+ *
+ * Optional KV (e.g. SESSIONS) caches the winning transcript per videoId so
+ * re-ingests never re-burn Firecrawl / page fetches after Cache API eviction.
  */
 export async function getYouTubeTranscript(
   url: string,
-  firecrawlKey?: string
+  firecrawlKey?: string,
+  kv?: KVNamespace,
 ): Promise<{ text: string; title: string; provider: YoutubeProvider } | null> {
   const videoId = extractVideoId(url);
   if (!videoId) return null;
+
+  if (kv) {
+    const cached = await captionCacheGet(kv, videoId);
+    if (cached) return cached;
+  }
+
+  const result = await fetchYouTubeTranscript(videoId, firecrawlKey);
+
+  if (result && kv) {
+    await captionCachePut(kv, videoId, result);
+  }
+
+  return result;
+}
+
+const CAPTION_TTL = 60 * 60 * 24 * 7; // 7d — transcripts are stable
+const CAPTION_TEXT_CAP = 200_000;
+
+type CachedCaption = {
+  text: string;
+  title: string;
+  provider: YoutubeProvider;
+};
+
+function captionCacheKey(videoId: string) {
+  return `yt-caption:v1:${videoId}`;
+}
+
+async function captionCacheGet(
+  kv: KVNamespace,
+  videoId: string,
+): Promise<CachedCaption | null> {
+  try {
+    const rec = (await kv.get(captionCacheKey(videoId), "json")) as
+      | (CachedCaption & { at?: number })
+      | null;
+    if (rec && typeof rec.text === "string" && rec.text.length > 50) {
+      const { at: _at, ...rest } = rec;
+      return rest as CachedCaption;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+async function captionCachePut(
+  kv: KVNamespace,
+  videoId: string,
+  result: CachedCaption,
+): Promise<void> {
+  try {
+    await kv.put(
+      captionCacheKey(videoId),
+      JSON.stringify({ ...result, text: result.text.slice(0, CAPTION_TEXT_CAP), at: Date.now() }),
+      { expirationTtl: CAPTION_TTL },
+    );
+  } catch {
+    /* non-fatal */
+  }
+}
+
+async function fetchYouTubeTranscript(
+  videoId: string,
+  firecrawlKey?: string,
+): Promise<{ text: string; title: string; provider: YoutubeProvider } | null> {
 
   // Backbone: watch page gives us the real title + the full track list
   const page = await fetchWatchPage(videoId);

@@ -99,7 +99,14 @@ export interface SkillOnChainResponse {
   markdown?: string;
   landings?: Array<{ path: string; why: string }>;
   frameworks?: string[];
+  languages?: string[];
   outcome?: SkillOutcome;
+  /** Real source URLs (not just hashes) for provenance links */
+  sourceUrls?: string[];
+  /** False = public off-chain skill, not yet stamped on-chain */
+  onChain?: boolean;
+  attestedTxHash?: string;
+  attestedAt?: string;
   error?: string;
 }
 

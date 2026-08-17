@@ -373,6 +373,7 @@ export async function runIngestPipeline(
     const transcript = await getYouTubeTranscript(
       canonical,
       env.FIRECRAWL_API_KEY,
+      env.SESSIONS,
     );
 
     if (!transcript || !transcript.text) {

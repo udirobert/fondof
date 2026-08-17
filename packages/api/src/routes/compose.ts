@@ -1,9 +1,11 @@
 import { Hono } from "hono";
 import type { Env } from "../index.js";
 import { runIngestPipeline, runNeedPipeline, needUrl } from "./ingest.js";
-import { forgeSkillCore, type ForgeInput } from "./forge.js";
+import { forgeSkillCore } from "./forge.js";
 import { rateLimit } from "../lib/rate-limit-mw.js";
 import { normalizeSourceUrl } from "../lib/source-url.js";
+import { resolveRepoContext } from "../lib/repo-context.js";
+import { getPublicSkill } from "../lib/skill-registry.js";
 
 export const composeRoute = new Hono<{ Bindings: Env }>();
 
@@ -15,17 +17,31 @@ const clamp = (n: number, min: number, max: number) =>
 interface ComposeBody {
   url?: string;
   need?: string;
-  repo?: ForgeInput["repo"];
+  /**
+   * Either a full repo object, an "owner/name" ref, a GitHub URL, or a plain
+   * name. Refs/URLs are auto-detected (frameworks + languages) via GitHub.
+   */
+  repo?: string | { name: string; frameworks?: string[]; languages?: string[] };
   /** Number of top shards to forge. Defaults to 2, max 6. */
   topShards?: number;
-  /** Defaults to true — compose is ephemeral; publish separately if desired. */
+  /**
+   * Defaults to false — a compose produces a public /s/[hash] page.
+   * Pass true (or upgrade to Pro) to keep it private.
+   */
   private?: boolean;
+}
+
+function frontendBase(env: Env): string {
+  return (env.FRONTEND_URL || "https://fondof.netlify.app").replace(/\/$/, "");
 }
 
 /**
  * One-shot compose for agents:
  *   POST /api/compose { url | need, repo }
- * ingest → top shards → forge → { markdown, ideas, skillHash, sourceUrl }
+ * ingest → top shards → forge → { markdown, ideas, skillHash, skillUrl, sourceUrl }
+ *
+ * Public by default: the returned skillUrl (https://fondof.netlify.app/s/[hash])
+ * is a real, shareable page even before any on-chain attestation.
  */
 composeRoute.post("/compose", rateLimit("compose"), async (c) => {
   let body: ComposeBody;
@@ -35,7 +51,7 @@ composeRoute.post("/compose", rateLimit("compose"), async (c) => {
     return c.json({ error: "Invalid JSON body" }, 400);
   }
 
-  const { url, need, repo } = body;
+  const { url, need } = body;
 
   if (!url && !need) {
     return c.json({ error: "url or need is required" }, 400);
@@ -64,28 +80,49 @@ composeRoute.post("/compose", rateLimit("compose"), async (c) => {
     const topN = clamp(body.topShards ?? 2, 1, 6);
     const topShards = ingestResult.ideas.slice(0, topN);
 
-    // 3. Forge via the shared core (same caching as /api/forge)
+    // Repo context — agents can just say "owner/name"; we detect the stack.
+    const repo = await resolveRepoContext(body.repo, c.env.SESSIONS);
+
+    // 3. Forge via the shared core (same caching as /api/forge).
+    //    Public by default so a compose yields a real shareable link.
+    const isPrivate = body.private === true;
     const { payload } = await forgeSkillCore(c.env, {
       ideas: topShards.map((i) => ({
         title: i.title,
         description: i.description,
         sourceUrl: i.sourceUrl,
       })),
-      repo,
-      private: body.private ?? true,
+      repo:
+        repo && {
+          name: repo.name,
+          frameworks: repo.frameworks,
+          languages: repo.languages,
+        },
+      private: isPrivate,
     });
 
     const sourceUrl = url ? normalizeSourceUrl(url) : needUrl(need!);
+    const skillUrl = `${frontendBase(c.env)}/s/${payload.skillHash}`;
+
+    // Public by default — confirm the durable record exists so the link is real.
+    let attested = false;
+    if (!isPrivate) {
+      const rec = await getPublicSkill(c.env, payload.skillHash);
+      attested = rec?.onChain ?? false;
+    }
 
     return c.json({
       markdown: payload.markdown,
       ideas: topShards,
       skillHash: payload.skillHash,
+      skillUrl: isPrivate ? null : skillUrl,
       title: payload.title,
       sourceUrl,
       sourceHash: ingestResult.sourceHash,
       contentType: ingestResult.contentType,
       fittedTo: payload.fittedTo,
+      onChain: attested,
+      private: isPrivate,
       ingestCacheHit: !!ingestResult.cacheHit,
       providers: ingestResult.providers,
     });
