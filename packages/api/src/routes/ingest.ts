@@ -228,7 +228,7 @@ function fondObjectFor(contentType: IngestContentType): string {
   }
 }
 
-async function runNeedPipeline(
+export async function runNeedPipeline(
   need: string,
   env: Env,
   emit: Emit,
@@ -332,7 +332,7 @@ async function runNeedPipeline(
   return result;
 }
 
-async function runIngestPipeline(
+export async function runIngestPipeline(
   url: string,
   env: Env,
   emit: Emit,

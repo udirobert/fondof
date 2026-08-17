@@ -1,13 +1,13 @@
 # Package roles
 
-Short map so contributors don't conflate edges. Full product story: [README](../README.md). Steering: [`.kiro/steering/project.md`](../.kiro/steering/project.md). Future-of-data-layer note: [Arkiv roadmap item](roadmap-arkiv.md) — eval only, not shipped.
+Short map so contributors don't conflate edges. Full product story: [README](../README.md). Steering: [`.kiro/steering/project.md`](../.kiro/steering/project.md). Hackathon content plan: [submission-plan.md](submission-plan.md). Video production: [video-pipeline.md](video-pipeline.md). Future-of-data-layer note: [Arkiv roadmap item](roadmap-arkiv.md) — eval only, not shipped.
 
 **Product hierarchy:** personalised craft → copy to agent → SkillPool proof → outcome receipts → supply-side attribution. Not a marketplace, registry, or AI security scanner.
 
 | Package | Owns | Does not own |
 |---------|------|----------------|
 | **web** | Judge UI, forge craft, SkillPool desk, `/u/[login]` portfolio, `/from/[source]` creator pages | Chain txs (except optional wallet) |
-| **api** | HTTP edge: ingest, forge, publish, skills, challenge, auth, events, billing, github-publish, sources | CLI UX |
+| **api** | HTTP edge: ingest, compose, forge, publish, skills, challenge, auth, events, billing, github-publish, sources | CLI UX |
 | **core** | Libraries for CLI / shared pipelines | Public production HTTP |
 | **cli** | Terminal workflow (secondary) | Hosted demo path |
 | **contracts** | **SkillPool.sol** (demo) | Marketplace / yield |

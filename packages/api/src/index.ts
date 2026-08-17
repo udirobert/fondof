@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { ingestRoute } from "./routes/ingest.js";
+import { composeRoute } from "./routes/compose.js";
 import { forgeRoute } from "./routes/forge.js";
 import { publishRoute } from "./routes/publish.js";
 import { skillsRoute } from "./routes/skills.js";
@@ -72,6 +73,7 @@ app.get("/", (c) =>
 
 // API routes
 app.route("/api", ingestRoute);
+app.route("/api", composeRoute);
 app.route("/api", forgeRoute);
 app.route("/api", publishRoute);
 app.route("/api", skillsRoute);

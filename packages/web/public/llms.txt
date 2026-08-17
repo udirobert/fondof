@@ -23,6 +23,11 @@ fondof forges personalised coding skills from what you learn (podcasts, blogs, t
 ## API endpoints
 
 - POST /api/ingest — extract ideas from a URL or need
+- POST /api/compose — one-shot: ingest → top shards → forge → skill markdown
+  Body: `{ "url": "https://youtu.be/...", "repo": { "name": "myapp", "frameworks": ["next"], "languages": ["typescript"] } }`
+  or `{ "need": "describe your problem", "repo": { ... } }`
+  Returns: `{ "markdown": "...", "ideas": [...], "skillHash": "...", "sourceUrl": "..." }`
+  Write `markdown` to `.kiro/steering/` or `.cursor/rules/`.
 - POST /api/forge — compose a skill from ideas + repo context
 - POST /api/publish — publish skill to SkillPool (on-chain)
 - GET /api/sources/:domain — list skills forged from a source

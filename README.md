@@ -127,6 +127,9 @@ Open [https://fondof.netlify.app](https://fondof.netlify.app). Every step below 
 Each step degrades **honestly** if a dependency is down: need-extract shows “API unreachable — local shards” (labeled, not silent); forge failure shows a local template draft with a visible notice, never passed off as LLM output; chain/relayer unreachable keeps publish a local draft — we do not fake “published.” Happy-path extraction and forge are live; dispute resolve stays a disclosed demo oracle.
 
 Demo video script: [`docs/demo-video.md`](docs/demo-video.md).  
+Submission & 3-day content plan: [`docs/submission-plan.md`](docs/submission-plan.md).  
+Parallel product vs video split: [`docs/parallel-split.md`](docs/parallel-split.md).  
+Video production stack: [`docs/video-pipeline.md`](docs/video-pipeline.md).  
 Package roles: [`docs/architecture.md`](docs/architecture.md).
 
 ### Verification / testing instructions
@@ -156,6 +159,11 @@ curl -s https://fondof-api.trustfall.workers.dev/api/skills | head -c 300
 curl -s -X POST https://fondof-api.trustfall.workers.dev/api/ingest \
   -H 'content-type: application/json' \
   -d '{"need":"idempotency keys for webhook consumers"}' | head -c 400
+
+# One-shot compose: ingest + top shards + forge in a single call
+curl -s -X POST https://fondof-api.trustfall.workers.dev/api/compose \
+  -H 'content-type: application/json' \
+  -d '{"url":"https://www.youtube.com/watch?v=7wuYBfE131U","repo":{"name":"myproject","frameworks":["react"],"languages":["typescript"]}}' | head -c 600
 ```
 
 **Local dev (optional):** `pnpm install`, then `cd packages/api && pnpm dev` and `cd packages/web && pnpm dev` (set `NEXT_PUBLIC_API_URL=http://127.0.0.1:8787` for the local Worker). Copy [`.env.example`](.env.example) to `.env` / Worker secrets; relayer + LLM keys live in Wrangler secrets / Netlify env, never in git.

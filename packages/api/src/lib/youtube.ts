@@ -1,6 +1,13 @@
 /**
  * YouTube transcript extraction.
  * Extracts captions/subtitles from YouTube videos without needing the Data API.
+ *
+ * Strategy:
+ *  1. Fetch the watch page once — gives us the title AND the captionTracks list.
+ *  2. Try the timedtext API with lang fallbacks (en → en-US → auto/ASR).
+ *  3. Walk the ranked captionTracks (manual en → a.en/ASR en → any manual → any)
+ *     and parse each track's baseUrl XML with the existing parser.
+ *  4. Firecrawl as a last resort.
  */
 
 /**
@@ -28,9 +35,20 @@ export function extractVideoId(url: string): string | null {
 
 export type YoutubeProvider = "timedtext" | "firecrawl" | "page";
 
+/** A single entry from the watch page's captionTracks array. */
+export interface CaptionTrack {
+  baseUrl: string;
+  languageCode?: string;
+  /** e.g. ".en" (manual) or "a.en" (auto-generated/ASR) */
+  vssId?: string;
+  /** "asr" for auto-generated captions */
+  kind?: string;
+  isTranslatable?: boolean;
+}
+
 /**
  * Fetch transcript from YouTube.
- * Tries: timedtext API → Firecrawl → page scrape.
+ * Tries: timedtext API → watch-page captionTracks (en → a.en/ASR → any) → Firecrawl.
  */
 export async function getYouTubeTranscript(
   url: string,
@@ -39,11 +57,23 @@ export async function getYouTubeTranscript(
   const videoId = extractVideoId(url);
   if (!videoId) return null;
 
-  // Method 1: Try timedtext API (most reliable from Workers)
-  const timedText = await fetchTimedText(videoId, "");
-  if (timedText) return { ...timedText, provider: "timedtext" };
+  // Backbone: watch page gives us the real title + the full track list
+  const page = await fetchWatchPage(videoId);
+  const title = page?.title || `YouTube: ${videoId}`;
 
-  // Method 2: Try Firecrawl to render the page and get captions
+  // Method 1: timedtext API, lang fallbacks (en → en-US → ASR)
+  const timedText = await fetchTimedTextBest(videoId);
+  if (timedText) return { text: timedText, title, provider: "timedtext" };
+
+  // Method 2: ranked captionTracks → baseUrl XML → existing parser
+  if (page?.captionTracks?.length) {
+    for (const track of rankCaptionTracks(page.captionTracks)) {
+      const text = await fetchTrackXml(track.baseUrl);
+      if (text) return { text, title, provider: "page" };
+    }
+  }
+
+  // Method 3: Firecrawl renders the page and returns markdown
   if (firecrawlKey) {
     try {
       const response = await fetch("https://api.firecrawl.dev/v1/scrape", {
@@ -69,7 +99,7 @@ export async function getYouTubeTranscript(
         if (data.success && data.data?.markdown && data.data.markdown.length > 200) {
           return {
             text: data.data.markdown,
-            title: data.data.metadata?.title ?? `YouTube: ${videoId}`,
+            title: data.data.metadata?.title ?? title,
             provider: "firecrawl",
           };
         }
@@ -79,59 +109,185 @@ export async function getYouTubeTranscript(
     }
   }
 
-  // Method 3: Direct page fetch (may be blocked from Worker IPs)
+  return null;
+}
+
+interface WatchPage {
+  title: string | null;
+  captionTracks: CaptionTrack[];
+}
+
+/**
+ * Fetch the watch page and pull out the title + captionTracks.
+ * Returns null only if the fetch itself fails.
+ */
+async function fetchWatchPage(videoId: string): Promise<WatchPage | null> {
   try {
-    const pageResponse = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
+    const response = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
       headers: {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
         "Accept-Language": "en-US,en;q=0.9",
+        // Skip the EU consent interstitial so we actually get the player response
+        Cookie: "SOCS=CAI; CONSENT=YES+cb",
       },
     });
-
-    const html = await pageResponse.text();
-    const titleMatch = html.match(/"title":"([^"]+)"/);
-    const title = titleMatch ? titleMatch[1] : `YouTube: ${videoId}`;
-
-    const captionsMatch = html.match(/"captionTracks":\s*(\[.*?\])/);
-    if (captionsMatch) {
-      const captionTracks = JSON.parse(captionsMatch[1]) as Array<{
-        baseUrl: string;
-        languageCode: string;
-      }>;
-
-      const englishTrack = captionTracks.find((t) => t.languageCode.startsWith("en"));
-      const track = englishTrack ?? captionTracks[0];
-
-      if (track) {
-        const captionUrl = track.baseUrl.replace(/\\u0026/g, "&");
-        const captionResponse = await fetch(captionUrl);
-        const captionXml = await captionResponse.text();
-        const text = parseYouTubeCaptions(captionXml);
-        if (text) return { text, title, provider: "page" };
-      }
-    }
+    const html = await response.text();
+    return {
+      title: extractTitle(html) ?? `YouTube: ${videoId}`,
+      captionTracks: extractCaptionTracks(html),
+    };
   } catch {
-    // All methods failed
+    return null;
   }
+}
+
+/**
+ * Extract the page title. Tries videoDetails JSON first, then generic fields.
+ */
+export function extractTitle(html: string): string | null {
+  const videoDetails = html.match(/"videoDetails":\{[^}]*?"title":"((?:[^"\\]|\\.)*)"/);
+  if (videoDetails) return decodeJsonString(videoDetails[1]);
+
+  const ogTitle = html.match(/<meta\s+(?:name|property)="(?:og:)?title"\s+content="([^"]+)"/);
+  if (ogTitle) return decodeJsonString(ogTitle[1]);
+
+  const generic = html.match(/"title":"((?:[^"\\]|\\.)*)"/);
+  if (generic) return decodeJsonString(generic[1]);
 
   return null;
 }
 
-/**
- * Fallback: try YouTube's timedtext API directly.
- */
-async function fetchTimedText(videoId: string, title: string): Promise<{ text: string; title: string } | null> {
+function decodeJsonString(s: string): string {
   try {
-    const response = await fetch(
-      `https://www.youtube.com/api/timedtext?v=${videoId}&lang=en&fmt=json3`
-    );
+    return JSON.parse(`"${s}"`);
+  } catch {
+    return s;
+  }
+}
 
+/**
+ * Extract the full captionTracks array from the watch page HTML.
+ *
+ * The naive regex `"captionTracks":\s*(\[.*?\])` stops at the first `]`,
+ * which breaks when a track name uses the `runs` form (`"runs":[{"text":…}]`).
+ * Bracket matching handles arbitrary nesting.
+ */
+export function extractCaptionTracks(html: string): CaptionTrack[] {
+  const key = '"captionTracks":';
+  const keyIdx = html.indexOf(key);
+  if (keyIdx === -1) return [];
+
+  const start = html.indexOf("[", keyIdx + key.length);
+  if (start === -1) return [];
+
+  let depth = 0;
+  let end = -1;
+  let inString = false;
+  let escaped = false;
+
+  for (let i = start; i < html.length; i++) {
+    const ch = html[i];
+    if (inString) {
+      if (escaped) {
+        escaped = false;
+      } else if (ch === "\\") {
+        escaped = true;
+      } else if (ch === '"') {
+        inString = false;
+      }
+      continue;
+    }
+    if (ch === '"') {
+      inString = true;
+    } else if (ch === "[" || ch === "{") {
+      depth++;
+    } else if (ch === "]" || ch === "}") {
+      depth--;
+      if (depth === 0) {
+        end = i;
+        break;
+      }
+    }
+  }
+
+  if (end === -1) return [];
+
+  try {
+    const parsed = JSON.parse(html.slice(start, end + 1)) as CaptionTrack[];
+    return Array.isArray(parsed) ? parsed.filter((t) => !!t?.baseUrl) : [];
+  } catch {
+    return [];
+  }
+}
+
+function isEnglishTrack(t: CaptionTrack): boolean {
+  const lang = (t.languageCode ?? "").toLowerCase();
+  const vss = (t.vssId ?? "").toLowerCase();
+  return lang.startsWith("en") || vss.endsWith(".en");
+}
+
+function isAsrTrack(t: CaptionTrack): boolean {
+  return t.kind === "asr" || (t.vssId ?? "").toLowerCase().startsWith("a.");
+}
+
+/**
+ * Rank tracks: manual en → a.en/ASR en → any manual → any ASR.
+ * Stable sort keeps YouTube's own order inside each tier.
+ */
+export function rankCaptionTracks(tracks: CaptionTrack[]): CaptionTrack[] {
+  const score = (t: CaptionTrack): number =>
+    (isEnglishTrack(t) ? 4 : 0) + (isAsrTrack(t) ? 0 : 2);
+  return [...tracks].sort((a, b) => score(b) - score(a));
+}
+
+/**
+ * Fetch a caption track's baseUrl and run it through the XML parser.
+ */
+async function fetchTrackXml(baseUrl: string): Promise<string | null> {
+  try {
+    const cleanUrl = baseUrl.replace(/\\u0026/g, "&");
+    const response = await fetch(cleanUrl);
+    if (!response.ok) return null;
+    const xml = await response.text();
+    return parseYouTubeCaptions(xml);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Timedtext API with lang fallbacks: en → en-US → auto (kind=asr).
+ */
+async function fetchTimedTextBest(videoId: string): Promise<string | null> {
+  const attempts: Array<{ lang: string; kind?: string }> = [
+    { lang: "en" },
+    { lang: "en-US" },
+    { lang: "en", kind: "asr" },
+    { lang: "en-US", kind: "asr" },
+  ];
+
+  for (const { lang, kind } of attempts) {
+    const text = await fetchTimedTextFormat(videoId, lang, kind);
+    if (text) return text;
+  }
+  return null;
+}
+
+async function fetchTimedTextFormat(
+  videoId: string,
+  lang: string,
+  kind?: string
+): Promise<string | null> {
+  try {
+    const params = new URLSearchParams({ v: videoId, lang, fmt: "json3" });
+    if (kind) params.set("kind", kind);
+
+    const response = await fetch(`https://www.youtube.com/api/timedtext?${params}`);
     if (!response.ok) return null;
 
     const data = (await response.json()) as {
       events?: Array<{ segs?: Array<{ utf8: string }> }>;
     };
-
     if (!data.events) return null;
 
     const text = data.events
@@ -140,7 +296,7 @@ async function fetchTimedText(videoId: string, title: string): Promise<{ text: s
       .replace(/\s+/g, " ")
       .trim();
 
-    return text.length > 50 ? { text, title } : null;
+    return text.length > 50 ? text : null;
   } catch {
     return null;
   }
@@ -149,7 +305,7 @@ async function fetchTimedText(videoId: string, title: string): Promise<{ text: s
 /**
  * Parse YouTube caption XML format into plain text.
  */
-function parseYouTubeCaptions(xml: string): string | null {
+export function parseYouTubeCaptions(xml: string): string | null {
   // YouTube captions are in format: <text start="0" dur="5.2">caption text</text>
   const segments: string[] = [];
   const regex = /<text[^>]*>([\s\S]*?)<\/text>/g;

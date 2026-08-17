@@ -24,6 +24,7 @@ export const RATE_BUDGETS = {
   /** Few storms per hour — each storm is many use() txs */
   storm: { limit: 8, windowSec: 3600 },
   search: { limit: 30, windowSec: 3600 },
+  compose: { limit: 10, windowSec: 3600 },
 } as const satisfies Record<string, RateBucket>;
 
 export type RateRoute = keyof typeof RATE_BUDGETS;

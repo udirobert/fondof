@@ -39,16 +39,32 @@ export const forgeRoute = new Hono<{ Bindings: Env }>();
 
 const FORGE_TTL = 60 * 60; // 1h — same ideas + repo → same draft
 
-forgeRoute.post("/forge", rateLimit("forge"), async (c) => {
-  const body = await c.req.json<{
-    ideas: Array<{ title: string; description: string; sourceUrl: string }>;
-    repo?: { name: string; frameworks: string[]; languages: string[] };
-    gapAgainst?: { title: string; url: string; snippet?: string };
-    private?: boolean;
-  }>();
+export interface ForgeInput {
+  ideas: Array<{ title: string; description: string; sourceUrl: string }>;
+  repo?: { name: string; frameworks: string[]; languages: string[] };
+  gapAgainst?: { title: string; url: string; snippet?: string };
+  private?: boolean;
+}
 
-  if (!body.ideas?.length) return c.json({ error: "ideas array is required" }, 400);
+export interface ForgePayload {
+  title: string;
+  skillHash: string;
+  sourceHashes: string[];
+  markdown: string;
+  fittedTo: string;
+  composedAt: string;
+  private: boolean;
+}
 
+/**
+ * Core forge logic — shared by POST /forge and POST /compose.
+ * Returns the forged skill payload (from cache when available).
+ * Throws on LLM failure so callers can map it to a 500.
+ */
+export async function forgeSkillCore(
+  env: Env,
+  body: ForgeInput,
+): Promise<{ payload: ForgePayload; cacheHit: boolean }> {
   const isPrivate = body.private === true;
 
   const ideasStr = body.ideas
@@ -64,17 +80,9 @@ forgeRoute.post("/forge", rateLimit("forge"), async (c) => {
     : "";
 
   const cacheKey = `forge:v3:${await sha256Hex(`${repoStr}\n${ideasStr}\n${gapStr}`)}`;
-  const hit = await cacheGetJson<{
-    title: string;
-    skillHash: string;
-    sourceHashes: string[];
-    markdown: string;
-    fittedTo: string;
-    composedAt: string;
-  }>(cacheKey);
+  const hit = await cacheGetJson<ForgePayload>(cacheKey);
   if (hit?.markdown) {
-    c.header("X-Cache", "HIT");
-    return c.json(hit);
+    return { payload: hit, cacheHit: true };
   }
 
   const gapBlock = body.gapAgainst
@@ -97,85 +105,94 @@ ${ideasStr}
 ${gapBlock}
 Write markdown with # title then ## Context, ## Guidance (one code example), ## Anti-patterns, ## References. Stay concise — this is a skill file agents load, not a blog post. Name the target repo in Context.`;
 
-  try {
-    const skillMarkdown = await chat(c.env.AI, COMPOSE_SYSTEM, prompt, c.env);
+  const skillMarkdown = await chat(env.AI, COMPOSE_SYSTEM, prompt, env);
 
-    // Extract title from the response
-    const titleMatch = skillMarkdown.match(/^#\s+(.+)$/m);
-    const title = titleMatch ? titleMatch[1] : "Forged Skill";
+  // Extract title from the response
+  const titleMatch = skillMarkdown.match(/^#\s+(.+)$/m);
+  const title = titleMatch ? titleMatch[1] : "Forged Skill";
 
-    // Add attribution preamble
-    const sourceUrls = [...new Set(body.ideas.map((i) => i.sourceUrl))];
-    const sourceList = sourceUrls
-      .filter((u) => u && !u.startsWith("https://fondof.local"))
-      .map((u) => `  - ${u}`)
-      .join("\n");
-    const repoLabel = body.repo?.name ?? "general";
+  // Add attribution preamble
+  const sourceUrls = [...new Set(body.ideas.map((i) => i.sourceUrl))];
+  const sourceList = sourceUrls
+    .filter((u) => u && !u.startsWith("https://fondof.local"))
+    .map((u) => `  - ${u}`)
+    .join("\n");
+  const repoLabel = body.repo?.name ?? "general";
 
-    const preamble = `<!-- Forged with fondof | Fitted for: ${repoLabel} | Sources:\n${sourceList || "  - (direct input)"}\n-->\n\n`;
-    const attribution = `\n\n---\n*Forged with [fondof](https://fondof.netlify.app) · Fitted for ${repoLabel}*\n`;
+  const preamble = `<!-- Forged with fondof | Fitted for: ${repoLabel} | Sources:\n${sourceList || "  - (direct input)"}\n-->\n\n`;
+  const attribution = `\n\n---\n*Forged with [fondof](https://fondof.netlify.app) · Fitted for ${repoLabel}*\n`;
 
-    const fullMarkdown = preamble + skillMarkdown + attribution;
+  const fullMarkdown = preamble + skillMarkdown + attribution;
 
-    // Hash the skill content
-    const encoder = new TextEncoder();
-    const hashBuffer = await crypto.subtle.digest("SHA-256", encoder.encode(fullMarkdown));
-    const skillHash = Array.from(new Uint8Array(hashBuffer))
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join("");
+  // Hash the skill content
+  const encoder = new TextEncoder();
+  const hashBuffer = await crypto.subtle.digest("SHA-256", encoder.encode(fullMarkdown));
+  const skillHash = Array.from(new Uint8Array(hashBuffer))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 
-    // Source hashes from the ideas
-    const sourceHashes = [...new Set(body.ideas.map((i) => i.sourceUrl))].map((url) => {
-      // Simple hash of the URL for provenance linking
-      let hash = 0;
-      for (let i = 0; i < url.length; i++) {
-        hash = ((hash << 5) - hash + url.charCodeAt(i)) | 0;
-      }
-      return Math.abs(hash).toString(16).padStart(64, "0");
-    });
+  // Source hashes from the ideas
+  const sourceHashes = [...new Set(body.ideas.map((i) => i.sourceUrl))].map((url) => {
+    // Simple hash of the URL for provenance linking
+    let hash = 0;
+    for (let i = 0; i < url.length; i++) {
+      hash = ((hash << 5) - hash + url.charCodeAt(i)) | 0;
+    }
+    return Math.abs(hash).toString(16).padStart(64, "0");
+  });
 
-    const payload = {
-      title,
-      skillHash,
-      sourceHashes,
-      markdown: fullMarkdown,
-      fittedTo: body.repo?.name ?? "general",
-      composedAt: new Date().toISOString(),
-      private: isPrivate,
-    };
-    await cachePutJson(cacheKey, payload, FORGE_TTL);
+  const payload: ForgePayload = {
+    title,
+    skillHash,
+    sourceHashes,
+    markdown: fullMarkdown,
+    fittedTo: body.repo?.name ?? "general",
+    composedAt: new Date().toISOString(),
+    private: isPrivate,
+  };
+  await cachePutJson(cacheKey, payload, FORGE_TTL);
 
-    // Track source → skill mappings for /from/[source] pages (skip if private)
-    if (!isPrivate) {
-      const realSources = sourceUrls.filter(
-        (u) => u && !u.startsWith("https://fondof.local") && u.startsWith("http"),
-      );
-      for (const url of realSources) {
-        try {
-          const domain = new URL(url).hostname.replace(/^www\./, "");
-          const sourceKey = `source:${domain}`;
-          const existing =
-            (await c.env.SESSIONS.get(sourceKey, "json")) as SourceEntry[] | null;
-          const entries = existing || [];
-          if (!entries.some((e) => e.skillHash === skillHash)) {
-            entries.push({
-              skillHash,
-              title,
-              sourceUrl: url,
-              fittedTo: body.repo?.name ?? "general",
-              forgedAt: new Date().toISOString(),
-            });
-            await c.env.SESSIONS.put(sourceKey, JSON.stringify(entries), {
-              expirationTtl: 60 * 60 * 24 * 365,
-            });
-          }
-        } catch {
-          // Skip malformed URLs
+  // Track source → skill mappings for /from/[source] pages (skip if private)
+  if (!isPrivate) {
+    const realSources = sourceUrls.filter(
+      (u) => u && !u.startsWith("https://fondof.local") && u.startsWith("http"),
+    );
+    for (const url of realSources) {
+      try {
+        const domain = new URL(url).hostname.replace(/^www\./, "");
+        const sourceKey = `source:${domain}`;
+        const existing =
+          (await env.SESSIONS.get(sourceKey, "json")) as SourceEntry[] | null;
+        const entries = existing || [];
+        if (!entries.some((e) => e.skillHash === skillHash)) {
+          entries.push({
+            skillHash,
+            title,
+            sourceUrl: url,
+            fittedTo: body.repo?.name ?? "general",
+            forgedAt: new Date().toISOString(),
+          });
+          await env.SESSIONS.put(sourceKey, JSON.stringify(entries), {
+            expirationTtl: 60 * 60 * 24 * 365,
+          });
         }
+      } catch {
+        // Skip malformed URLs
       }
     }
+  }
 
-    c.header("X-Cache", "MISS");
+  return { payload, cacheHit: false };
+}
+
+forgeRoute.post("/forge", rateLimit("forge"), async (c) => {
+  const body = await c.req.json<ForgeInput>();
+
+  if (!body.ideas?.length) return c.json({ error: "ideas array is required" }, 400);
+
+  try {
+    const { payload, cacheHit } = await forgeSkillCore(c.env, body);
+    c.header("X-Cache", cacheHit ? "HIT" : "MISS");
     return c.json(payload);
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Unknown error";
