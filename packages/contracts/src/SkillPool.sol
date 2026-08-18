@@ -5,7 +5,8 @@ pragma solidity ^0.8.20;
 /// @notice On-chain skill quality discovery protocol for fondof.
 /// @dev Skills are forged with provenance + backing. Usage receipts and challenges
 ///      create a living quality signal that discovery reads from.
-///      Designed for Monad's 10K TPS — per-use tracking is economical.
+///      Supports usage receipts and challenge signals; clients should submit
+///      meaningful receipts rather than treating every click as verified impact.
 contract SkillPool {
     struct Skill {
         bytes32 skillHash;

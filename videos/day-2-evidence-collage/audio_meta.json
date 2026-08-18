@@ -1,0 +1,884 @@
+{
+  "bgm": {
+    "provider": "elevenlabs",
+    "path": "bgm-elevenlabs.mp3",
+    "duration_s": 40.02,
+    "instrumental": true,
+    "mix_note": "Keep below narration with gentle in/out fades."
+  },
+  "bgm_pending": false,
+  "voices": [
+    {
+      "frame": 1,
+      "path": "assets/voice/01.wav",
+      "duration_s": 9.427,
+      "words": [
+        {
+          "id": "Every",
+          "text": "Every",
+          "start": 0,
+          "end": 0.337
+        },
+        {
+          "id": "AI",
+          "text": "AI",
+          "start": 0.395,
+          "end": 0.766
+        },
+        {
+          "id": "can",
+          "text": "can",
+          "start": 0.824,
+          "end": 0.952
+        },
+        {
+          "id": "generate",
+          "text": "generate",
+          "start": 0.998,
+          "end": 1.393
+        },
+        {
+          "id": "a",
+          "text": "a",
+          "start": 1.416,
+          "end": 1.451
+        },
+        {
+          "id": "skill",
+          "text": "skill",
+          "start": 1.498,
+          "end": 1.788
+        },
+        {
+          "id": "now",
+          "text": "now.",
+          "start": 1.858,
+          "end": 2.264
+        },
+        {
+          "id": "And",
+          "text": "And",
+          "start": 2.543,
+          "end": 2.682
+        },
+        {
+          "id": "most",
+          "text": "most",
+          "start": 2.752,
+          "end": 2.937
+        },
+        {
+          "id": "of",
+          "text": "of",
+          "start": 2.984,
+          "end": 3.042
+        },
+        {
+          "id": "them",
+          "text": "them",
+          "start": 3.088,
+          "end": 3.204
+        },
+        {
+          "id": "are",
+          "text": "are",
+          "start": 3.251,
+          "end": 3.332
+        },
+        {
+          "id": "garbage",
+          "text": "garbage.",
+          "start": 3.355,
+          "end": 4.005
+        },
+        {
+          "id": "Hallucinated",
+          "text": "Hallucinated",
+          "start": 4.214,
+          "end": 4.899
+        },
+        {
+          "id": "imports",
+          "text": "imports.",
+          "start": 4.957,
+          "end": 5.573
+        },
+        {
+          "id": "Fake",
+          "text": "Fake",
+          "start": 5.724,
+          "end": 6.026
+        },
+        {
+          "id": "APIs",
+          "text": "APIs.",
+          "start": 6.06,
+          "end": 6.885
+        },
+        {
+          "id": "Written",
+          "text": "Written",
+          "start": 7.036,
+          "end": 7.338
+        },
+        {
+          "id": "for",
+          "text": "for",
+          "start": 7.396,
+          "end": 7.488
+        },
+        {
+          "id": "no",
+          "text": "no",
+          "start": 7.546,
+          "end": 7.674
+        },
+        {
+          "id": "one",
+          "text": "one.",
+          "start": 7.767,
+          "end": 8.069
+        },
+        {
+          "id": "Fitted",
+          "text": "Fitted",
+          "start": 8.185,
+          "end": 8.522
+        },
+        {
+          "id": "to",
+          "text": "to",
+          "start": 8.568,
+          "end": 8.638
+        },
+        {
+          "id": "nothing",
+          "text": "nothing.",
+          "start": 8.707,
+          "end": 9.427
+        }
+      ]
+    },
+    {
+      "frame": 2,
+      "path": "assets/voice/02.wav",
+      "duration_s": 5.155,
+      "words": [
+        {
+          "id": "So",
+          "text": "So",
+          "start": 0,
+          "end": 0.163
+        },
+        {
+          "id": "what",
+          "text": "what",
+          "start": 0.209,
+          "end": 0.36
+        },
+        {
+          "id": "makes",
+          "text": "makes",
+          "start": 0.418,
+          "end": 0.639
+        },
+        {
+          "id": "one",
+          "text": "one",
+          "start": 0.697,
+          "end": 0.859
+        },
+        {
+          "id": "worth",
+          "text": "worth",
+          "start": 0.894,
+          "end": 1.161
+        },
+        {
+          "id": "keeping",
+          "text": "keeping?",
+          "start": 1.219,
+          "end": 1.741
+        },
+        {
+          "id": "What",
+          "text": "What",
+          "start": 2.183,
+          "end": 2.368
+        },
+        {
+          "id": "if",
+          "text": "if",
+          "start": 2.415,
+          "end": 2.496
+        },
+        {
+          "id": "it",
+          "text": "it",
+          "start": 2.554,
+          "end": 2.624
+        },
+        {
+          "id": "started",
+          "text": "started",
+          "start": 2.682,
+          "end": 3.088
+        },
+        {
+          "id": "with",
+          "text": "with",
+          "start": 3.135,
+          "end": 3.274
+        },
+        {
+          "id": "thinking",
+          "text": "thinking",
+          "start": 3.309,
+          "end": 3.622
+        },
+        {
+          "id": "that",
+          "text": "that",
+          "start": 3.669,
+          "end": 3.796
+        },
+        {
+          "id": "already",
+          "text": "already",
+          "start": 3.843,
+          "end": 4.214
+        },
+        {
+          "id": "survived",
+          "text": "survived?",
+          "start": 4.261,
+          "end": 5.155
+        }
+      ]
+    },
+    {
+      "frame": 3,
+      "path": "assets/voice/03.wav",
+      "duration_s": 12.678,
+      "words": [
+        {
+          "id": "Paul",
+          "text": "Paul",
+          "start": 0,
+          "end": 0.29
+        },
+        {
+          "id": "Graham",
+          "text": "Graham,",
+          "start": 0.36,
+          "end": 0.766
+        },
+        {
+          "id": "on",
+          "text": "on",
+          "start": 0.801,
+          "end": 0.894
+        },
+        {
+          "id": "the",
+          "text": "the",
+          "start": 0.929,
+          "end": 0.998
+        },
+        {
+          "id": "work",
+          "text": "work",
+          "start": 1.033,
+          "end": 1.242
+        },
+        {
+          "id": "everyone",
+          "text": "everyone",
+          "start": 1.289,
+          "end": 1.637
+        },
+        {
+          "id": "skips",
+          "text": "skips.",
+          "start": 1.683,
+          "end": 2.252
+        },
+        {
+          "id": "Peter",
+          "text": "Peter",
+          "start": 2.577,
+          "end": 2.891
+        },
+        {
+          "id": "Thiel",
+          "text": "Thiel,",
+          "start": 2.961,
+          "end": 3.379
+        },
+        {
+          "id": "on",
+          "text": "on",
+          "start": 3.425,
+          "end": 3.541
+        },
+        {
+          "id": "why",
+          "text": "why",
+          "start": 3.611,
+          "end": 3.808
+        },
+        {
+          "id": "competition",
+          "text": "competition",
+          "start": 3.878,
+          "end": 4.389
+        },
+        {
+          "id": "is",
+          "text": "is",
+          "start": 4.435,
+          "end": 4.505
+        },
+        {
+          "id": "for",
+          "text": "for",
+          "start": 4.551,
+          "end": 4.656
+        },
+        {
+          "id": "losers",
+          "text": "losers.",
+          "start": 4.714,
+          "end": 5.317
+        },
+        {
+          "id": "Kepano",
+          "text": "Kepano,",
+          "start": 5.828,
+          "end": 6.409
+        },
+        {
+          "id": "on",
+          "text": "on",
+          "start": 6.444,
+          "end": 6.571
+        },
+        {
+          "id": "how",
+          "text": "how",
+          "start": 6.641,
+          "end": 6.769
+        },
+        {
+          "id": "moats",
+          "text": "moats",
+          "start": 6.85,
+          "end": 7.117
+        },
+        {
+          "id": "actually",
+          "text": "actually",
+          "start": 7.163,
+          "end": 7.488
+        },
+        {
+          "id": "stack",
+          "text": "stack.",
+          "start": 7.546,
+          "end": 8.092
+        },
+        {
+          "id": "Three",
+          "text": "Three",
+          "start": 8.789,
+          "end": 9.079
+        },
+        {
+          "id": "sources",
+          "text": "sources.",
+          "start": 9.114,
+          "end": 9.741
+        },
+        {
+          "id": "Real",
+          "text": "Real",
+          "start": 9.95,
+          "end": 10.194
+        },
+        {
+          "id": "thinking",
+          "text": "thinking.",
+          "start": 10.252,
+          "end": 10.844
+        },
+        {
+          "id": "Not",
+          "text": "Not",
+          "start": 11.656,
+          "end": 11.842
+        },
+        {
+          "id": "vibes",
+          "text": "vibes.",
+          "start": 11.9,
+          "end": 12.678
+        }
+      ]
+    },
+    {
+      "frame": 4,
+      "path": "assets/voice/04.wav",
+      "duration_s": 7.152,
+      "words": [
+        {
+          "id": "fondof",
+          "text": "fondof",
+          "start": 0,
+          "end": 0.453
+        },
+        {
+          "id": "forged",
+          "text": "forged",
+          "start": 0.522,
+          "end": 0.871
+        },
+        {
+          "id": "them",
+          "text": "them",
+          "start": 0.894,
+          "end": 1.022
+        },
+        {
+          "id": "into",
+          "text": "into",
+          "start": 1.068,
+          "end": 1.219
+        },
+        {
+          "id": "a",
+          "text": "a",
+          "start": 1.289,
+          "end": 1.312
+        },
+        {
+          "id": "single",
+          "text": "single",
+          "start": 1.37,
+          "end": 1.707
+        },
+        {
+          "id": "skill",
+          "text": "skill.",
+          "start": 1.741,
+          "end": 2.31
+        },
+        {
+          "id": "Fitted",
+          "text": "Fitted",
+          "start": 2.821,
+          "end": 3.146
+        },
+        {
+          "id": "to",
+          "text": "to",
+          "start": 3.181,
+          "end": 3.228
+        },
+        {
+          "id": "this",
+          "text": "this",
+          "start": 3.286,
+          "end": 3.413
+        },
+        {
+          "id": "repo",
+          "text": "repo.",
+          "start": 3.495,
+          "end": 4.098
+        },
+        {
+          "id": "But",
+          "text": "But",
+          "start": 4.423,
+          "end": 4.574
+        },
+        {
+          "id": "the",
+          "text": "the",
+          "start": 4.598,
+          "end": 4.667
+        },
+        {
+          "id": "first",
+          "text": "first",
+          "start": 4.725,
+          "end": 4.992
+        },
+        {
+          "id": "draft",
+          "text": "draft?",
+          "start": 5.027,
+          "end": 5.596
+        },
+        {
+          "id": "It",
+          "text": "It",
+          "start": 5.805,
+          "end": 5.921
+        },
+        {
+          "id": "looked",
+          "text": "looked",
+          "start": 5.956,
+          "end": 6.153
+        },
+        {
+          "id": "convincing",
+          "text": "convincing.",
+          "start": 6.188,
+          "end": 7.152
+        }
+      ]
+    },
+    {
+      "frame": 5,
+      "path": "assets/voice/05.wav",
+      "duration_s": 5.712,
+      "words": [
+        {
+          "id": "Then",
+          "text": "Then",
+          "start": 0,
+          "end": 0.244
+        },
+        {
+          "id": "the",
+          "text": "the",
+          "start": 0.302,
+          "end": 0.372
+        },
+        {
+          "id": "fit",
+          "text": "fit",
+          "start": 0.418,
+          "end": 0.592
+        },
+        {
+          "id": "review",
+          "text": "review",
+          "start": 0.65,
+          "end": 0.94
+        },
+        {
+          "id": "caught",
+          "text": "caught",
+          "start": 1.022,
+          "end": 1.289
+        },
+        {
+          "id": "invented",
+          "text": "invented",
+          "start": 1.358,
+          "end": 1.823
+        },
+        {
+          "id": "imports",
+          "text": "imports",
+          "start": 1.881,
+          "end": 2.368
+        },
+        {
+          "id": "and",
+          "text": "and",
+          "start": 2.403,
+          "end": 2.496
+        },
+        {
+          "id": "fake",
+          "text": "fake",
+          "start": 2.577,
+          "end": 2.833
+        },
+        {
+          "id": "references",
+          "text": "references.",
+          "start": 2.879,
+          "end": 3.576
+        },
+        {
+          "id": "Rejected",
+          "text": "Rejected.",
+          "start": 3.785,
+          "end": 4.458
+        },
+        {
+          "id": "No",
+          "text": "No",
+          "start": 4.702,
+          "end": 4.853
+        },
+        {
+          "id": "mercy",
+          "text": "mercy.",
+          "start": 4.923,
+          "end": 5.712
+        }
+      ]
+    },
+    {
+      "frame": 6,
+      "path": "assets/voice/06.wav",
+      "duration_s": 7.245,
+      "words": [
+        {
+          "id": "So",
+          "text": "So",
+          "start": 0,
+          "end": 0.163
+        },
+        {
+          "id": "we",
+          "text": "we",
+          "start": 0.209,
+          "end": 0.29
+        },
+        {
+          "id": "went",
+          "text": "went",
+          "start": 0.325,
+          "end": 0.499
+        },
+        {
+          "id": "back",
+          "text": "back",
+          "start": 0.546,
+          "end": 0.72
+        },
+        {
+          "id": "to",
+          "text": "to",
+          "start": 0.778,
+          "end": 0.836
+        },
+        {
+          "id": "the",
+          "text": "the",
+          "start": 0.906,
+          "end": 0.975
+        },
+        {
+          "id": "source",
+          "text": "source.",
+          "start": 1.022,
+          "end": 1.533
+        },
+        {
+          "id": "Followed",
+          "text": "Followed",
+          "start": 1.776,
+          "end": 2.125
+        },
+        {
+          "id": "the",
+          "text": "the",
+          "start": 2.159,
+          "end": 2.229
+        },
+        {
+          "id": "actual",
+          "text": "actual",
+          "start": 2.287,
+          "end": 2.589
+        },
+        {
+          "id": "trail",
+          "text": "trail.",
+          "start": 2.647,
+          "end": 3.158
+        },
+        {
+          "id": "Into",
+          "text": "Into",
+          "start": 3.309,
+          "end": 3.541
+        },
+        {
+          "id": "this",
+          "text": "this",
+          "start": 3.599,
+          "end": 3.727
+        },
+        {
+          "id": "codebase",
+          "text": "codebase,",
+          "start": 3.785,
+          "end": 4.458
+        },
+        {
+          "id": "out",
+          "text": "out",
+          "start": 4.528,
+          "end": 4.714
+        },
+        {
+          "id": "the",
+          "text": "the",
+          "start": 4.76,
+          "end": 4.83
+        },
+        {
+          "id": "other",
+          "text": "other",
+          "start": 4.876,
+          "end": 5.05
+        },
+        {
+          "id": "side",
+          "text": "side",
+          "start": 5.097,
+          "end": 5.399
+        },
+        {
+          "id": "as",
+          "text": "as",
+          "start": 5.433,
+          "end": 5.515
+        },
+        {
+          "id": "a",
+          "text": "a",
+          "start": 5.561,
+          "end": 5.584
+        },
+        {
+          "id": "skill",
+          "text": "skill",
+          "start": 5.642,
+          "end": 5.933
+        },
+        {
+          "id": "that",
+          "text": "that",
+          "start": 5.991,
+          "end": 6.107
+        },
+        {
+          "id": "actually",
+          "text": "actually",
+          "start": 6.142,
+          "end": 6.467
+        },
+        {
+          "id": "fits",
+          "text": "fits.",
+          "start": 6.525,
+          "end": 7.245
+        }
+      ]
+    },
+    {
+      "frame": 7,
+      "path": "assets/voice/07.wav",
+      "duration_s": 7.663,
+      "words": [
+        {
+          "id": "That",
+          "text": "That",
+          "start": 0,
+          "end": 0.267
+        },
+        {
+          "id": "developer",
+          "text": "developer?",
+          "start": 0.313,
+          "end": 0.917
+        },
+        {
+          "id": "That's",
+          "text": "That's",
+          "start": 1.033,
+          "end": 1.3
+        },
+        {
+          "id": "you",
+          "text": "you.",
+          "start": 1.358,
+          "end": 1.73
+        },
+        {
+          "id": "Don't",
+          "text": "Don't",
+          "start": 2.009,
+          "end": 2.252
+        },
+        {
+          "id": "install",
+          "text": "install",
+          "start": 2.31,
+          "end": 2.682
+        },
+        {
+          "id": "the",
+          "text": "the",
+          "start": 2.752,
+          "end": 2.821
+        },
+        {
+          "id": "skill",
+          "text": "skill.",
+          "start": 2.868,
+          "end": 3.379
+        },
+        {
+          "id": "Re-forge",
+          "text": "Re-forge",
+          "start": 3.587,
+          "end": 4.156
+        },
+        {
+          "id": "the",
+          "text": "the",
+          "start": 4.203,
+          "end": 4.272
+        },
+        {
+          "id": "thinking",
+          "text": "thinking.",
+          "start": 4.331,
+          "end": 4.876
+        },
+        {
+          "id": "fondof",
+          "text": "fondof",
+          "start": 5.085,
+          "end": 5.596
+        },
+        {
+          "id": "dot",
+          "text": "dot",
+          "start": 5.724,
+          "end": 5.956
+        },
+        {
+          "id": "netlify",
+          "text": "netlify",
+          "start": 6.072,
+          "end": 6.641
+        },
+        {
+          "id": "dot",
+          "text": "dot",
+          "start": 6.722,
+          "end": 6.954
+        },
+        {
+          "id": "app",
+          "text": "app.",
+          "start": 7.024,
+          "end": 7.663
+        }
+      ]
+    }
+  ],
+  "sfx": []
+}

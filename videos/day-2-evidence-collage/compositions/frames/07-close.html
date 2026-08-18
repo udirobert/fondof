@@ -1,0 +1,135 @@
+<template>
+  <style>
+    @font-face { font-family: Outfit; src: url("capture/assets/fonts/03bda585a99c6450-s.p.32sris142tqlb.woff2") format("woff2"); font-weight: 400 500; }
+    @font-face { font-family: "Geist Mono"; src: url("capture/assets/fonts/1b99372b3eaef0c8-s.p.1gsd1jahc5dg_.woff2") format("woff2"); font-weight: 400 500; }
+    #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; background: #F7F1E5; color: #221812; }
+    .clip { position: absolute; inset: 0; }
+    .ground { background: #F7F1E5; background-image: repeating-linear-gradient(90deg, rgba(34,24,18,.026) 0 1px, transparent 1px 52px); }
+    .kicker { position: absolute; z-index: 8; top: 128px; left: 86px; font: 500 22px/1 "Geist Mono", monospace; letter-spacing: .15em; }
+    .kicker b { color: #C5521C; font-size: 28px; }
+    .rule { position: absolute; z-index: 8; top: 194px; left: 86px; width: 908px; height: 1px; background: rgba(34,24,18,.18); transform-origin: left; }
+    .desk { position: absolute; z-index: 2; top: 690px; left: 96px; width: 888px; height: 22px; border-radius: 6px; background: #221812; opacity: 0; }
+    .fit-card {
+      position: absolute; z-index: 4; top: 366px; left: 120px; width: 600px; padding: 30px 34px;
+      border: 1px solid rgba(34,24,18,.16); border-radius: 10px; background: #F7F1E5;
+      box-shadow: 0 10px 26px rgba(34,24,18,.12); transform: rotate(-2deg); opacity: 0;
+    }
+    .fit-card .tag { font: 500 17px/1 "Geist Mono", monospace; letter-spacing: .12em; color: #1D7A54; }
+    .fit-card h2 { margin: 12px 0 0; font: 400 48px/.98 Outfit, sans-serif; letter-spacing: -.04em; }
+    .fit-card .code { margin-top: 16px; padding: 12px 14px; border-radius: 6px; background: #181615; color: #F7F1E5; font: 400 20px/1.4 "Geist Mono", monospace; letter-spacing: -.03em; white-space: nowrap; overflow: hidden; }
+    .fit-card .code .ok { color: #5DB8A6; }
+    .fit-card .check { position: absolute; top: -22px; right: -22px; width: 70px; height: 70px; display: grid; place-items: center; border: 2px solid #221812; border-radius: 50%; background: #1D7A54; color: #F7F1E5; font: 500 34px/1 Outfit, sans-serif; box-shadow: 4px 5px 0 #221812; }
+    .you-chip {
+      position: absolute; z-index: 6; top: 236px; left: 560px; padding: 14px 26px;
+      border: 2px solid #221812; border-radius: 8px; background: #C5521C; color: #F7F1E5;
+      font: 400 40px/1 Outfit, sans-serif; letter-spacing: -.02em;
+      transform: rotate(3deg); box-shadow: 6px 7px 0 rgba(34,24,18,.16); opacity: 0;
+    }
+    .courier {
+      position: absolute; z-index: 5; right: -20px; top: 300px; width: 360px; height: 400px;
+      object-fit: contain; object-position: bottom center;
+      filter: grayscale(1) contrast(1.12) drop-shadow(-10px 12px 0 rgba(197,82,28,.85));
+      opacity: 0;
+    }
+    .statement { position: absolute; z-index: 5; top: 840px; left: 74px; width: 932px; text-align: center; }
+    .copy { font: 400 88px/.98 Outfit, sans-serif; letter-spacing: -.045em; }
+    .outgoing { position: relative; opacity: 0; }
+    .strike { position: absolute; top: 26%; left: 10px; width: 912px; height: 300px; overflow: visible; }
+    .strike path { fill: none; stroke: #221812; stroke-width: 8; stroke-linecap: round; }
+    .incoming { opacity: 0; }
+    .url { position: absolute; z-index: 6; top: 1396px; left: 140px; width: 800px; text-align: center; padding: 30px 44px; background: #C5521C; border-radius: 10px; color: #F7F1E5; font: 500 40px/1 "Geist Mono", monospace; letter-spacing: .02em; box-shadow: 6px 7px 0 rgba(34,24,18,.2); opacity: 0; }
+    .note { position: absolute; z-index: 5; top: 1524px; left: 86px; width: 908px; text-align: center; font: 500 20px/1.4 "Geist Mono", monospace; letter-spacing: .06em; color: rgba(34,24,18,.72); opacity: 0; }
+    .clerk-f7 {
+      position: absolute; z-index: 3; left: -20px; top: 330px; width: 360px; height: 400px;
+      object-fit: contain; object-position: bottom center;
+      filter: grayscale(1) contrast(1.12) drop-shadow(10px 12px 0 rgba(197,82,28,.85));
+      opacity: 0;
+    }
+    .cast { position: absolute; z-index: 4; width: 120px; height: 145px; object-fit: contain; object-position: bottom center; filter: grayscale(1) contrast(1.12) drop-shadow(4px 5px 0 rgba(197,82,28,.7)); opacity: 0; }
+    .cast-1 { top: 1120px; left: 92px; transform: rotate(-3deg); }
+    .cast-2 { top: 1110px; left: 221px; transform: rotate(2deg); }
+    .cast-3 { top: 1125px; left: 350px; transform: rotate(-2deg); }
+    .cast-4 { top: 1112px; left: 479px; transform: rotate(3deg); }
+    .cast-5 { top: 1122px; left: 608px; transform: rotate(-2deg); }
+    .cast-6 { top: 1108px; left: 737px; transform: rotate(2deg); }
+    .cast-7 { top: 1118px; left: 866px; transform: rotate(-2deg); }
+  </style>
+  <div data-hf-id="hf-4gp7" id="root" data-composition-id="07-close" data-start="0" data-duration="8.631" data-width="1080" data-height="1920">
+    <div data-hf-id="hf-rw0q" id="f07-ground" class="clip ground" data-start="0" data-duration="8.631" data-track-index="0"></div>
+    <div data-hf-id="hf-vmwr" id="f07-stage" class="clip" data-start="0" data-duration="8.631" data-track-index="1">
+      <div data-hf-id="hf-9g16" id="f07-kicker" class="kicker"><b data-hf-id="hf-u3lo">✱</b> FONDOF / 07</div>
+      <div data-hf-id="hf-7pp0" id="f07-rule" class="rule"></div>
+
+      <div data-hf-id="hf-5amd" id="f07-topgroup">
+        <div data-hf-id="hf-7f4x" id="f07-desk" class="desk" aria-hidden="true"></div>
+        <section data-hf-id="hf-8xx6" id="f07-fit-card" class="fit-card" data-layout-allow-overlap="">
+          <span data-hf-id="hf-qmcj" class="check" aria-hidden="true">✓</span>
+          <span data-hf-id="hf-8csi" class="tag">FITTED SKILL / YOUR REPO</span>
+          <h2 data-hf-id="hf-v2xl">forge-notes.md</h2>
+          <div data-hf-id="hf-qevj" class="code"><span data-hf-id="hf-q4uk" class="ok">source → repo → fitted action</span></div>
+        </section>
+        <div data-hf-id="hf-zogn" id="f07-you" class="you-chip" data-layout-allow-overlap="" data-layout-allow-occlusion="">THAT'S YOU.</div>
+        <img data-hf-id="hf-6m07" id="f07-courier" class="courier" src=".media/generated/forger-courier-cutout.png" alt="">
+        <img id="f07-clerk" class="clerk-f7" src=".media/generated/char-clerk-cutout.png" alt="" data-layout-allow-overlap data-layout-allow-occlusion>
+      </div>
+
+      <section data-hf-id="hf-xl36" id="f07-statement" class="statement">
+        <div data-hf-id="hf-yzhe" id="f07-outgoing" class="copy outgoing">DON'T INSTALL<br data-hf-id="hf-x5px">A SKILL.</div>
+        <svg data-hf-id="hf-8r7d" id="f07-strike-svg" class="strike" viewBox="0 0 912 300" aria-hidden="true"><path data-hf-id="hf-hi2b" id="f07-strike" d="M12 60 C 240 20 620 90 900 40 M 30 220 C 300 260 640 190 880 240" /></svg>
+        <div data-hf-id="hf-vtwp" id="f07-incoming" class="copy incoming">RE-FORGE THE<br data-hf-id="hf-rsrt">THINKING.</div>
+      </section>
+
+      <div data-hf-id="hf-gbwg" id="f07-url" class="url">fondof.netlify.app</div>
+      <p data-hf-id="hf-eo6p" id="f07-note" class="note">A source-first skill for a real repository.</p>
+
+      <img id="f07-cast1" class="cast cast-1" src=".media/generated/char-clerk-cutout.png" alt="" data-layout-allow-overlap data-layout-allow-occlusion>
+      <img id="f07-cast2" class="cast cast-2" src=".media/generated/char-thinker-cutout.png" alt="" data-layout-allow-overlap data-layout-allow-occlusion>
+      <img id="f07-cast3" class="cast cast-3" src=".media/generated/char-archivist-cutout.png" alt="" data-layout-allow-overlap data-layout-allow-occlusion>
+      <img id="f07-cast4" class="cast cast-4" src=".media/generated/char-smith-cutout.png" alt="" data-layout-allow-overlap data-layout-allow-occlusion>
+      <img id="f07-cast5" class="cast cast-5" src=".media/generated/char-inspector-cutout.png" alt="" data-layout-allow-overlap data-layout-allow-occlusion>
+      <img id="f07-cast6" class="cast cast-6" src=".media/generated/source-hand-cutout.png" alt="" data-layout-allow-overlap data-layout-allow-occlusion>
+      <img id="f07-cast7" class="cast cast-7" src=".media/generated/forger-courier-cutout.png" alt="" data-layout-allow-overlap data-layout-allow-occlusion>
+    </div>
+  </div>
+  <script>
+    (() => {
+      const tl = gsap.timeline({ paused: true });
+      window.__timelines = window.__timelines || {};
+      window.__timelines["07-close"] = tl;
+
+      tl.fromTo("#f07-kicker", { opacity: 0, y: -16 }, { opacity: 1, y: 0, duration: .28, ease: "expo.out" }, .05);
+      tl.fromTo("#f07-rule", { scaleX: 0 }, { scaleX: 1, duration: .4, ease: "power2.out" }, .12);
+
+      // "That developer? That's you." (0.0–1.73) — courier delivers the fitted card to YOU
+      tl.fromTo("#f07-courier", { opacity: 0, x: 160 }, { opacity: 1, x: 0, duration: .5, ease: "steps(5)" }, .1);
+      // clerk (the viewer) receives the fitted skill
+      tl.fromTo("#f07-clerk", { opacity: 0, x: -120 }, { opacity: 1, x: 0, duration: .5, ease: "steps(5)" }, .25);
+      tl.fromTo("#f07-desk", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: .35, ease: "power2.out" }, .3);
+      tl.fromTo("#f07-fit-card", { opacity: 0, y: -90, rotation: -6 }, { opacity: 1, y: 0, rotation: -2, duration: .55, ease: "power3.out" }, .45);
+      tl.fromTo("#f07-you", { opacity: 0, scale: 1.35, rotation: 8 }, { opacity: 1, scale: 1, rotation: 3, duration: .35, ease: "back.out(2.2)" }, 1.05);
+
+      // "Don't install the skill." (1.99–3.38) — clear the desk, statement in, strike draws
+      tl.to("#f07-topgroup", { opacity: 0, y: -60, duration: .35, ease: "power2.in" }, 1.95);
+      tl.fromTo("#f07-outgoing", { opacity: 0, y: 26 }, { opacity: 1, y: 0, duration: .4, ease: "power2.out" }, 2.15);
+      const path = document.getElementById("f07-strike");
+      const len = path.getTotalLength();
+      path.style.strokeDasharray = len;
+      path.style.strokeDashoffset = len;
+      tl.to(path, { strokeDashoffset: 0, duration: .6, ease: "power2.out" }, 2.55);
+
+      // "Re-forge the thinking." (3.59–4.88)
+      tl.to(["#f07-outgoing", "#f07-strike-svg"], { opacity: 0, duration: .28, ease: "power2.in" }, 3.5);
+      tl.fromTo("#f07-incoming", { opacity: 0, y: 24, scale: .96 }, { opacity: 1, y: 0, scale: 1, duration: .45, ease: "power3.out" }, 3.75);
+
+      // "fondof dot netlify dot app." (5.09–7.66) — URL band lands
+      tl.fromTo("#f07-url", { opacity: 0, y: 22, scale: .97 }, { opacity: 1, y: 0, scale: 1, duration: .4, ease: "power3.out" }, 5.15);
+      tl.fromTo("#f07-note", { opacity: 0 }, { opacity: 1, duration: .4 }, 5.6);
+      // full cast reunion — everyone returns for the finale
+      ["#f07-cast1", "#f07-cast2", "#f07-cast3", "#f07-cast4", "#f07-cast5", "#f07-cast6", "#f07-cast7"].forEach((sel, i) => {
+        tl.fromTo(sel, { opacity: 0, y: 50, scale: .7 }, { opacity: 1, y: 0, scale: 1, duration: .4, ease: "back.out(2)" }, 5.9 + i * .18);
+      });
+
+      tl.to({}, { duration: 8.631 }, 0);
+    })();
+  </script>
+</template>

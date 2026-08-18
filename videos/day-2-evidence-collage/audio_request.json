@@ -1,0 +1,25 @@
+{
+  "provider": "elevenlabs",
+  "model_id": "eleven_multilingual_v2",
+  "voice": {
+    "name": "George",
+    "voice_id": "JBFqnCBsd6RMkjVDRZzb",
+    "settings": { "stability": 0.76, "similarity_boost": 0.56, "style": 0, "speaker_boost": true }
+  },
+  "lines": [
+    { "id": "01", "text": "If every AI can generate a skill, what makes one worth keeping?" },
+    { "id": "02", "text": "Not a magic feature. Stack the things clones skip: a real source, a real repo, and work someone can point to." },
+    { "id": "03", "text": "Our first draft looked convincing. Then the fit review caught invented imports and fake references. Rejected." },
+    { "id": "04", "text": "So Kiro followed the actual trail. From the original source, into this codebase, and back out as a new, fitted skill." },
+    { "id": "05", "text": "Proof doesn't make a skill a download. It tells the next developer which source is worth re-forging." },
+    { "id": "06", "text": "Don't install the skill. Re-forge the thinking. fondof dot netlify dot app." }
+  ],
+  "bgm": {
+    "provider": "elevenlabs",
+    "model_id": "music_v1",
+    "force_instrumental": true,
+    "length_ms": 40000,
+    "path": "bgm-elevenlabs.mp3",
+    "prompt": "Restrained tactile editorial instrumental; warm paper-and-ink mood; soft felt piano and muted plucked texture; subtle pulse; no vocals or aggressive drums; room for spoken narration; quiet confident resolve."
+  }
+}

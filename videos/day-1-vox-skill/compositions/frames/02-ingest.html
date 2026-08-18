@@ -1,0 +1,208 @@
+<template>
+  <style>
+    @font-face {
+      font-family: "Shrikhand";
+      src: url("assets/fonts/Shrikhand-400.ttf") format("truetype");
+      font-weight: 400;
+    }
+    @font-face {
+      font-family: "Space Grotesk";
+      src: url("assets/fonts/SpaceGrotesk-600.ttf") format("truetype");
+      font-weight: 600;
+    }
+    #root {
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      position: relative;
+    }
+    .clip {
+      position: absolute;
+    }
+    #f02-bg {
+      inset: 0;
+      background:
+        radial-gradient(circle, #1c1410 1.1px, transparent 1.2px) 0 0 / 14px 14px,
+        #f5f2ef;
+    }
+    #f02-label {
+      top: 56px;
+      left: 88px;
+      font-family: "Space Grotesk", sans-serif;
+      font-weight: 600;
+      font-size: 22px;
+      letter-spacing: 0.22em;
+      color: #d8000f;
+    }
+    .cut-mid {
+      object-fit: contain;
+      object-position: bottom center;
+      filter: grayscale(1) contrast(1.15);
+    }
+    .cut-fg {
+      object-fit: contain;
+      object-position: bottom center;
+      filter: grayscale(1) contrast(1.1) drop-shadow(8px 10px 0 #d8000f);
+    }
+    #f02-tv {
+      left: 40px;
+      top: 280px;
+      width: 640px;
+      height: 480px;
+    }
+    #f02-listener {
+      left: 1480px;
+      top: 220px;
+      width: 400px;
+      height: 640px;
+    }
+    #f02-desk {
+      left: 200px;
+      top: 520px;
+      width: 1280px;
+      height: 420px;
+    }
+    #f02-field {
+      left: 88px;
+      top: 110px;
+      width: 920px;
+      min-height: 84px;
+      border: 3px solid #1c1410;
+      outline: 1.5px solid #1c1410;
+      outline-offset: 6px;
+      background: #fff;
+      padding: 20px 28px;
+      font-family: "Space Grotesk", sans-serif;
+      font-weight: 600;
+      font-size: 32px;
+      color: #1c1410;
+      display: flex;
+      align-items: center;
+    }
+    #f02-caret {
+      display: inline-block;
+      width: 3px;
+      height: 32px;
+      background: #d8000f;
+      margin-left: 6px;
+    }
+    #f02-compose {
+      left: 88px;
+      top: 220px;
+      border: 3px solid #1c1410;
+      background: #1c1410;
+      color: #f5f2ef;
+      font-family: "Space Grotesk", sans-serif;
+      font-weight: 600;
+      font-size: 22px;
+      letter-spacing: 0.12em;
+      padding: 14px 22px;
+    }
+    .f02-ticket {
+      width: 340px;
+      border: 3px solid #1c1410;
+      background: #fff;
+      padding: 16px 20px 16px 24px;
+      box-shadow: 8px 8px 0 #d8000f;
+      font-family: "Shrikhand", serif;
+      font-size: 30px;
+      color: #1c1410;
+      line-height: 1.05;
+    }
+    #f02-t1 {
+      left: 1040px;
+      top: 90px;
+    }
+    #f02-t2 {
+      left: 1040px;
+      top: 200px;
+    }
+    #f02-t3 {
+      left: 1040px;
+      top: 310px;
+    }
+  </style>
+  <div
+    id="root"
+    data-composition-id="02-ingest"
+    data-start="0"
+    data-duration="5.759"
+    data-width="1920"
+    data-height="1080"
+  >
+    <div id="f02-bg" class="clip" data-start="0" data-duration="5.759" data-track-index="0"></div>
+    <div id="f02-label" class="clip" data-start="0" data-duration="5.759" data-track-index="10">
+      URL — LIVE EXTRACT
+    </div>
+    <img
+      id="f02-tv"
+      class="clip cut-mid"
+      src="assets/cutouts/tv-cut.png"
+      data-start="0"
+      data-duration="5.759"
+      data-track-index="2"
+      alt=""
+    />
+    <img
+      id="f02-listener"
+      class="clip cut-mid"
+      src="assets/cutouts/listener-cut.png"
+      data-start="0"
+      data-duration="5.759"
+      data-track-index="3"
+      alt=""
+    />
+    <img
+      id="f02-desk"
+      class="clip cut-fg"
+      src="assets/cutouts/desk-cut.png"
+      data-start="0"
+      data-duration="5.759"
+      data-track-index="4"
+      alt=""
+    />
+    <div id="f02-field" class="clip" data-start="0" data-duration="5.759" data-track-index="5">
+      <span id="f02-typed"></span><span id="f02-caret"></span>
+    </div>
+    <div id="f02-compose" class="clip" data-start="0" data-duration="5.759" data-track-index="6">
+      POST /api/compose
+    </div>
+    <div id="f02-t1" class="clip f02-ticket" data-start="0" data-duration="5.759" data-track-index="7">
+      VO-FIRST
+    </div>
+    <div id="f02-t2" class="clip f02-ticket" data-start="0" data-duration="5.759" data-track-index="8">
+      THREE LAYERS
+    </div>
+    <div id="f02-t3" class="clip f02-ticket" data-start="0" data-duration="5.759" data-track-index="9">
+      STAGGER
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+  <script>
+    window.__timelines = window.__timelines || {};
+    const tl = gsap.timeline({ paused: true });
+    const phrase = "youtu.be/7wuYBfE131U";
+    const typed = document.getElementById("f02-typed");
+    tl.fromTo("#f02-desk", { opacity: 0, y: 70 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" }, 0);
+    tl.fromTo("#f02-label", { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.25 }, 0.08);
+    tl.fromTo("#f02-tv", { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.45, ease: "power3.out" }, 0.2);
+    tl.fromTo("#f02-listener", { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" }, 0.35);
+    tl.fromTo("#f02-field", { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.3 }, 0.45);
+    tl.fromTo("#f02-caret", { opacity: 0 }, { opacity: 1, duration: 0.12, repeat: 16, yoyo: true }, 0.55);
+    tl.to(
+      {},
+      {
+        duration: 1.45,
+        onUpdate: function () {
+          typed.textContent = phrase.slice(0, Math.floor(this.progress() * phrase.length));
+        },
+      },
+      0.6,
+    );
+    tl.fromTo("#f02-compose", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.3, ease: "power3.out" }, 2.1);
+    tl.fromTo("#f02-t1", { opacity: 0, y: 24, scale: 0.9 }, { opacity: 1, y: 0, scale: 1, duration: 0.35, ease: "power3.out" }, 3.35);
+    tl.fromTo("#f02-t2", { opacity: 0, y: 24, scale: 0.9 }, { opacity: 1, y: 0, scale: 1, duration: 0.35, ease: "power3.out" }, 3.7);
+    tl.fromTo("#f02-t3", { opacity: 0, y: 24, scale: 0.9 }, { opacity: 1, y: 0, scale: 1, duration: 0.35, ease: "power3.out" }, 4.05);
+    window.__timelines["02-ingest"] = tl;
+  </script>
+</template>

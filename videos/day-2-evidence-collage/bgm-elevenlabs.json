@@ -1,0 +1,9 @@
+{
+  "provider": "elevenlabs-music",
+  "model": "music_v2",
+  "duration_ms": 58000,
+  "force_instrumental": true,
+  "prompt": "Restrained tactile editorial instrumental; warm paper-and-ink mood; soft felt piano and muted plucked texture; subtle pulse; no vocals or aggressive drums; room for spoken narration; quiet confident resolve; builds gently to a warm ending.",
+  "bytes": 928750,
+  "created_at": "2026-08-18T20:00:31.243Z"
+}

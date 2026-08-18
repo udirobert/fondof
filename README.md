@@ -1,10 +1,10 @@
 # fondof
 
-**Forge skills fitted to *your* code — then prove they helped.**
+**From what you learn to what your agent does.**
 
-fondof turns what you learn (or a concrete need) into a **customised, personalised skill** for a specific repo — not another generic clone from a directory. Copy it into Cursor / Claude / Kiro; publish to **SkillPool** on Monad when you want provenance and a contestable quality signal.
+fondof turns what developers learn — or need — into **agent skills fitted to their codebase**. Extract the useful thinking, forge it for a real repository, hand it to Cursor / Claude / Kiro, and see whether it helped.
 
-**Why this exists:** agent-skill directories are flooded with slop and clones; stars lag; some skills are actively untrustworthy. fondof is **not** a security scanner — it is a craft forge + quality surface so *your* useful skills can be discovered, used, and challenged.
+**Why this exists:** generic agent skills are often cloned, context-free, and hard to trust. fondof is a **craft and attribution system**, not a security scanner or generic directory. SkillPool is a downstream proof and discovery layer; blockchain is optional infrastructure for public trust.
 
 ## Built with Kiro
 
@@ -18,7 +18,7 @@ fondof was specified and steered in [Kiro](https://kiro.dev), then shipped as a 
 | Project steering | [`.kiro/steering/project.md`](.kiro/steering/project.md) |
 | Example forged skill | [`.kiro/steering/optimizing-next-js-performance-with-turbopack-and-.md`](.kiro/steering/optimizing-next-js-performance-with-turbopack-and-.md) |
 
-**Spec → ship:** the live product is the web floor (extract → forge → SkillPool) backed by a Cloudflare Worker API and `SkillPool.sol` on Monad testnet — built under that Kiro spec, not a separate rewrite.
+**Spec → ship:** the live product is the web floor (extract → fit/forge → hand-off → outcome) backed by a Cloudflare Worker API. SkillPool on Monad is the optional downstream proof/discovery layer — built under that Kiro spec, not a separate rewrite.
 
 **How Kiro shaped the build** (concrete, verifiable in the diff + specs):
 
@@ -31,26 +31,34 @@ This repo targets **Ready, Spec, Ship** (Kiro). See [`.kiro/`](.kiro/) for the f
 
 ## Product hierarchy
 
-1. **Craft (primary)** — A short skill fitted to *your* stack, conventions, and paths — personalised and specifically useful.
-2. **Hand-off** — Copy into Cursor / Claude / Kiro; use it on a real repo.
-3. **Proof** — SkillPool signal (backing + uses − challenge losses); disputes police junk and malice without becoming a scanner product.
-4. **Outcomes** — Attach what the skill *resulted in* (PR, UI delta, repo improvement) so quality is “did it help?” not only “did people stake/use it?” Thin path: `/s/[hash]` → Attach outcome (note + optional PR / screenshot URL) via edge meta; pool cards show a Result line when present.
+```text
+Need or source → Extract → Fit / Forge → Copy / Use → Outcome → Share / Attribute → SkillPool proof
+```
+
+1. **Craft (primary)** — A short skill fitted to the target repo's stack, conventions, and paths.
+2. **Hand-off** — Copy it into Cursor / Claude / Kiro and apply it to real work.
+3. **Outcomes** — Attach what it resulted in: a PR, UI delta, screenshot, or repo improvement.
+4. **Attribution and discovery** — Let useful skills, sources, and outcomes travel.
+5. **SkillPool proof (downstream)** — Optional public signal through backing, usage receipts, and challenges.
+
+**Offchain for usefulness. Onchain for public trust.** Most skills are useful without crypto. Attestation matters when an artifact's identity, provenance, or quality signal needs to travel beyond fondof.
 
 ## What fondof does
 
-1. **Ingest** — Paste a podcast/blog URL *or* state a need in plain text (no GitHub required). fondof extracts discrete idea shards.
-2. **Discover** — Shards are fitted to your repos (demo repos work out of the box). Compare finds overlapping skills when you ask.
-3. **Forge** — Compose a skill preview fitted to your stack. Publish puts skin in escrow on SkillPool.
-4. **SkillPool** — Agents use and dispute skills; score is quality signaling on Monad. Wallet optional (you = forger) or fondof relayer publishes for you.
+1. **Extract** — Paste a source URL or state a need; fondof finds discrete, forge-worthy ideas.
+2. **Fit** — Connect those ideas to a target repository, stack, and conventions.
+3. **Forge** — Compose a short skill that an agent can actually use.
+4. **Hand off** — Copy it into Cursor / Claude / Kiro and apply it to real work.
+5. **Prove and attribute** — Attach outcomes, share the skill, credit the source, and optionally add SkillPool proof.
 
 ## For content creators (supply-side)
 
 Your podcast / blog / talk is being turned into actionable skills by developers. fondof gives you:
 
 - **`/from/[your-domain]`** — a public page showing all skills forged from your content, who forged them, and where they landed
-- **Permanent backlinks** — every skill file in every repo credits your content as the source
-- **Embeddable badge** — show forge count in your show notes: `![forged from](fondof.netlify.app/badge/from/your-domain.svg)`
-- **Honest signal** — forge count from real developers who fitted skills to real repos (not vanity downloads)
+- **Attribution** — every skill can credit your content as its source
+- **Embeddable badge** — show how developers adapted your content in your show notes or README
+- **Impact surface** — over time, see which ideas were re-forged, used, and attached to outcomes — not just viewed or downloaded
 
 Creators don't need an account. Pages auto-populate from forge data. Optionally verify your domain for analytics.
 
@@ -58,7 +66,7 @@ Creators don't need an account. Pages auto-populate from forge data. Optionally 
 
 **Content-first:** "I just listened to a great podcast — where do these ideas apply across my projects?"
 
-**Need-first (OAuth-free):** "I have a problem in my code — extract shards from the need, forge, publish." Use the **Need** tab on the start pad — no GitHub login required for the happy path.
+**Need-first (OAuth-free):** "I have a problem in my code — extract shards, forge a fitted skill, and use it." Use the **Need** tab on the start pad — no GitHub login required for the happy path.
 
 ## What fondof is NOT
 
@@ -80,9 +88,9 @@ We don't index or deduplicate the existing skill ecosystem. If you want a catalo
 - [anthropics/skills](https://github.com/anthropics/skills) — Official Anthropic examples
 - [openai/skills](https://github.com/openai/skills) — Official OpenAI Codex skills
 
-### Not a skill tokenization/pricing protocol
+### Not a blockchain product
 
-We don't price skills via tokens, bonding curves, or per-request payments. SkillPool staking is **quality signaling / expensive policing**, not yield. If you want skill economics:
+Most fondof value is offchain. We don't require wallets, gas, tokens, or onchain storage for ordinary forging and use. SkillPool staking is an optional **quality signal / expensive policing layer**, not yield or a reason to tokenize skills. If you want skill economics:
 - [x402 Protocol / Coinbase Bazaar](https://x402.org) — Pay-per-call in USDC on Base
 - [ERC-8239 Skill Registry](https://eips.ethereum.org/EIPS/eip-8239) — On-chain skill identity as NFTs
 - [Torch Market](https://torch.market) — Bonding curves for agent tokens
@@ -121,7 +129,7 @@ Open [https://fondof.netlify.app](https://fondof.netlify.app). Every step below 
 1. **Extract from a need (no account, no GitHub).** **Need** tab → type `retry budgets for async TypeScript fetch` → click **Extract**. The API extracts discrete ideas from your exact text (~5–15 s). Type something else (e.g. `structured logging for worker services`) and you'll get different ideas — it's a live call, not a canned list.
 2. **Or extract from a URL.** **URL** tab → click a sample (talk / docs / blog) or paste any public article URL → **Extract**. YouTube pulls real captions; articles are read + LLM-extracted.
 3. **Compose a skill.** Select 1–2 shards → open the **Forge** panel → **Skill for {repo}**. The draft is LLM-composed against the repo's stack: Fit check (structural heuristics — not a live agent eval), **Where it lands**, expandable sections. Copy it for **Cursor / Claude / Kiro** — the primary hand-off.
-4. **Proof (optional).** Publish (relayer signs on Monad testnet, or wallet) → skill page → **I used this** (raises on-chain signal) → optional **Attach outcome** (what it actually improved). Dispute to police slop — challenge **resolve** is a demo oracle (relayer), not decentralized adjudication.
+4. **Proof (optional).** Share the skill and attach an outcome. If public provenance or contestable quality matters, attest it through SkillPool (relayer or wallet); the chain remains a secondary proof layer. Challenge resolve is a disclosed demo oracle, not decentralized adjudication.
 5. **Pool.** [**/pool**](https://fondof.netlify.app/pool) → Draw a skill / browse paper cards with live signal.
 
 Each step degrades **honestly** if a dependency is down: need-extract shows “API unreachable — local shards” (labeled, not silent); forge failure shows a local template draft with a visible notice, never passed off as LLM output; chain/relayer unreachable keeps publish a local draft — we do not fake “published.” Happy-path extraction and forge are live; dispute resolve stays a disclosed demo oracle.
@@ -161,7 +169,7 @@ curl -s -X POST https://fondof-api.trustfall.workers.dev/api/ingest \
   -d '{"need":"idempotency keys for webhook consumers"}' | head -c 400
 
 # One-shot compose: ingest + top shards + forge in a single call.
-# repo accepts "owner/name" or a GitHub URL (stack auto-detected) — public skill page by default.
+# repo accepts "owner/name" or a GitHub URL (stack auto-detected) — private draft by default; pass `"private": false` for explicit share.
 curl -s -X POST https://fondof-api.trustfall.workers.dev/api/compose \
   -H 'content-type: application/json' \
   -d '{"url":"https://www.youtube.com/watch?v=7wuYBfE131U","repo":"udirobert/fondof"}' | head -c 600
@@ -191,7 +199,7 @@ packages/
 └── shared/       Shared TypeScript types
 ```
 
-**Package roles:** `api` is the live HTTP edge; `core` backs the CLI and reusable logic; `web` talks to `api` over HTTPS. SkillPool is the on-chain quality loop — not a marketplace listing fee.
+**Package roles:** `api` is the live HTTP edge; `core` backs the CLI and reusable logic; `web` talks to `api` over HTTPS. SkillPool is the downstream public proof/discovery layer — not the core creation flow, marketplace, or listing fee.
 
 **Future of the trust layer (not shipped):** we're evaluating **Arkiv** — a queryable, time-scoped, tamper-proof Ethereum data layer — as a candidate home for provenance + contestable quality, explored **alongside** the existing Monad SkillPool (no retirement decision made). See [`docs/roadmap-arkiv.md`](docs/roadmap-arkiv.md) for the hybrid-layer boundary and why a plain DB can't credibly serve the provenance slice.
 

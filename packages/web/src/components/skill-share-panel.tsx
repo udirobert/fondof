@@ -53,6 +53,7 @@ export function SkillSharePanel({
 
     // Record the share
     await recordShare(skillHash, platform);
+    track("skill_shared", { skillHash, platform });
     track("share_link_copied", { skillHash, platform });
     setShared(platform);
     onShared?.();

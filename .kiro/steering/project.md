@@ -2,34 +2,49 @@
 
 ## What is fondof?
 
-fondof forges **customised, personalised skills** for a specific coding environment — from what you learn (podcasts, blogs) or a concrete need. The hero job is a short fitted skill you can hand to Cursor / Claude / Kiro. **SkillPool** on Monad records provenance and a contestable quality signal (backing, uses, challenge losses).
+fondof turns what developers learn — or need — into **agent skills fitted to their codebase**. The hero job is a short, useful skill that can be handed to Cursor / Claude / Kiro and applied to real work.
 
-**North star:** skills that are *specifically useful for my repo*, with growing proof that they helped (signal + use receipts shipped; outcome attachments shipped — PR / UI / repo delta).
+**Brand promise:** From what you learn to what your agent does.
+
+**North star:** a skill that is specifically useful for a real repository, followed by honest evidence of whether it helped.
+
+**Mission:** bridge ideas and implementation — extract useful thinking, fit it to code, and help developers prove the result.
+
+**Vision:** a living attribution graph connecting ideas, agents, codebases, and outcomes.
 
 **Not a security product:** directories are full of slop, clones, and occasionally hostile skills; stars lag. That context motivates contestability — it does not make fondof a scanner, sandbox, or injection firewall.
 
-The blockchain layer stays secondary to craft UX — not gas theater, not pretend-invisible. Relayer can publish without a wallet; connecting a wallet lets you forge as yourself.
+The blockchain layer is optional infrastructure for public trust. Relayers may hide wallet and gas complexity, but ordinary forging and use must remain useful without a wallet or chain.
 
 ## Product hierarchy (build against this)
 
+```text
+Need or source → Extract → Fit / Forge → Copy / Use → Outcome → Share / Attribute → SkillPool proof
+```
+
 1. **Craft** — Fitted, personalised skill (primary).
-2. **Hand-off** — Copy into an agent; apply to a real repo.
-3. **Proof (shipped)** — SkillPool signal + disputes + use receipts.
-4. **Outcomes (thin path shipped)** — Optional note + PR / screenshot URLs on edge meta; surface on `/s/[hash]` and pool cards. Grow toward richer receipts without fake metrics.
-5. **Supply-side attribution** — Source content (podcasts, blogs, talks) gets permanent credit and distribution via forged skills. Creators benefit; fondof grows.
+2. **Hand-off** — Copy into an agent and apply to a real repo.
+3. **Outcomes** — Record what changed, without inventing metrics.
+4. **Attribution and discovery** — Help useful work travel back to its source and forward to other developers.
+5. **SkillPool proof** — Optional downstream signal: provenance, backing, usage receipts, and challenges.
+
+**Offchain for usefulness. Onchain for public trust.** Do not add chain mechanics to the core loop unless they create independent verification, economic commitment, or portability.
 
 ## Growth loops (build against these)
 
-### Consumer loop (demand-side)
-Learn → forge → share skill → others discover fondof → they forge
+### Practitioner loop
+Need or source → fitted skill → agent use → outcome → share → another developer re-forges
 
-### Creator loop (supply-side)
-Content gets forged by devs → creator sees `/from/[source]` page → creator shares it ("47 devs turned my podcast into skills") → creator's audience discovers fondof → more forges from their content
+### Creator loop
+Content gets adapted by developers → source impact page updates → creator shares the evidence → audience re-forges the idea for their own repos
+
+### Key growth principle
+The viral unit is **useful, attributable work**, not a generic skill listing or a transaction. Share outcomes, adaptations, and source impact; keep SkillPool downstream.
 
 ### Key supply-side principles
 - **Attribution as distribution** — every forged skill backlinks to the source. Multiple forges = multiple permanent backlinks in real repos.
 - **Creator pages, not creator accounts** — `/from/[domain]` auto-populates from forge data. No onboarding friction for creators.
-- **Signal is honest** — forge count from real developers who fitted skills to real repos. Not download counts or fake stars.
+- **Signal is honest** — distinguish views, copies, re-forges, claimed uses, and outcome-backed uses. Do not call a click or transaction verified project impact.
 - **Not a content marketplace** — creators don't sell their content through us. We make their free/existing content more actionable and give them credit.
 - **Badge embeds** — creators can embed forge-count badges in show notes / blog footers. Social proof that their content is actionable.
 - **Claim is optional** — creator verifies domain ownership to access analytics. Page works without claim.
@@ -49,9 +64,9 @@ Content gets forged by devs → creator sees `/from/[source]` page → creator s
 2. **Environment-fitted / personalised** — Skills are never generic templates. Always crafted for a specific repo’s stack, conventions, and patterns.
 3. **Specifically useful** — Prefer short, actionable skills over long generic dumps. Fit check + Where it lands are craft aids, not live agent CI.
 4. **Multi-source composition** — Best skills weave ideas from multiple sources, not single-source extraction.
-5. **Craft hero, Proof secondary** — Copy for agents owns the title card. SkillPool, disputes, and wallets support the story. Prefer relayer. Never fake “published” when chain is down.
+5. **Craft hero, Proof secondary** — Copy for agents owns the title card. SkillPool, disputes, and wallets support the story. Prefer relayer. Never fake “attested” when chain is down.
 6. **Skill-worthiness** — Not everything should be a skill. Distinguish one-time fixes from repeatable patterns.
-7. **Not a marketplace** — We don’t list or sell pre-made skills. `/pool` is a quality desk (draw / use / dispute), not a catalog of SKUs.
+7. **Not a marketplace** — We don’t list or sell generic pre-made skills. `/pool` is downstream quality discovery (draw / use / dispute), not the homepage or core creation flow.
 8. **Not a registry of the ecosystem** — Compare/search informs forge; we don’t index the whole ecosystem as the product.
 9. **Not a tokenization protocol** — Stakes police quality; they are not bonding curves or per-call pricing.
 10. **Not a security scanner** — Challenges and signal are reputation under fire, not malware detection guarantees.

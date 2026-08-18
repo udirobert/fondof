@@ -1,0 +1,159 @@
+<template>
+  <style>
+    @font-face {
+      font-family: "Shrikhand";
+      src: url("assets/fonts/Shrikhand-400.ttf") format("truetype");
+      font-weight: 400;
+    }
+    @font-face {
+      font-family: "Space Grotesk";
+      src: url("assets/fonts/SpaceGrotesk-600.ttf") format("truetype");
+      font-weight: 600;
+    }
+    #root {
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      position: relative;
+    }
+    .clip {
+      position: absolute;
+    }
+    #f03-bg {
+      inset: 0;
+      background:
+        radial-gradient(circle, #1c1410 1.1px, transparent 1.2px) 0 0 / 14px 14px,
+        #f5f2ef;
+    }
+    #f03-label {
+      top: 48px;
+      left: 88px;
+      font-family: "Space Grotesk", sans-serif;
+      font-weight: 600;
+      font-size: 22px;
+      letter-spacing: 0.22em;
+      color: #d8000f;
+    }
+    .cut-mid {
+      object-fit: contain;
+      object-position: bottom center;
+      filter: grayscale(1) contrast(1.15);
+    }
+    .cut-fg {
+      object-fit: contain;
+      object-position: bottom center;
+      filter: grayscale(1) contrast(1.1) drop-shadow(8px 10px 0 #d8000f);
+    }
+    #f03-compositor {
+      left: 40px;
+      top: 240px;
+      width: 420px;
+      height: 680px;
+    }
+    #f03-press {
+      left: 280px;
+      top: 480px;
+      width: 1240px;
+      height: 460px;
+    }
+    .f03-card {
+      width: 500px;
+      min-height: 160px;
+      border: 3px solid #1c1410;
+      outline: 1.5px solid #1c1410;
+      outline-offset: 5px;
+      background: #fff;
+      padding: 22px 24px 20px 36px;
+      border-left: 16px solid #d8000f;
+    }
+    .f03-card h2 {
+      font-family: "Shrikhand", serif;
+      font-size: 40px;
+      line-height: 0.95;
+      color: #1c1410;
+      font-weight: 400;
+    }
+    #f03-c1 {
+      left: 520px;
+      top: 96px;
+    }
+    #f03-c2 {
+      left: 1060px;
+      top: 96px;
+    }
+    #f03-c3 {
+      left: 790px;
+      top: 280px;
+    }
+    #f03-cite {
+      left: 520px;
+      top: 820px;
+      font-family: "Space Grotesk", sans-serif;
+      font-weight: 600;
+      font-size: 24px;
+      letter-spacing: 0.08em;
+      color: #1c1410;
+      background: #f5f2ef;
+      padding: 8px 14px;
+    }
+    #f03-cite span {
+      color: #d8000f;
+    }
+  </style>
+  <div
+    id="root"
+    data-composition-id="03-forge"
+    data-start="0"
+    data-duration="10.124"
+    data-width="1920"
+    data-height="1080"
+  >
+    <div id="f03-bg" class="clip" data-start="0" data-duration="10.124" data-track-index="0"></div>
+    <div id="f03-label" class="clip" data-start="0" data-duration="10.124" data-track-index="1">
+      FORGE — FONDOF
+    </div>
+    <img
+      id="f03-compositor"
+      class="clip cut-mid"
+      src="assets/cutouts/compositor-cut.png"
+      data-start="0"
+      data-duration="10.124"
+      data-track-index="2"
+      alt=""
+    />
+    <img
+      id="f03-press"
+      class="clip cut-fg"
+      src="assets/cutouts/press-cut.png"
+      data-start="0"
+      data-duration="10.124"
+      data-track-index="3"
+      alt=""
+    />
+    <div id="f03-c1" class="clip f03-card" data-start="0" data-duration="10.124" data-track-index="4">
+      <h2>LOCKED PLATE</h2>
+    </div>
+    <div id="f03-c2" class="clip f03-card" data-start="0" data-duration="10.124" data-track-index="5">
+      <h2>THREE LAYERS</h2>
+    </div>
+    <div id="f03-c3" class="clip f03-card" data-start="0" data-duration="10.124" data-track-index="6">
+      <h2>VO HOLDS THE CUT</h2>
+    </div>
+    <div id="f03-cite" class="clip" data-start="0" data-duration="10.124" data-track-index="7">
+      REMOTION SPRING <span>→</span> data-start / GSAP
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+  <script>
+    window.__timelines = window.__timelines || {};
+    const tl = gsap.timeline({ paused: true });
+    tl.fromTo("#f03-press", { opacity: 0, y: 70 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 0);
+    tl.fromTo("#f03-label", { opacity: 0 }, { opacity: 1, duration: 0.3 }, 0.1);
+    tl.fromTo("#f03-compositor", { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 0.35);
+    tl.fromTo("#f03-c1", { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.45, ease: "power3.out" }, 1.45);
+    tl.fromTo("#f03-c2", { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.45, ease: "power3.out" }, 2.85);
+    tl.fromTo("#f03-c3", { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.45, ease: "power3.out" }, 3.9);
+    tl.fromTo("#f03-cite", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.4 }, 5.7);
+    window.__timelines["03-forge"] = tl;
+  </script>
+</template>

@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { normalizeSourceUrl, ingestCacheTtl } from "./source-url.js";
+import {
+  canonicalPublicSourceUrl,
+  canonicalSourceId,
+  canonicalSources,
+  normalizeSourceUrl,
+  ingestCacheTtl,
+} from "./source-url.js";
 
 describe("normalizeSourceUrl (cache-key canonical form)", () => {
   it("strips tracker params and sorts the rest", () => {
@@ -23,6 +29,25 @@ describe("normalizeSourceUrl (cache-key canonical form)", () => {
 
   it("returns trimmed input when not a URL (graceful)", () => {
     expect(normalizeSourceUrl("  not a url  ")).toBe("not a url");
+  });
+});
+
+describe("canonical source identity", () => {
+  it("normalizes equivalent public URLs to one identity", async () => {
+    const a = await canonicalSourceId(
+      "https://youtu.be/dQw4w9WgXcQ?si=tracker",
+    );
+    const b = await canonicalSourceId(
+      "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    );
+    expect(a).toBe(b);
+    expect(a).toMatch(/^src_[0-9a-f]{32}$/);
+  });
+
+  it("does not assign public source identity to a stated need", async () => {
+    expect(canonicalPublicSourceUrl("need://retry budgets")).toBeNull();
+    expect(await canonicalSourceId("need://retry budgets")).toBeNull();
+    expect((await canonicalSources(["need://retry budgets"])).length).toBe(0);
   });
 });
 

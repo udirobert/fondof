@@ -2,13 +2,20 @@
 
 import { useState } from "react";
 import { Check, ExternalLink, Sparkles } from "lucide-react";
-import { publishSkillMeta, type SkillOutcome } from "@/lib/api";
+import {
+  publishSkillMeta,
+  verifySkillPr,
+  type SkillEvidence,
+  type SkillOutcome,
+} from "@/lib/api";
+import { track } from "@/lib/track";
 
 interface SkillOutcomePanelProps {
   skillHash: string;
   titleHint?: string | null;
   outcome?: SkillOutcome | null;
-  onSaved: (outcome: SkillOutcome) => void;
+  evidence?: SkillEvidence | null;
+  onSaved: (outcome: SkillOutcome, evidence?: SkillEvidence) => void;
 }
 
 /**
@@ -18,6 +25,7 @@ export function SkillOutcomePanel({
   skillHash,
   titleHint,
   outcome,
+  evidence,
   onSaved,
 }: SkillOutcomePanelProps) {
   const [open, setOpen] = useState(false);
@@ -27,6 +35,7 @@ export function SkillOutcomePanel({
     outcome?.screenshotUrl ?? "",
   );
   const [busy, setBusy] = useState(false);
+  const [verifyBusy, setVerifyBusy] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
 
   const submit = async () => {
@@ -48,7 +57,8 @@ export function SkillOutcomePanel({
         setStatus(res.error);
         return;
       }
-      onSaved(next);
+      onSaved(next, res.evidence);
+      track("outcome_attached", { skillHash });
       setStatus("Outcome attached — visible on this skill and the pool.");
       setOpen(false);
     } catch {
@@ -58,6 +68,38 @@ export function SkillOutcomePanel({
     }
   };
 
+  const verifyPr = async () => {
+    if (!outcome?.prUrl || verifyBusy) return;
+    setVerifyBusy(true);
+    setStatus(null);
+    try {
+      const res = await verifySkillPr(skillHash);
+      if (res.error) {
+        setStatus(res.error);
+      } else if (res.evidence?.outcome) {
+        onSaved(res.evidence.outcome, res.evidence);
+        setStatus(
+          "GitHub confirmed the PR exists — that still does not prove the skill caused the change.",
+        );
+      }
+    } catch {
+      setStatus("Couldn’t check GitHub right now.");
+    } finally {
+      setVerifyBusy(false);
+    }
+  };
+
+  const evidenceLabel =
+    evidence?.level === "verified-pr"
+      ? "GitHub-confirmed PR · causality not verified"
+      : evidence?.level === "linked-pr"
+        ? "Linked PR · not independently verified"
+        : evidence?.level === "outcome-attached"
+        ? "Outcome attached"
+        : evidence?.level === "claimed-use"
+          ? "Claimed use · not verified impact"
+          : null;
+
   if (outcome && !open) {
     return (
       <section className="space-y-2" aria-label="What this skill resulted in">
@@ -66,16 +108,37 @@ export function SkillOutcomePanel({
         </p>
         <div className="rounded-xl border border-ink/10 bg-paper px-3 py-3">
           <p className="text-[13px] leading-snug text-ink">{outcome.note}</p>
+          {evidenceLabel && (
+            <p className="mt-2 text-[10px] uppercase tracking-wide text-muted">
+              {evidenceLabel}
+            </p>
+          )}
           <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[12px]">
             {outcome.prUrl && (
-              <a
-                href={outcome.prUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-ember hover:underline"
-              >
-                PR <ExternalLink size={11} />
-              </a>
+              <>
+                <a
+                  href={outcome.prUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-ember hover:underline"
+                >
+                  PR <ExternalLink size={11} />
+                </a>
+                {outcome.prStatus === "github-confirmed" ? (
+                  <span className="text-muted">
+                    GitHub confirmed{outcome.githubMerged ? " · merged" : ""}
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => void verifyPr()}
+                    disabled={verifyBusy}
+                    className="text-muted hover:text-ink disabled:opacity-40"
+                  >
+                    {verifyBusy ? "Checking…" : "Check on GitHub"}
+                  </button>
+                )}
+              </>
             )}
             {outcome.screenshotUrl && (
               <a
@@ -108,6 +171,11 @@ export function SkillOutcomePanel({
   if (!open) {
     return (
       <div className="rounded-xl border border-dashed border-ink/15 bg-mist/30 px-3 py-3">
+        {evidenceLabel && (
+          <p className="mb-1 text-[10px] uppercase tracking-wide text-muted">
+            {evidenceLabel}
+          </p>
+        )}
         <p className="text-[12px] leading-snug text-foreground-secondary">
           Used this skill on a real repo? Attach what improved — a short note,
           optional PR or screenshot link. No fake metrics.

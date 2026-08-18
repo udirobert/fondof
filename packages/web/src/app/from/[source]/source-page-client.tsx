@@ -6,7 +6,7 @@ import { useParams } from "next/navigation";
 import { ExternalLink, Flame } from "lucide-react";
 import { FondofWordmark } from "@/components/fondof-wordmark";
 import { fetchSourceSkills, type SourceSkillEntry } from "@/lib/sources";
-import { skillPublicPath } from "@/lib/skill-share";
+import { skillPublicPath, sourceReforgePath } from "@/lib/skill-share";
 
 /**
  * /from/[source] — shows all skills forged from a content source.
@@ -62,34 +62,45 @@ export default function SourcePage() {
                 Skills forged · {skills.length}
               </p>
               <ul className="mt-3 space-y-3">
-                {skills.map((skill) => (
-                  <li
-                    key={skill.skillHash}
-                    className="rounded-xl border border-ink/8 bg-paper/60 p-4"
-                  >
-                    <Link
-                      href={skillPublicPath(skill.skillHash)}
-                      className="font-serif text-lg leading-snug text-ink hover:text-ember"
+                {skills.map((skill) => {
+                  const reforgePath = sourceReforgePath([skill.sourceUrl]);
+                  return (
+                    <li
+                      key={skill.skillHash}
+                      className="rounded-xl border border-ink/8 bg-paper/60 p-4"
                     >
-                      {skill.title}
-                    </Link>
-                    <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] text-muted">
-                      <span>Fitted for {skill.fittedTo}</span>
-                      <span>
-                        {new Date(skill.forgedAt).toLocaleDateString()}
-                      </span>
-                      <a
-                        href={skill.sourceUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-ember hover:underline"
+                      <Link
+                        href={skillPublicPath(skill.skillHash)}
+                        className="font-serif text-lg leading-snug text-ink hover:text-ember"
                       >
-                        <ExternalLink size={10} />
-                        Source
-                      </a>
-                    </div>
-                  </li>
-                ))}
+                        {skill.title}
+                      </Link>
+                      <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] text-muted">
+                        <span>Fitted for {skill.fittedTo}</span>
+                        <span>
+                          {new Date(skill.forgedAt).toLocaleDateString()}
+                        </span>
+                        <a
+                          href={skill.sourceUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-ember hover:underline"
+                        >
+                          <ExternalLink size={10} />
+                          Source
+                        </a>
+                        {reforgePath && (
+                          <Link
+                            href={reforgePath}
+                            className="text-ember hover:underline"
+                          >
+                            Re-forge this source
+                          </Link>
+                        )}
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
             </section>
 

@@ -43,7 +43,7 @@ app.use(
   "*",
   cors({
     origin: "*",
-    allowMethods: ["GET", "POST", "OPTIONS"],
+    allowMethods: ["GET", "POST", "DELETE", "OPTIONS"],
     allowHeaders: ["Content-Type", "Authorization"],
     exposeHeaders: [
       "X-Cache",
@@ -59,7 +59,7 @@ const API_LLMS_TXT = `# fondof API
 
 Base URL: https://fondof-api.trustfall.workers.dev
 
-> fondof forges personalised coding skills from a URL (YouTube, blog, podcast) or a stated need — fitted to a repo's stack. Agents get one endpoint: POST /api/compose.
+> fondof turns a URL (YouTube, blog, podcast) or a stated need into a coding skill fitted to a repo's stack. Agents get one endpoint: POST /api/compose. The core loop is useful without blockchain; SkillPool is optional downstream proof.
 
 ## Endpoints
 
@@ -68,8 +68,8 @@ Base URL: https://fondof-api.trustfall.workers.dev
 Body: { "url": "<source url>" | "need": "<stated need>", "repo": "owner/name" | { "name": "…", "frameworks": ["…"], "languages": ["…"] }, "topShards": 2, "private": false }
 
 - Exactly one of url / need. repo as "owner/name" or a GitHub URL is auto-detected (frameworks + languages from the repo's package.json).
-- Public by default — the response includes skillUrl, a real shareable page (https://fondof.netlify.app/s/{skillHash}). No auth, no chain.
-- Response: { markdown, ideas: [{ title, description, domain, applicability, patternType, sourceUrl }], skillHash, skillUrl, title, sourceUrl, sourceHash, contentType, fittedTo, onChain, private, providers }
+- Compose is private by default; pass "private": false for an explicit public share. Public sharing returns a shareable skillUrl (https://fondof.netlify.app/s/{skillHash}) without requiring chain attestation.
+- Response: { markdown, ideas: [{ title, description, domain, applicability, patternType, sourceUrl }], skillHash, skillUrl, title, canonicalSources, derivedFromSkillHash, sourceUrl, sourceHash, contentType, fittedTo, onChain, private, providers }
 - Errors: 400 bad body, 422 nothing extractable, 429 rate limit (10/hour/IP), 500 upstream.
 
 Example:
@@ -81,10 +81,14 @@ What to do with it: save markdown into .kiro/steering/ or .cursor/rules/ (or CLA
 
 - POST /api/ingest { url | need } → { ideas, sourceHash, … } — extract shards only (no forge)
 - POST /api/forge { ideas, repo? } → { markdown, skillHash, … } — forge from your own idea list
-- POST /api/publish { skillHash, sourceHashes, … } — stamp a public skill on-chain (attestation, second click)
-- GET /api/skills — recent public skills (the pool)
+- POST /api/publish { skillHash, sourceHashes, … } — optionally attest a public skill on SkillPool
+- POST /api/skills/hash/share — explicitly share a private draft as a public offchain artifact
+- DELETE /api/skills/hash/visibility — owner-only hide/unlist from public discovery
+- GET /api/skills — public skill discovery (currently recent-first; proof ranking is downstream work)
 - GET /api/skills/{hash} — one skill (off-chain or attested)
-- POST /api/skills/{hash}/use — record a use (on-chain skills)
+- POST /api/skills/{hash}/use — record a claimed use; signed-in users deduplicate by account, anonymous users need an explicit browser receipt key for deduplication
+- POST /api/skills/{hash}/meta — attach an outcome; linked PRs are stored as unverified evidence until independently checked
+- POST /api/skills/{hash}/verify-pr — optionally ask GitHub to confirm a linked public PR exists; confirmation does not prove causality
 
 ## Notes
 

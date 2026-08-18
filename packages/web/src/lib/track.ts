@@ -12,6 +12,10 @@ type EventName =
   | "forge_completed"
   | "skill_copied"
   | "skill_published"
+  | "skill_shared"
+  | "skill_used_claimed"
+  | "outcome_attached"
+  | "skill_unlisted"
   | "challenge_issued"
   | "share_link_copied"
   | "pool_draw";

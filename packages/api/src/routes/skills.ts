@@ -7,10 +7,25 @@ import {
   useOnChain,
   useStormOnChain,
 } from "../lib/monad.js";
-import { cacheGetJson, cachePutJson } from "../lib/edge-cache.js";
+import { cacheGetJson, cachePutJson, sha256Hex } from "../lib/edge-cache.js";
 import { mergeSkillMeta, putSkillMeta, type LandingHitRecord } from "../lib/skill-meta.js";
-import { getPublicSkill, listPublicSkills } from "../lib/skill-registry.js";
+import {
+  getSkillEvidence,
+  recordClaimedUse,
+  recordOutcome,
+  verifyLinkedPr,
+} from "../lib/skill-evidence.js";
+import {
+  addSkillToSourceIndexes,
+  getPublicSkill,
+  getSkillRecord,
+  listPublicSkills,
+  patchPublicSkill,
+  recordPublicSkill,
+  unlistPublicSkill,
+} from "../lib/skill-registry.js";
 import { rateLimit } from "../lib/rate-limit-mw.js";
+import { resolveSession } from "./auth.js";
 
 export const skillsRoute = new Hono<{ Bindings: Env }>();
 
@@ -111,6 +126,29 @@ skillsRoute.post("/skills/:hash/meta", rateLimit("publish"), async (c) => {
           : undefined,
   });
 
+  await patchPublicSkill(c.env, hash, {
+    title,
+    blurb: body.blurb,
+    repo: body.repo,
+    markdown: body.markdown,
+    frameworks: body.frameworks,
+  });
+
+  const evidence =
+    body.outcome !== undefined
+      ? await recordOutcome(
+          c.env,
+          hash,
+          body.outcome === null
+            ? null
+            : {
+                note: body.outcome.note ?? "",
+                prUrl: body.outcome.prUrl,
+                screenshotUrl: body.outcome.screenshotUrl,
+              },
+        )
+      : await getSkillEvidence(c.env, hash);
+
   // Bust short skill cache so artifact appears immediately
   await caches.default
     .delete(
@@ -129,8 +167,126 @@ skillsRoute.post("/skills/:hash/meta", rateLimit("publish"), async (c) => {
       .catch(() => undefined);
   }
 
-  return c.json({ success: true, meta: record });
+  return c.json({ success: true, meta: record, evidence });
 });
+
+/**
+ * Share a private forge as a public offchain artifact. This is intentionally
+ * separate from onchain attestation and works for anonymous users.
+ */
+skillsRoute.post("/skills/:hash/share", rateLimit("publish"), async (c) => {
+  const hash = c.req.param("hash");
+  const body = await c.req
+    .json<{
+      title: string;
+      markdown: string;
+      repo?: string;
+      frameworks?: string[];
+      languages?: string[];
+      domains?: string[];
+      patternTypes?: string[];
+      derivedFromSkillHash?: string;
+      canonicalSources?: Array<{ id: string; url: string; domain: string }>;
+      sourceUrls?: string[];
+      sourceHashes?: string[];
+      composedAt?: string;
+    }>()
+    .catch(() => null);
+
+  if (!body?.title?.trim() || !body.markdown?.trim()) {
+    return c.json({ error: "title and markdown are required" }, 400);
+  }
+
+  const normalizedHash = hash.toLowerCase().replace(/^0x/, "");
+  const contentHash = await sha256Hex(body.markdown);
+  if (contentHash !== normalizedHash) {
+    return c.json({ error: "markdown does not match skillHash" }, 409);
+  }
+
+  const session = await resolveSession(
+    c.req.header("Authorization"),
+    c.env.SESSIONS,
+  );
+  const existing = await getSkillRecord(c.env, hash);
+  if (
+    existing?.visibility === "unlisted" &&
+    existing.ownerId !== session?.userId
+  ) {
+    return c.json({ error: "Only the owner can re-share this skill" }, 403);
+  }
+
+  const sourceUrls = (body.sourceUrls ?? []).filter((url) =>
+    /^https?:\/\//i.test(url),
+  );
+  const composedAt = body.composedAt ?? new Date().toISOString();
+  await recordPublicSkill(c.env, {
+    hash: normalizedHash,
+    title: body.title,
+    markdown: body.markdown,
+    repo: body.repo,
+    frameworks: body.frameworks,
+    languages: body.languages,
+    domains: body.domains,
+    patternTypes: body.patternTypes,
+    derivedFromSkillHash: body.derivedFromSkillHash,
+    canonicalSources: body.canonicalSources,
+    sourceUrls,
+    sourceHashes: body.sourceHashes ?? [],
+    composedAt,
+    ownerId: session?.userId,
+    ownerLogin: session?.login,
+  });
+  await addSkillToSourceIndexes(c.env, sourceUrls, {
+    skillHash: normalizedHash,
+    title: body.title,
+    fittedTo: body.repo ?? "general",
+    forgedAt: composedAt,
+  });
+
+  return c.json({
+    success: true,
+    skillHash: normalizedHash,
+    visibility: "public",
+  });
+});
+
+/** Hide a public skill from discovery while preserving attestation history. */
+skillsRoute.delete(
+  "/skills/:hash/visibility",
+  rateLimit("publish"),
+  async (c) => {
+    const session = await resolveSession(
+      c.req.header("Authorization"),
+      c.env.SESSIONS,
+    );
+    if (!session) return c.json({ error: "Sign in to manage visibility" }, 401);
+
+    const result = await unlistPublicSkill(
+      c.env,
+      c.req.param("hash"),
+      session.userId,
+    );
+    if (result === "not_found") return c.json({ error: "Skill not found" }, 404);
+    if (result === "forbidden") return c.json({ error: "Not the skill owner" }, 403);
+
+    await caches.default
+      .delete(
+        new Request(
+          `https://fondof-cache.internal/skill:v4:${c.req
+            .param("hash")
+            .toLowerCase()}`,
+        ),
+      )
+      .catch(() => undefined);
+    for (const lim of [5, 10, 20]) {
+      await caches.default
+        .delete(new Request(`https://fondof-cache.internal/skills:pool:v1:${lim}`))
+        .catch(() => undefined);
+    }
+
+    return c.json({ success: true, visibility: "unlisted" });
+  },
+);
 
 // Get skill data + signal from chain (short edge cache — protects RPC)
 skillsRoute.get("/skills/:hash", async (c) => {
@@ -141,6 +297,12 @@ skillsRoute.get("/skills/:hash", async (c) => {
   if (hit) {
     c.header("X-Cache", "HIT");
     return c.json(hit);
+  }
+
+  // A tombstoned artifact stays hidden even if an attestation exists on-chain.
+  const stored = await getSkillRecord(c.env, hash);
+  if (stored?.visibility === "unlisted") {
+    return c.json({ error: "Skill is unlisted" }, 404);
   }
 
   // Durable public registry first — /s/[hash] must resolve without a chain
@@ -156,8 +318,15 @@ skillsRoute.get("/skills/:hash", async (c) => {
       createdAt: Date.parse(pub.composedAt) || 0,
       signal: "0",
       sourceHashes: pub.sourceHashes,
+      canonicalSources: pub.canonicalSources,
+      domains: pub.domains,
+      patternTypes: pub.patternTypes,
+      derivedFromSkillHash: pub.derivedFromSkillHash,
+      ownerLogin: pub.ownerLogin,
+      visibility: pub.visibility,
     };
 
+    const evidence = await getSkillEvidence(c.env, hash);
     const chain = pub.onChain
       ? await getSkillFromChain(
           c.env.MONAD_RPC_URL,
@@ -177,10 +346,18 @@ skillsRoute.get("/skills/:hash", async (c) => {
       frameworks: withMeta.frameworks ?? pub.frameworks,
       markdown: withMeta.markdown ?? pub.markdown,
       sourceUrls: pub.sourceUrls,
+      canonicalSources: pub.canonicalSources,
       languages: pub.languages,
+      domains: pub.domains,
+      patternTypes: pub.patternTypes,
+      derivedFromSkillHash: pub.derivedFromSkillHash,
       onChain: Boolean(pub.onChain) || Boolean(chain),
       attestedTxHash: pub.attestedTxHash,
       attestedAt: pub.attestedAt,
+      ownerLogin: pub.ownerLogin,
+      visibility: pub.visibility,
+      evidence,
+      outcome: evidence?.outcome ?? withMeta.outcome,
     };
     await cachePutJson(cacheKey, out, SKILL_TTL);
     c.header("X-Cache", "MISS");
@@ -196,7 +373,13 @@ skillsRoute.get("/skills/:hash", async (c) => {
 
     if (!skill) return c.json({ error: "Skill not found in pool" }, 404);
     const withMeta = await mergeSkillMeta(skill, { includeBody: true });
-    const out = { ...withMeta, onChain: true };
+    const evidence = await getSkillEvidence(c.env, hash);
+    const out = {
+      ...withMeta,
+      onChain: true,
+      evidence,
+      outcome: evidence?.outcome ?? withMeta.outcome,
+    };
     await cachePutJson(cacheKey, out, SKILL_TTL);
     c.header("X-Cache", "MISS");
     return c.json(out);
@@ -231,7 +414,14 @@ skillsRoute.get("/skills", async (c) => {
           createdAt: Date.parse(rec.composedAt) || 0,
           signal: "0",
           sourceHashes: rec.sourceHashes,
+          canonicalSources: rec.canonicalSources,
+          domains: rec.domains,
+          patternTypes: rec.patternTypes,
+          derivedFromSkillHash: rec.derivedFromSkillHash,
+          ownerLogin: rec.ownerLogin,
+          visibility: rec.visibility,
         };
+        const evidence = await getSkillEvidence(c.env, rec.hash);
         const chain = rec.onChain
           ? await getSkillFromChain(
               c.env.MONAD_RPC_URL,
@@ -245,7 +435,12 @@ skillsRoute.get("/skills", async (c) => {
           title: withMeta.title ?? rec.title,
           repo: withMeta.repo ?? rec.repo,
           sourceUrls: rec.sourceUrls,
+          canonicalSources: rec.canonicalSources,
           onChain: Boolean(rec.onChain) || Boolean(chain),
+          ownerLogin: rec.ownerLogin,
+          visibility: rec.visibility,
+          evidence,
+          outcome: evidence?.outcome ?? withMeta.outcome,
         };
       }),
     );
@@ -286,15 +481,61 @@ skillsRoute.get("/skills", async (c) => {
   }
 });
 
-// Record usage (increases signal)
+// Record a claimed use. Public off-chain skills stay chain-independent; an
+// attested skill additionally attempts the optional on-chain receipt.
 skillsRoute.post("/skills/:hash/use", rateLimit("use"), async (c) => {
   const hash = c.req.param("hash");
-
-  if (!c.env.FONDOF_RELAYER_KEY) {
-    return c.json({ error: "Relayer not configured" }, 500);
-  }
+  const body = await c.req
+    .json<{ receiptKey?: string; consented?: boolean }>()
+    .catch(
+      () => ({}) as { receiptKey?: string; consented?: boolean },
+    );
+  const session = await resolveSession(
+    c.req.header("Authorization"),
+    c.env.SESSIONS,
+  );
+  const browserReceiptKey =
+    body.consented && body.receiptKey && /^[a-zA-Z0-9_-]{16,128}$/.test(body.receiptKey)
+      ? `browser:${body.receiptKey}`
+      : undefined;
+  const actorKey = session ? `user:${session.userId}` : browserReceiptKey;
 
   try {
+    const claim = await recordClaimedUse(c.env, hash, actorKey);
+    const evidence = claim.evidence;
+    const publicSkill = await getPublicSkill(c.env, hash);
+
+    if (publicSkill && !publicSkill.onChain) {
+      await caches.default
+        .delete(
+          new Request(
+            `https://fondof-cache.internal/skill:v4:${hash.toLowerCase()}`,
+          ),
+        )
+        .catch(() => undefined);
+      return c.json({
+        success: true,
+        claimed: true,
+        evidence,
+        deduplicated: claim.deduplicated,
+        tracking: claim.tracking,
+        note: claim.deduplicated
+          ? "This account/browser already claimed this use; no duplicate impact count was added."
+          : "Claimed use recorded off-chain; this is not verified project impact.",
+      });
+    }
+
+    if (!c.env.FONDOF_RELAYER_KEY) {
+      return c.json({
+        success: true,
+        claimed: true,
+        evidence,
+        deduplicated: claim.deduplicated,
+        tracking: claim.tracking,
+        note: "Claimed use recorded; on-chain receipt is unavailable.",
+      });
+    }
+
     const receipt = await useOnChain(
       c.env.MONAD_RPC_URL,
       c.env.FONDOF_RELAYER_KEY,
@@ -302,27 +543,66 @@ skillsRoute.post("/skills/:hash/use", rateLimit("use"), async (c) => {
       hash,
     );
 
-    // Invalidate skill cache so signal refreshes
-    try {
-      await caches.default.delete(
+    await caches.default
+      .delete(
         new Request(
           `https://fondof-cache.internal/skill:v4:${hash.toLowerCase()}`,
         ),
-      );
-    } catch {
-      // ignore
-    }
+      )
+      .catch(() => undefined);
 
     return c.json({
       success: true,
+      claimed: true,
       txHash: receipt.txHash,
       blockNumber: receipt.blockNumber,
+      evidence,
+      deduplicated: claim.deduplicated,
+      tracking: claim.tracking,
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Unknown error";
     return c.json({ error: msg }, 500);
   }
 });
+
+/** Confirm a linked public GitHub PR exists without claiming causality. */
+skillsRoute.post(
+  "/skills/:hash/verify-pr",
+  rateLimit("publish"),
+  async (c) => {
+    const session = await resolveSession(
+      c.req.header("Authorization"),
+      c.env.SESSIONS,
+    );
+    const result = await verifyLinkedPr(
+      c.env,
+      c.req.param("hash"),
+      session?.accessToken,
+    );
+    if (!result.ok) {
+      return c.json(
+        { error: result.reason, evidence: result.evidence },
+        result.reason.includes("not found") ? 404 : 422,
+      );
+    }
+
+    await caches.default
+      .delete(
+        new Request(
+          `https://fondof-cache.internal/skill:v4:${c.req
+            .param("hash")
+            .toLowerCase()}`,
+        ),
+      )
+      .catch(() => undefined);
+    return c.json({
+      success: true,
+      evidence: result.evidence,
+      note: "GitHub confirmed the PR exists; this does not verify that the skill caused the change.",
+    });
+  },
+);
 
 /**
  * Agent receipt storm — N use() txs back-to-back.

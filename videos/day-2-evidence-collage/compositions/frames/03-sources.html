@@ -1,0 +1,140 @@
+<template>
+  <style>
+    @font-face { font-family: Outfit; src: url("capture/assets/fonts/03bda585a99c6450-s.p.32sris142tqlb.woff2") format("woff2"); font-weight: 400 500; }
+    @font-face { font-family: "Geist Mono"; src: url("capture/assets/fonts/1b99372b3eaef0c8-s.p.1gsd1jahc5dg_.woff2") format("woff2"); font-weight: 400 500; }
+    #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; background: #F7F1E5; color: #221812; }
+    .clip { position: absolute; inset: 0; }
+    .ground { background-color: #F7F1E5; background-image: repeating-linear-gradient(90deg, rgba(34,24,18,.03) 0 1px, transparent 1px 52px); }
+    .kicker { position: absolute; z-index: 8; top: 128px; left: 86px; font: 500 22px/1 "Geist Mono", monospace; letter-spacing: .15em; }
+    .kicker b { color: #C5521C; font-size: 28px; }
+    .rule { position: absolute; z-index: 8; top: 194px; left: 86px; width: 908px; height: 1px; background: rgba(34,24,18,.18); transform-origin: left; }
+
+    .src-card {
+      position: absolute; left: 78px; width: 924px; height: 356px; overflow: hidden;
+      border: 1px solid rgba(34,24,18,.16); border-radius: 10px; background: #F7F1E5;
+      box-shadow: 0 8px 24px rgba(34,24,18,.10); opacity: 0;
+    }
+    .src-card img { position: absolute; top: 0; left: 0; width: 356px; height: 356px; object-fit: cover; object-position: left top; }
+    .src-card .meta { position: absolute; top: 0; right: 0; width: 568px; height: 100%; padding: 32px 36px; box-sizing: border-box; }
+    .src-card .num { display: inline-grid; place-items: center; width: 56px; height: 56px; border: 2px solid #221812; border-radius: 50% 50% 50% 8px; background: #C5521C; color: #F7F1E5; font: 500 25px/1 "Geist Mono", monospace; transform: rotate(-8deg); }
+    .src-card h2 { margin: 20px 0 0; font: 400 50px/1 Outfit, sans-serif; letter-spacing: -.035em; }
+    .src-card .topic { margin-top: 14px; font: 400 30px/1.25 Outfit, sans-serif; font-style: italic; color: rgba(34,24,18,.85); }
+    .src-card .url { position: absolute; left: 36px; bottom: 26px; padding-top: 14px; border-top: 1px solid rgba(34,24,18,.18); width: 496px; font: 500 18px/1 "Geist Mono", monospace; letter-spacing: .02em; color: rgba(34,24,18,.8); }
+    .card-a { top: 240px; transform: rotate(-1.5deg); }
+    .card-b { top: 626px; transform: rotate(1.2deg); }
+    .card-b img { filter: brightness(.55) contrast(1.1); }
+    .card-b .play { position: absolute; top: 118px; left: 118px; width: 0; height: 0; border-left: 100px solid #F7F1E5; border-top: 60px solid transparent; border-bottom: 60px solid transparent; opacity: .92; }
+    .card-c { top: 1012px; transform: rotate(-1deg); }
+
+    .hand { position: absolute; z-index: 9; top: 240px; right: -60px; width: 380px; height: 380px; object-fit: contain; filter: grayscale(1) contrast(1.1) drop-shadow(-8px 10px 0 rgba(197,82,28,.8)); opacity: 0; }
+    .archivist { position: absolute; z-index: 2; right: -40px; top: 1000px; width: 340px; height: 360px; object-fit: contain; object-position: bottom center; filter: grayscale(1) contrast(1.12) drop-shadow(-8px 10px 0 rgba(197,82,28,.8)); opacity: 0; }
+
+    .summary { position: absolute; z-index: 8; top: 1420px; left: 86px; display: flex; gap: 24px; align-items: center; opacity: 0; }
+    .chip { padding: 18px 28px; border: 1px solid rgba(34,24,18,.2); border-radius: 8px; background: #181615; color: #F7F1E5; font: 500 26px/1 "Geist Mono", monospace; letter-spacing: .08em; }
+    .chip.accent { background: #C5521C; color: #F7F1E5; }
+    .vibes { position: absolute; z-index: 8; top: 1432px; right: 100px; padding: 14px 22px; border: 1px dashed rgba(34,24,18,.35); border-radius: 6px; background: #F7F1E5; font: 400 28px/1 Outfit, sans-serif; font-style: italic; color: rgba(34,24,18,.6); transform: rotate(3deg); opacity: 0; }
+    .vibes svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+    .vibes path { fill: none; stroke: #C5521C; stroke-width: 6; stroke-linecap: round; }
+  </style>
+  <div data-hf-id="hf-t591" id="root" data-composition-id="03-sources" data-start="0" data-duration="13.178" data-width="1080" data-height="1920">
+    <div data-hf-id="hf-fr32" id="f03-ground" class="clip ground" data-start="0" data-duration="13.178" data-track-index="0"></div>
+    <div data-hf-id="hf-qqk1" id="f03-stage" class="clip" data-start="0" data-duration="13.178" data-track-index="1">
+      <div data-hf-id="hf-35n5" id="f03-kicker" class="kicker"><b data-hf-id="hf-u3lo">✱</b> THE SOURCES / 03</div>
+      <div data-hf-id="hf-mz4w" id="f03-rule" class="rule"></div>
+
+      <article data-hf-id="hf-5120" id="f03-card-a" class="src-card card-a">
+        <img data-hf-id="hf-3zgm" src=".media/sources/paul-graham-schlep/screenshots/scroll-000.png" alt="Paul Graham — Schlep Blindness">
+        <div data-hf-id="hf-puvz" class="meta">
+          <span data-hf-id="hf-cshg" class="num">01</span>
+          <h2 data-hf-id="hf-0brx">Paul Graham</h2>
+          <p data-hf-id="hf-7py9" class="topic">the work everyone skips</p>
+          <span data-hf-id="hf-uyju" class="url">paulgraham.com/schlep.html</span>
+        </div>
+      </article>
+
+      <article data-hf-id="hf-znnc" id="f03-card-b" class="src-card card-b">
+        <img data-hf-id="hf-i7t6" src=".media/sources/thiel-competition/screenshots/scroll-000.png" alt="Peter Thiel — Competition is for Losers">
+        <div data-hf-id="hf-et3v" class="play" aria-hidden="true"></div>
+        <div data-hf-id="hf-zjfj" class="meta">
+          <span data-hf-id="hf-blkd" class="num">02</span>
+          <h2 data-hf-id="hf-czb9">Peter Thiel</h2>
+          <p data-hf-id="hf-25nc" class="topic">competition is for losers</p>
+          <span data-hf-id="hf-9b9q" class="url">youtube.com/watch?v=3Fx5Q8xGU8k</span>
+        </div>
+      </article>
+
+      <article data-hf-id="hf-unl4" id="f03-card-c" class="src-card card-c">
+        <img data-hf-id="hf-mv6q" src=".media/sources/stephango-moats/screenshots/scroll-000.png" alt="Kepano — Moats">
+        <div data-hf-id="hf-z54i" class="meta">
+          <span data-hf-id="hf-bzve" class="num">03</span>
+          <h2 data-hf-id="hf-b4en">Kepano</h2>
+          <p data-hf-id="hf-5pxh" class="topic">how moats actually stack</p>
+          <span data-hf-id="hf-0ie1" class="url">stephango.com/moats</span>
+        </div>
+      </article>
+
+      <img data-hf-id="hf-beod" id="f03-hand" class="hand" src=".media/generated/source-hand-cutout.png" alt="">
+      <img id="f03-archivist" class="archivist" src=".media/generated/char-archivist-cutout.png" alt="" data-layout-allow-occlusion>
+
+      <div data-hf-id="hf-0go8" id="f03-summary" class="summary">
+        <span data-hf-id="hf-bi2e" class="chip">3 SOURCES</span><span data-hf-id="hf-hh3d" class="chip accent">REAL THINKING</span>
+      </div>
+      <div data-hf-id="hf-a747" id="f03-vibes" class="vibes">vibes
+        <svg data-hf-id="hf-2jbw" viewBox="0 0 200 64" aria-hidden="true"><path data-hf-id="hf-4hma" id="f03-vibes-strike" d="M10 40 C 60 12 140 50 190 24" /></svg>
+      </div>
+    </div>
+  </div>
+  <script>
+    (() => {
+      const tl = gsap.timeline({ paused: true });
+      window.__timelines = window.__timelines || {};
+      window.__timelines["03-sources"] = tl;
+
+      tl.fromTo("#f03-kicker", { opacity: 0, y: -16 }, { opacity: 1, y: 0, duration: .28, ease: "expo.out" }, .08);
+      tl.fromTo("#f03-rule", { scaleX: 0 }, { scaleX: 1, duration: .4, ease: "power2.out" }, .15);
+
+      // Card A — "Paul Graham, on the work everyone skips." (0.0–2.25)
+      tl.fromTo("#f03-hand", { opacity: 0, x: 380, y: 0 }, { opacity: 1, x: 0, y: 0, duration: .4, ease: "power3.out" }, .15);
+      tl.fromTo("#f03-card-a", { opacity: 0, x: 320, rotation: 3 }, { opacity: 1, x: 0, rotation: -1.5, duration: .55, ease: "power3.out" }, .3);
+      tl.to("#f03-hand", { opacity: 0, x: 300, duration: .3, ease: "power2.in" }, 1.1);
+      tl.fromTo("#f03-card-a .num", { scale: 0 }, { scale: 1, duration: .3, ease: "back.out(2)" }, .7);
+      tl.fromTo("#f03-card-a h2", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: .4, ease: "power2.out" }, .5);
+      tl.fromTo("#f03-card-a .topic", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: .4, ease: "power2.out" }, 1.0);
+      tl.fromTo("#f03-card-a .url", { opacity: 0 }, { opacity: 1, duration: .35 }, 1.6);
+
+      // Card B — "Peter Thiel, on why competition is for losers." (2.58–5.32)
+      tl.set("#f03-hand", { y: 386 }, 2.5);
+      tl.to("#f03-hand", { opacity: 1, x: 0, duration: .4, ease: "power3.out" }, 2.6);
+      tl.fromTo("#f03-card-b", { opacity: 0, x: 320, rotation: -3 }, { opacity: 1, x: 0, rotation: 1.2, duration: .55, ease: "power3.out" }, 2.75);
+      tl.to("#f03-hand", { opacity: 0, x: 300, duration: .3, ease: "power2.in" }, 3.6);
+      tl.fromTo("#f03-card-b .num", { scale: 0 }, { scale: 1, duration: .3, ease: "back.out(2)" }, 3.1);
+      tl.fromTo("#f03-card-b h2", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: .4, ease: "power2.out" }, 2.95);
+      tl.fromTo("#f03-card-b .topic", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: .4, ease: "power2.out" }, 3.9);
+      tl.fromTo("#f03-card-b .url", { opacity: 0 }, { opacity: 1, duration: .35 }, 4.6);
+
+      // Card C — "Kepano, on how moats actually stack." (5.83–8.09)
+      tl.set("#f03-hand", { y: 772 }, 5.85);
+      tl.to("#f03-hand", { opacity: 1, x: 0, duration: .4, ease: "power3.out" }, 5.95);
+      tl.fromTo("#f03-card-c", { opacity: 0, x: 320, rotation: 3 }, { opacity: 1, x: 0, rotation: -1, duration: .55, ease: "power3.out" }, 6.1);
+      tl.to("#f03-hand", { opacity: 0, x: 300, duration: .3, ease: "power2.in" }, 6.9);
+      tl.fromTo("#f03-card-c .num", { scale: 0 }, { scale: 1, duration: .3, ease: "back.out(2)" }, 6.4);
+      tl.fromTo("#f03-card-c h2", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: .4, ease: "power2.out" }, 6.3);
+      tl.fromTo("#f03-card-c .topic", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: .4, ease: "power2.out" }, 6.9);
+      tl.fromTo("#f03-card-c .url", { opacity: 0 }, { opacity: 1, duration: .35 }, 7.5);
+
+      // archivist peeks in during card C (6.0s)
+      tl.fromTo("#f03-archivist", { opacity: 0, x: 90 }, { opacity: 1, x: 0, duration: .5, ease: "steps(5)" }, 6.0);
+      // "Three sources. Real thinking." (8.79–10.84)
+      tl.fromTo("#f03-summary", { opacity: 0, y: 36 }, { opacity: 1, y: 0, duration: .45, ease: "power3.out" }, 8.85);
+      // "Not vibes." (11.66–12.68)
+      tl.fromTo("#f03-vibes", { opacity: 0, scale: .8 }, { opacity: 1, scale: 1, duration: .28, ease: "steps(3)" }, 11.55);
+      const strike = document.getElementById("f03-vibes-strike");
+      const len = strike.getTotalLength();
+      strike.style.strokeDasharray = len;
+      strike.style.strokeDashoffset = len;
+      tl.to(strike, { strokeDashoffset: 0, duration: .34, ease: "power2.out" }, 11.85);
+
+      tl.to({}, { duration: 13.178 }, 0);
+    })();
+  </script>
+</template>

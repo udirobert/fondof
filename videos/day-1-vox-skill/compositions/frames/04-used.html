@@ -1,0 +1,140 @@
+<template>
+  <style>
+    @font-face {
+      font-family: "Shrikhand";
+      src: url("assets/fonts/Shrikhand-400.ttf") format("truetype");
+      font-weight: 400;
+    }
+    @font-face {
+      font-family: "Space Grotesk";
+      src: url("assets/fonts/SpaceGrotesk-600.ttf") format("truetype");
+      font-weight: 600;
+    }
+    #root {
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      position: relative;
+    }
+    .clip {
+      position: absolute;
+    }
+    #f04-bg {
+      inset: 0;
+      background:
+        radial-gradient(circle, #1c1410 1.1px, transparent 1.2px) 0 0 / 14px 14px,
+        #f5f2ef;
+    }
+    .f04-tag {
+      font-family: "Space Grotesk", sans-serif;
+      font-weight: 600;
+      font-size: 26px;
+      letter-spacing: 0.18em;
+      color: #d8000f;
+    }
+    #f04-l1 {
+      left: 88px;
+      top: 48px;
+    }
+    #f04-l2 {
+      left: 280px;
+      top: 48px;
+    }
+    #f04-l3 {
+      left: 470px;
+      top: 48px;
+    }
+    .cut-mid {
+      object-fit: contain;
+      object-position: bottom center;
+      filter: grayscale(1) contrast(1.15);
+    }
+    .cut-fg {
+      object-fit: contain;
+      object-position: bottom center;
+      filter: grayscale(1) contrast(1.1) drop-shadow(8px 10px 0 #d8000f);
+    }
+    #f04-mic {
+      left: 80px;
+      top: 80px;
+      width: 520px;
+      height: 780px;
+    }
+    #f04-tablet {
+      left: 1180px;
+      top: 100px;
+      width: 500px;
+      height: 760px;
+    }
+    #f04-stage {
+      left: 160px;
+      top: 520px;
+      width: 1600px;
+      height: 460px;
+    }
+    #f04-hero {
+      left: 700px;
+      top: 80px;
+      font-family: "Shrikhand", serif;
+      font-size: 72px;
+      color: #1c1410;
+      line-height: 0.9;
+      background: #f5f2ef;
+      padding: 8px 16px;
+    }
+  </style>
+  <div
+    id="root"
+    data-composition-id="04-used"
+    data-start="0"
+    data-duration="7.012"
+    data-width="1920"
+    data-height="1080"
+  >
+    <div id="f04-bg" class="clip" data-start="0" data-duration="7.012" data-track-index="0"></div>
+    <div id="f04-l1" class="clip f04-tag" data-start="0" data-duration="7.012" data-track-index="1">BG</div>
+    <img
+      id="f04-mic"
+      class="clip cut-mid"
+      src="assets/cutouts/mic-man-cut.png"
+      data-start="0"
+      data-duration="7.012"
+      data-track-index="2"
+      alt=""
+    />
+    <img
+      id="f04-tablet"
+      class="clip cut-mid"
+      src="assets/cutouts/tablet-dev-cut.png"
+      data-start="0"
+      data-duration="7.012"
+      data-track-index="3"
+      alt=""
+    />
+    <div id="f04-l2" class="clip f04-tag" data-start="0" data-duration="7.012" data-track-index="4">MID</div>
+    <img
+      id="f04-stage"
+      class="clip cut-fg"
+      src="assets/cutouts/stage-cut.png"
+      data-start="0"
+      data-duration="7.012"
+      data-track-index="5"
+      alt=""
+    />
+    <div id="f04-l3" class="clip f04-tag" data-start="0" data-duration="7.012" data-track-index="6">FG</div>
+    <div id="f04-hero" class="clip" data-start="0" data-duration="7.012" data-track-index="7">THIS CLIP</div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+  <script>
+    window.__timelines = window.__timelines || {};
+    const tl = gsap.timeline({ paused: true });
+    tl.fromTo("#f04-l1", { opacity: 0 }, { opacity: 1, duration: 0.25 }, 0.1);
+    tl.fromTo("#f04-mic", { opacity: 0, y: 60 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 1.85);
+    tl.fromTo("#f04-tablet", { opacity: 0, y: 60 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 2.2);
+    tl.fromTo("#f04-l2", { opacity: 0 }, { opacity: 1, duration: 0.25 }, 2.15);
+    tl.fromTo("#f04-stage", { opacity: 0, y: 80, scale: 0.96 }, { opacity: 1, y: 0, scale: 1, duration: 0.55, ease: "power3.out" }, 3.05);
+    tl.fromTo("#f04-l3", { opacity: 0 }, { opacity: 1, duration: 0.25 }, 3.2);
+    tl.fromTo("#f04-hero", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.4 }, 4.8);
+    window.__timelines["04-used"] = tl;
+  </script>
+</template>

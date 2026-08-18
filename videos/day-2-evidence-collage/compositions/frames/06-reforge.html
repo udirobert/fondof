@@ -1,0 +1,87 @@
+<template>
+  <style>
+    @font-face { font-family: Outfit; src: url("capture/assets/fonts/03bda585a99c6450-s.p.32sris142tqlb.woff2") format("woff2"); font-weight: 400 500; }
+    @font-face { font-family: "Geist Mono"; src: url("capture/assets/fonts/1b99372b3eaef0c8-s.p.1gsd1jahc5dg_.woff2") format("woff2"); font-weight: 400 500; }
+    #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; background: #F7F1E5; color: #221812; }
+    .clip { position: absolute; inset: 0; }
+    .ground { background: #F7F1E5; background-image: repeating-linear-gradient(90deg, rgba(34,24,18,.026) 0 1px, transparent 1px 52px); }
+    .kicker { position: absolute; z-index: 8; top: 128px; left: 86px; font: 500 22px/1 "Geist Mono", monospace; letter-spacing: .15em; }
+    .kicker b { color: #C5521C; font-size: 28px; }
+    .rule { position: absolute; z-index: 8; top: 194px; left: 86px; width: 908px; height: 1px; background: rgba(34,24,18,.18); transform-origin: left; }
+    .step { position: absolute; left: 120px; width: 840px; display: flex; align-items: center; gap: 26px; opacity: 0; }
+    .step .num { flex: 0 0 auto; width: 64px; height: 64px; display: grid; place-items: center; border: 2px solid #221812; border-radius: 50% 50% 50% 8px; background: #C5521C; color: #F7F1E5; font: 500 28px/1 "Geist Mono", monospace; transform: rotate(-8deg); }
+    .step .body { flex: 1; }
+    .step h3 { margin: 0; font: 400 44px/1.05 Outfit, sans-serif; letter-spacing: -.03em; }
+    .step p { margin: 8px 0 0; font: 500 19px/1.3 "Geist Mono", monospace; color: rgba(34,24,18,.75); letter-spacing: .04em; }
+    .step-1 { top: 300px; }
+    .step-2 { top: 560px; }
+    .step-3 { top: 820px; }
+    .connector { position: absolute; left: 151px; width: 4px; background: #C5521C; transform-origin: top; opacity: 0; }
+    .conn-1 { top: 380px; height: 160px; }
+    .conn-2 { top: 640px; height: 160px; }
+    .courier { position: absolute; z-index: 7; right: 60px; top: 1080px; width: 260px; height: 300px; object-fit: contain; object-position: bottom center; filter: grayscale(1) contrast(1.12) drop-shadow(-8px 10px 0 rgba(197,82,28,.8)); opacity: 0; }
+    .archivist { position: absolute; z-index: 4; left: -16px; top: 990px; width: 270px; height: 310px; object-fit: contain; object-position: bottom center; filter: grayscale(1) contrast(1.12) drop-shadow(8px 10px 0 rgba(197,82,28,.8)); opacity: 0; }
+    .smith { position: absolute; z-index: 6; left: 480px; top: 950px; width: 260px; height: 280px; object-fit: contain; object-position: bottom center; filter: grayscale(1) contrast(1.12) drop-shadow(-8px 10px 0 rgba(197,82,28,.8)); opacity: 0; }
+    .result { position: absolute; z-index: 8; top: 1200px; left: 86px; width: 660px; padding: 30px 36px; border: 1px solid rgba(34,24,18,.16); border-radius: 10px; background: #F7F1E5; box-shadow: 0 10px 26px rgba(34,24,18,.12); opacity: 0; }
+    .result small { display: block; color: #B53700; font: 500 16px/1 "Geist Mono", monospace; letter-spacing: .12em; }
+    .result p { margin: 10px 0 0; font: 400 42px/1.1 Outfit, sans-serif; letter-spacing: -.03em; }
+    .check { position: absolute; top: -22px; right: -22px; width: 64px; height: 64px; display: grid; place-items: center; border: 2px solid #221812; border-radius: 50%; background: #1D7A54; color: #F7F1E5; font: 500 32px/1 Outfit, sans-serif; box-shadow: 4px 5px 0 #221812; }
+    .prov { position: absolute; z-index: 8; top: 1440px; left: 86px; padding: 14px 20px; border: 1px dashed rgba(34,24,18,.35); border-radius: 6px; font: 500 18px/1.3 "Geist Mono", monospace; letter-spacing: .04em; color: rgba(34,24,18,.8); transform: rotate(-1.5deg); opacity: 0; }
+  </style>
+  <div data-hf-id="hf-ln6t" id="root" data-composition-id="06-reforge" data-start="0" data-duration="7.745" data-width="1080" data-height="1920">
+    <div data-hf-id="hf-gyk6" id="f06-ground" class="clip ground" data-start="0" data-duration="7.745" data-track-index="0"></div>
+    <div data-hf-id="hf-kjrb" id="f06-stage" class="clip" data-start="0" data-duration="7.745" data-track-index="1">
+      <div data-hf-id="hf-i506" id="f06-kicker" class="kicker"><b data-hf-id="hf-u3lo">✱</b> THE RE-FORGE / 06</div>
+      <div data-hf-id="hf-oy0j" id="f06-rule" class="rule"></div>
+      <section data-hf-id="hf-2t0g" id="f06-step1" class="step step-1">
+        <span data-hf-id="hf-kud6" class="num">1</span>
+        <div data-hf-id="hf-2t3w" class="body"><h3 data-hf-id="hf-cszs">Back to the source</h3><p data-hf-id="hf-h4eh">paulgraham.com/schlep.html · stephango.com/moats</p></div>
+      </section>
+      <div data-hf-id="hf-hw5b" id="f06-conn1" class="connector conn-1"></div>
+      <section data-hf-id="hf-nzi6" id="f06-step2" class="step step-2">
+        <span data-hf-id="hf-l8o7" class="num">2</span>
+        <div data-hf-id="hf-6g9g" class="body"><h3 data-hf-id="hf-wjow">Follow the actual trail</h3><p data-hf-id="hf-va0r">trace claims → verify → discard what fails</p></div>
+      </section>
+      <div data-hf-id="hf-880p" id="f06-conn2" class="connector conn-2"></div>
+      <section data-hf-id="hf-5o1g" id="f06-step3" class="step step-3">
+        <span data-hf-id="hf-lmz8" class="num">3</span>
+        <div data-hf-id="hf-59cd" class="body"><h3 data-hf-id="hf-el92">Into this codebase</h3><p data-hf-id="hf-751l">packages/web/src/lib/skill-share.ts</p></div>
+      </section>
+      <img data-hf-id="hf-n6bk" id="f06-courier" class="courier" src=".media/generated/forger-courier-cutout.png" alt="">
+      <img id="f06-archivist" class="archivist" src=".media/generated/char-archivist-cutout.png" alt="" data-layout-allow-overlap data-layout-allow-occlusion>
+      <img id="f06-smith" class="smith" src=".media/generated/char-smith-cutout.png" alt="" data-layout-allow-overlap data-layout-allow-occlusion>
+      <section data-hf-id="hf-74un" id="f06-result" class="result">
+        <span data-hf-id="hf-qmcj" class="check" aria-hidden="true">✓</span>
+        <small data-hf-id="hf-pwcp">OUTPUT</small>
+        <p data-hf-id="hf-j3z3">A skill that actually fits.</p>
+      </section>
+      <div data-hf-id="hf-zmtr" id="f06-prov" class="prov">SOURCE ROUTE RETAINED · REFORGE TRACE VERIFIED</div>
+    </div>
+  </div>
+  <script>
+    (() => {
+      const tl = gsap.timeline({ paused: true });
+      window.__timelines = window.__timelines || {};
+      window.__timelines["06-reforge"] = tl;
+      tl.fromTo("#f06-kicker", { opacity: 0, y: -16 }, { opacity: 1, y: 0, duration: .28, ease: "expo.out" }, .05);
+      tl.fromTo("#f06-rule", { scaleX: 0 }, { scaleX: 1, duration: .4, ease: "power2.out" }, .12);
+      // "So we went back to the source." (0.02–1.53)
+      tl.fromTo("#f06-step1", { opacity: 0, x: -60 }, { opacity: 1, x: 0, duration: .45, ease: "power3.out" }, .1);
+      // archivist returns with the source
+      tl.fromTo("#f06-archivist", { opacity: 0, y: 60 }, { opacity: 1, y: 0, duration: .5, ease: "steps(5)" }, .2);
+      // "Followed the actual trail." (1.78–3.16)
+      tl.fromTo("#f06-conn1", { opacity: 0, scaleY: 0 }, { opacity: 1, scaleY: 1, duration: .3, ease: "power2.out" }, 1.7);
+      tl.fromTo("#f06-step2", { opacity: 0, x: -60 }, { opacity: 1, x: 0, duration: .45, ease: "power3.out" }, 1.85);
+      // "Into this codebase," (3.31–4.46)
+      tl.fromTo("#f06-conn2", { opacity: 0, scaleY: 0 }, { opacity: 1, scaleY: 1, duration: .3, ease: "power2.out" }, 3.25);
+      tl.fromTo("#f06-step3", { opacity: 0, x: -60 }, { opacity: 1, x: 0, duration: .45, ease: "power3.out" }, 3.35);
+      // smith carries it into the codebase
+      tl.fromTo("#f06-smith", { opacity: 0, y: 70 }, { opacity: 1, y: 0, duration: .5, ease: "steps(5)" }, 3.45);
+      // "out the other side as a skill that actually fits." (4.54–7.25)
+      tl.fromTo("#f06-courier", { opacity: 0, y: 80 }, { opacity: 1, y: 0, duration: .5, ease: "power3.out" }, 4.5);
+      tl.fromTo("#f06-result", { opacity: 0, y: 40, scale: .97 }, { opacity: 1, y: 0, scale: 1, duration: .5, ease: "power3.out" }, 4.9);
+      tl.fromTo("#f06-prov", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: .35, ease: "power2.out" }, 6.2);
+      tl.to({}, { duration: 7.745 }, 0);
+    })();
+  </script>
+</template>

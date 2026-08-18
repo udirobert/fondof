@@ -1,0 +1,129 @@
+<template>
+  <style>
+    @font-face { font-family: Outfit; src: url("capture/assets/fonts/03bda585a99c6450-s.p.32sris142tqlb.woff2") format("woff2"); font-weight: 400 500; }
+    @font-face { font-family: "Geist Mono"; src: url("capture/assets/fonts/1b99372b3eaef0c8-s.p.1gsd1jahc5dg_.woff2") format("woff2"); font-weight: 400 500; }
+    #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; background: #F7F1E5; color: #221812; }
+    .clip { position: absolute; inset: 0; }
+    .ground {
+      background-color: #F7F1E5;
+      background-image:
+        repeating-linear-gradient(97deg, rgba(34,24,18,.035) 0 1px, transparent 1px 17px),
+        repeating-linear-gradient(7deg, rgba(34,24,18,.022) 0 1px, transparent 1px 29px);
+    }
+    .kicker { position: absolute; z-index: 8; top: 128px; left: 86px; display: flex; align-items: center; gap: 13px; font: 500 22px/1 "Geist Mono", monospace; letter-spacing: .15em; }
+    .kicker b { color: #C5521C; font-size: 28px; }
+    .rule { position: absolute; z-index: 8; top: 194px; left: 86px; width: 908px; height: 1px; background: rgba(34,24,18,.18); transform-origin: left; }
+
+    .strip {
+      position: absolute; top: 330px; left: 86px; width: 908px; min-height: 236px;
+      padding: 33px 40px 37px; box-sizing: border-box;
+      border: 1px solid rgba(34,24,18,.16); border-radius: 12px; background: #FFDDCE;
+      box-shadow: 0 1px 3px rgba(34,24,18,.08), 0 4px 16px rgba(34,24,18,.04);
+    }
+    .strip .prompt { margin-bottom: 26px; color: #6d5648; font: 400 21px/1 "Geist Mono", monospace; letter-spacing: .02em; }
+    .strip .typed-row { display: flex; align-items: baseline; width: 100%; min-height: 62px; color: #221812; font: 400 34px/1.18 "Geist Mono", monospace; letter-spacing: -.045em; white-space: nowrap; }
+    .strip .typed { display: inline-flex; align-items: baseline; white-space: pre; }
+    .strip .cursor { display: inline-block; width: 13px; height: 40px; margin-left: 8px; background: #C5521C; vertical-align: -6px; }
+
+    .question {
+      position: absolute; top: 690px; left: 86px; z-index: 3; width: 908px;
+      font: 400 118px/.96 Outfit, sans-serif; letter-spacing: -.028em; opacity: 0;
+    }
+    .q-wrap { position: relative; display: inline-block; }
+    .q-marker { position: absolute; right: -8px; bottom: 4px; left: -9px; z-index: 0; height: 22px; border-radius: 3px; background: #C5521C; opacity: .78; transform-origin: left center; }
+    .q-word { position: relative; z-index: 1; }
+
+    .survived {
+      position: absolute; top: 1010px; left: 86px; width: 908px;
+      font: 400 58px/1.12 Outfit, sans-serif; font-style: italic; letter-spacing: -.02em;
+      color: rgba(34,24,18,.92); opacity: 0;
+    }
+    .survived-mark {
+      position: absolute; top: 1104px; left: 86px; width: 470px; height: 5px; border-radius: 3px;
+      background: #C5521C; transform-origin: left center; opacity: 0;
+    }
+
+    .courier {
+      position: absolute; z-index: 6; right: -30px; top: 1180px; width: 380px; height: 400px;
+      object-fit: contain; object-position: bottom center;
+      filter: grayscale(1) contrast(1.12) drop-shadow(-10px 12px 0 #C5521C);
+      opacity: 0;
+    }
+    .thinker {
+      position: absolute; z-index: 5; left: -20px; top: 1150px; width: 320px; height: 380px;
+      object-fit: contain; object-position: bottom center;
+      filter: grayscale(1) contrast(1.12) drop-shadow(10px 12px 0 rgba(197,82,28,.8));
+      opacity: 0;
+    }
+  </style>
+  <div data-hf-id="hf-4c81" id="root" data-composition-id="02-question" data-start="0" data-duration="5.655" data-width="1080" data-height="1920">
+    <div data-hf-id="hf-mnuy" id="f02-ground" class="clip ground" data-start="0" data-duration="5.655" data-track-index="0"></div>
+    <div data-hf-id="hf-5twv" id="f02-stage" class="clip" data-start="0" data-duration="5.655" data-track-index="1">
+      <div data-hf-id="hf-d6if" id="f02-kicker" class="kicker"><b data-hf-id="hf-u3lo">✱</b> THE QUESTION / 02</div>
+      <div data-hf-id="hf-kfhb" id="f02-rule" class="rule"></div>
+
+      <section data-hf-id="hf-9tak" id="f02-strip" class="strip" aria-label="query strip">
+        <div data-hf-id="hf-aqwt" class="prompt">PROMPT /</div>
+        <div data-hf-id="hf-due3" class="typed-row">
+          <span data-hf-id="hf-drzs" id="f02-typed" class="typed"></span><span data-hf-id="hf-6x12" id="f02-cursor" class="cursor"></span>
+        </div>
+      </section>
+
+      <div data-hf-id="hf-adx7" id="f02-question" class="question">
+        <span data-hf-id="hf-ztaf" class="q-wrap"><span data-hf-id="hf-u4ww" id="f02-marker" class="q-marker"></span><span data-hf-id="hf-gqdf" class="q-word">worth keeping?</span></span>
+      </div>
+
+      <div data-hf-id="hf-1cli" id="f02-survived" class="survived">What if it started with thinking that already survived?</div>
+      <div data-hf-id="hf-uh4w" id="f02-survived-mark" class="survived-mark" aria-hidden="true"></div>
+
+      <img id="f02-thinker" class="thinker" src=".media/generated/char-thinker-cutout.png" alt="" data-layout-allow-occlusion>
+      <img data-hf-id="hf-y8ms" id="f02-courier" class="courier" src=".media/generated/forger-courier-cutout.png" alt="">
+    </div>
+  </div>
+  <script>
+    (() => {
+      const tl = gsap.timeline({ paused: true });
+      window.__timelines = window.__timelines || {};
+      window.__timelines["02-question"] = tl;
+      const sequence = [
+        { t: 0.00, text: "" },
+        { t: 0.16, text: "what" },
+        { t: 0.42, text: "what makes" },
+        { t: 0.70, text: "what makes one" },
+        { t: 0.92, text: "what makes one worth" },
+        { t: 1.30, text: "what makes one worth keeping?" }
+      ];
+      const typed = document.getElementById("f02-typed");
+      const cursor = document.getElementById("f02-cursor");
+      const driver = { t: 0 };
+      const blink = { p: 0 };
+      function textAt(time) {
+        for (let i = sequence.length - 1; i >= 0; i -= 1) {
+          if (time >= sequence[i].t) return sequence[i].text;
+        }
+        return "";
+      }
+      tl.fromTo("#f02-kicker", { opacity: 0, y: -16 }, { opacity: 1, y: 0, duration: .28, ease: "expo.out" }, .05);
+      tl.fromTo("#f02-rule", { scaleX: 0 }, { scaleX: 1, duration: .42, ease: "power2.out" }, .12);
+      tl.fromTo("#f02-strip", { opacity: 0, y: 26 }, { opacity: 1, y: 0, duration: .38, ease: "power2.out" }, .10);
+      tl.to(driver, {
+        t: 1.74, duration: 1.74, ease: "none",
+        onUpdate: () => { typed.textContent = textAt(driver.t); }
+      }, 0);
+      tl.to(blink, {
+        p: Math.PI * 2 * 9, duration: 5.655, ease: "none",
+        onUpdate: () => { cursor.style.opacity = Math.sin(blink.p) > 0 ? "1" : "0"; }
+      }, 0);
+      // "worth keeping?" lands on the spoken words (0.9–1.74)
+      tl.fromTo("#f02-question", { opacity: 0, y: 44 }, { opacity: 1, y: 0, duration: .34, ease: "power2.out" }, .85);
+      tl.fromTo("#f02-marker", { scaleX: 0 }, { scaleX: 1, duration: .38, ease: "power2.out" }, 1.0);
+      // "thinking that already survived?" (2.18–5.15)
+      tl.fromTo("#f02-survived", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: .44, ease: "power2.out" }, 2.7);
+      tl.fromTo("#f02-survived-mark", { opacity: 0, scaleX: 0 }, { opacity: .85, scaleX: 1, duration: .36, ease: "power2.out" }, 4.3);
+      tl.fromTo("#f02-courier", { opacity: 0, y: 80 }, { opacity: 1, y: 0, duration: .5, ease: "steps(5)" }, .3);
+      // thinker joins on "thinking that already survived?" (2.7s)
+      tl.fromTo("#f02-thinker", { opacity: 0, y: 60 }, { opacity: 1, y: 0, duration: .5, ease: "steps(5)" }, 2.7);
+      tl.to({}, { duration: 5.655 }, 0);
+    })();
+  </script>
+</template>

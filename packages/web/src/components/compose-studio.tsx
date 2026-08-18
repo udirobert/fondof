@@ -22,7 +22,7 @@ export function ComposeStudio() {
   const [source, setSource] = useState("");
   const [repo, setRepo] = useState("");
   const [topShards, setTopShards] = useState(2);
-  const [isPrivate, setIsPrivate] = useState(false);
+  const [isPrivate, setIsPrivate] = useState(true);
   const [phase, setPhase] = useState<Phase>("idle");
   const [labelIdx, setLabelIdx] = useState(0);
   const [result, setResult] = useState<Awaited<ReturnType<typeof composeSkill>> | null>(null);
@@ -148,7 +148,7 @@ export function ComposeStudio() {
               </div>
             </Tip>
 
-            <Tip tip="Public skills get a shareable page. Private stays in your session only.">
+            <Tip tip="Private drafts stay local to this flow. Share publicly only when you want attribution and re-forging.">
               <button
                 type="button"
                 onClick={() => setIsPrivate((p) => !p)}
@@ -160,7 +160,7 @@ export function ComposeStudio() {
                 }`}
               >
                 {isPrivate ? <Lock size={11} /> : <Unlock size={11} />}
-                {isPrivate ? "Private" : "Public"}
+                {isPrivate ? "Private draft" : "Share publicly"}
               </button>
             </Tip>
           </div>
@@ -239,7 +239,7 @@ export function ComposeStudio() {
                   className="flex min-h-9 items-center justify-center gap-2 rounded-full border border-ink/12 px-4 text-xs text-ink hover:border-ember/40 hover:text-ember"
                 >
                   <ExternalLink size={13} />
-                  Open public skill page
+                  Open shared skill page
                 </a>
               )}
             </div>

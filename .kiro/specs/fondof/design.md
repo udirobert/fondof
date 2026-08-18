@@ -5,8 +5,8 @@
 fondof is structured as a three-layer system:
 
 1. **Client Layer** — CLI + Web UI that the user interacts with
-2. **Core Layer** — Orchestration, AI pipelines, matching, and composition logic
-3. **Chain Layer** — Monad smart contracts for attestation (invisible to user)
+2. **Core Layer** — Orchestration, AI pipelines, matching, composition, outcomes, and attribution
+3. **Public Trust Layer** — Optional Monad commitments, backing, and challenges for public proof
 
 ```
 ┌─────────────────────────────────────────────────────┐
@@ -33,14 +33,14 @@ fondof is structured as a three-layer system:
 └──────────────────────────┼──────────────────────────┘
                            │
 ┌──────────────────────────▼──────────────────────────┐
-│                   CHAIN LAYER                        │
+│              PUBLIC TRUST LAYER (OPTIONAL)          │
 │  SkillPool Contract (Solidity on Monad)             │
-│  - forge(skillHash, sourceHashes) payable           │
-│  - use(skillHash) — per-invocation receipt          │
-│  - challenge(skillHash) payable — dispute quality   │
-│  - resolve(challengeId, winner) — oracle settles    │
-│  - topSkills(limit) — ranked by signal              │
-│  Abstracted via server-side relayer (no user wallet)│
+│  - attest(skillHash, source commitments)            │
+│  - back / challenge public quality claims           │
+│  - record meaningful usage receipts                 │
+│  - resolve(challengeId, winner) — oracle-assisted   │
+│  - expose public signal for downstream discovery    │
+│  Abstracted via relayer where possible              │
 └─────────────────────────────────────────────────────┘
 ```
 
@@ -228,27 +228,28 @@ provenance:
 - Compare outputs on correctness, style adherence, convention compliance
 - Score relative to existing alternatives
 
-### 6. Chain Layer (SkillPool — Monad)
+### 6. Public Trust Layer (SkillPool — Optional Monad Integration)
 
-**Responsibility:** On-chain skill quality discovery, usage tracking, and challenge resolution. Not just provenance — an economic mechanism that surfaces skill quality through real usage and staking.
+**Responsibility:** Provide an optional, portable public-trust layer for exact skill identity, source commitments, backing, usage receipts, and challenges. It is downstream of craft, hand-off, and outcomes; ordinary forging and use must remain useful without it.
 
 **Why Monad specifically:**
-- 10K TPS enables per-use tracking (every skill invocation is an on-chain receipt)
-- 300ms blocks mean signals update in real-time during a demo
-- Near-zero fees make micro-stakes and usage receipts economical
-- Parallel execution handles concurrent skill usage/signaling without bottlenecks
+- Fast, low-cost attestations can make public proof responsive
+- Backing and challenge actions need a shared execution layer rather than a private fondof database
+- Public records can be inspected by external tools and agents
+- These benefits justify the chain only for public proof, not for content, rankings, analytics, or private repo data
 
 **Design: The SkillPool**
 
-Unlike a static attestation registry, the SkillPool is a living quality oracle:
+Unlike a mandatory registry, the SkillPool is an optional public proof layer:
 
-1. **Forge** — publish a skill with provenance + initial backing stake
-2. **Use** — record on-chain when an agent invokes a skill (usage receipt)
-3. **Challenge** — dispute a skill's quality by staking against it
-4. **Resolve** — settle challenges via benchmark results (oracle)
-5. **Acquire** — weighted random selection for discovery (higher signal = higher probability of being served, but long tail still has a chance)
+1. **Attest** — anchor an exact public skill identity and source commitments
+2. **Back** — attach economic commitment to a public quality claim
+3. **Use** — record only meaningful or explicitly claimed usage receipts; do not equate clicks with verified impact
+4. **Challenge** — dispute a skill's quality by staking against it
+5. **Resolve** — settle challenges through the disclosed resolver/oracle
+6. **Acquire** — offer weighted discovery from public signal; ordinary skill creation remains outside the pool
 
-The **signal** = backing + usage_count - challenge_losses. This is the quality oracle that discovery reads from.
+The current **signal** combines backing, usage receipts, and challenge losses. It is a contestable discovery signal, not an objective quality or safety score.
 
 ```solidity
 // SPDX-License-Identifier: MIT
@@ -294,17 +295,18 @@ contract SkillPool {
 
 **How the product reads from the pool:**
 
-- `fondof need "error handling"` → queries `topSkills()` → shows results ranked by on-chain signal
-- `fondof ingest` → after discovery, shows "existing skills with signal: Skill A (signal: 47), Skill B (signal: 12), Skill C (new, no signal)"
-- `fondof publish` → calls `forge()` with backing stake (sponsored by relayer, invisible)
-- When agents use a skill in practice → `use()` is called, signal increases in real-time
+- `fondof need "error handling"` → extracts and fits ideas first; optional discovery may include public skills with clearly labeled signal
+- `fondof ingest` → Compare shows existing skills by fit; chain signal is secondary context, not the primary creation path
+- `fondof publish` → optionally calls the attestation path with backing, sponsored by a relayer where available
+- Meaningful or explicitly claimed use may produce a receipt; ordinary clicks, copies, genres, rankings, and outcomes remain offchain
 
 **Relayer Design:**
 - Server-side wallet signs all transactions on behalf of users
 - User never manages keys, gas, or approvals
 - Relayer is a Cloudflare Worker with a managed private key
-- Gas is sponsored (fondof pays, negligible on Monad at scale)
-- The relayer also acts as oracle for challenge resolution (runs benchmarks)
+- Gas may be sponsored so public proof does not require crypto expertise
+- The relayer also acts as the disclosed resolver/oracle for challenge resolution in this build
+- Chain failure must degrade to a public offchain artifact, never a fake attestation
 
 ### 7. Data Flow (End-to-End)
 
@@ -317,8 +319,8 @@ contract SkillPool {
 5. User selects Idea C for repo X
 6. Composition Engine → Skill draft (fitted to repo X)
 7. User reviews/edits
-8. Skill installed locally OR published
-9. If published: Relayer → Monad attestation (invisible)
+8. Skill installed locally, kept private, or shared publicly
+9. If the user chooses public proof: Relayer → optional Monad attestation
 ```
 
 **Need-First Flow:**
@@ -330,7 +332,7 @@ contract SkillPool {
 5. Discovery Engine suggests source material
 6. User optionally adds a podcast/blog they know about
 7. Composition Engine → Skill draft
-8. (same as steps 7-9 above)
+8. (same as steps 7-9 above; attestation remains optional)
 ```
 
 ## Technology Choices
@@ -348,16 +350,16 @@ contract SkillPool {
 | GitHub Integration | GitHub REST/GraphQL API | Repo indexing |
 | Auth | GitHub OAuth | Natural for the user base |
 
-## Blitz Scope (v1 — 1 Day)
+## Blitz Scope (historical v1)
 
-For Monad Blitz, we cut to the essential demo loop:
+For the initial demo, we cut to the essential loop:
 
-1. **Ingestion** — podcast URL → transcription → idea extraction (working)
-2. **Project Context** — GitHub OAuth → repo indexing (working, 1-2 repos)
-3. **Discovery** — ideas matched to repos + existing skill check (working)
-4. **Composition** — forge one skill fitted to a repo (working)
-5. **Attestation** — skill hash + source hashes recorded on Monad (working)
-6. **Verification** — query the contract to show provenance (demo)
+1. **Ingestion** — podcast/article/need → idea extraction
+2. **Project Context** — repo stack and conventions
+3. **Discovery** — ideas matched to repos + existing skill check
+4. **Composition** — forge one skill fitted to a repo
+5. **Hand-off** — copy the markdown into an agent
+6. **Optional proof** — public artifact can be attested and inspected on Monad
 
 **Deferred to post-Blitz:**
 - Validation/benchmarking engine
@@ -438,11 +440,12 @@ When the user selects ideas to forge into a skill:
 - The skill draft builds live (streaming text, similar to Beautiful UI patterns)
 - Conflict warnings pulse if the draft contradicts existing skills
 
-#### 6. Attestation Confirmation
-After publishing, a subtle visual confirms the on-chain attestation:
-- A brief "verified" animation (not blockchain-themed — think checkmark crystallizing)
+#### 6. Optional Proof Confirmation
+After a user chooses public attestation, a subtle visual confirms the proof state:
+- A brief "attested" animation (not blockchain-themed — think checkmark crystallizing)
 - The provenance hash appears as a tiny copyable badge
-- No gas, no wallet, no chain terminology anywhere
+- Public offchain and attested states remain visibly distinct
+- No gas or wallet terminology is required in the core craft flow
 
 ### Transitions & Micro-interactions
 

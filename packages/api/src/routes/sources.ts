@@ -8,6 +8,7 @@ interface SourceEntry {
   skillHash: string;
   title: string;
   sourceUrl: string;
+  canonicalSourceId?: string;
   fittedTo: string;
   forgedAt: string;
 }

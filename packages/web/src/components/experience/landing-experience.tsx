@@ -70,7 +70,7 @@ const STANCE = [
 
 const MONAD_POINTS = [
   {
-    title: "Per-use tracking",
+    title: "Evidence of use",
     body: "Recording every agent invocation only works at ~10K TPS economics.",
   },
   {
@@ -354,7 +354,7 @@ export function LandingExperience() {
             />
             <p className="mt-5 text-foreground-secondary">
               Paste a source or state a need. Forge something personalised.
-              Publish when you want proof on SkillPool — outcomes come next.
+              Share the outcome first; attest on SkillPool only when public proof matters.
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
               <Link

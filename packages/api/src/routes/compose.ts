@@ -6,6 +6,7 @@ import { rateLimit } from "../lib/rate-limit-mw.js";
 import { normalizeSourceUrl } from "../lib/source-url.js";
 import { resolveRepoContext } from "../lib/repo-context.js";
 import { getPublicSkill } from "../lib/skill-registry.js";
+import { resolveSession } from "./auth.js";
 
 export const composeRoute = new Hono<{ Bindings: Env }>();
 
@@ -24,10 +25,7 @@ interface ComposeBody {
   repo?: string | { name: string; frameworks?: string[]; languages?: string[] };
   /** Number of top shards to forge. Defaults to 2, max 6. */
   topShards?: number;
-  /**
-   * Defaults to false — a compose produces a public /s/[hash] page.
-   * Pass true (or upgrade to Pro) to keep it private.
-   */
+  /** Explicit false shares publicly; omitted/true keeps the draft private. */
   private?: boolean;
 }
 
@@ -40,8 +38,8 @@ function frontendBase(env: Env): string {
  *   POST /api/compose { url | need, repo }
  * ingest → top shards → forge → { markdown, ideas, skillHash, skillUrl, sourceUrl }
  *
- * Public by default: the returned skillUrl (https://fondof.netlify.app/s/[hash])
- * is a real, shareable page even before any on-chain attestation.
+ * Private by default: a shareable skillUrl is returned only when the caller
+ * explicitly requests a public share; on-chain attestation remains separate.
  */
 composeRoute.post("/compose", rateLimit("compose"), async (c) => {
   let body: ComposeBody;
@@ -84,13 +82,21 @@ composeRoute.post("/compose", rateLimit("compose"), async (c) => {
     const repo = await resolveRepoContext(body.repo, c.env.SESSIONS);
 
     // 3. Forge via the shared core (same caching as /api/forge).
-    //    Public by default so a compose yields a real shareable link.
-    const isPrivate = body.private === true;
+    //    A compose is private unless public sharing is explicit.
+    const isPrivate = body.private !== false;
+    const session = await resolveSession(
+      c.req.header("Authorization"),
+      c.env.SESSIONS,
+    );
     const { payload } = await forgeSkillCore(c.env, {
       ideas: topShards.map((i) => ({
         title: i.title,
         description: i.description,
         sourceUrl: i.sourceUrl,
+        sourceHash: i.sourceHash,
+        domains: i.domain,
+        applicability: i.applicability,
+        patternType: i.patternType,
       })),
       repo:
         repo && {
@@ -99,12 +105,15 @@ composeRoute.post("/compose", rateLimit("compose"), async (c) => {
           languages: repo.languages,
         },
       private: isPrivate,
+      owner: session
+        ? { userId: session.userId, login: session.login }
+        : undefined,
     });
 
     const sourceUrl = url ? normalizeSourceUrl(url) : needUrl(need!);
     const skillUrl = `${frontendBase(c.env)}/s/${payload.skillHash}`;
 
-    // Public by default — confirm the durable record exists so the link is real.
+    // Confirm the durable public record exists only after explicit sharing.
     let attested = false;
     if (!isPrivate) {
       const rec = await getPublicSkill(c.env, payload.skillHash);
@@ -117,6 +126,8 @@ composeRoute.post("/compose", rateLimit("compose"), async (c) => {
       skillHash: payload.skillHash,
       skillUrl: isPrivate ? null : skillUrl,
       title: payload.title,
+      canonicalSources: payload.canonicalSources,
+      derivedFromSkillHash: payload.derivedFromSkillHash,
       sourceUrl,
       sourceHash: ingestResult.sourceHash,
       contentType: ingestResult.contentType,

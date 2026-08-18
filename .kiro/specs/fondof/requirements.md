@@ -2,9 +2,13 @@
 
 ## Vision
 
-fondof is the bridge between what you learn and what your agents do. It connects the content you consume (podcasts, blogs, conversations) with the projects you're building, helping you discover existing skills, identify where new ideas apply, and craft best-in-class skills fitted to your specific coding environment.
+fondof turns what developers learn — or need — into agent skills fitted to their codebase. It bridges ideas and implementation: extract useful thinking, fit it to real code, hand it to an agent, and learn whether it helped.
 
-The blockchain layer (Monad) provides verifiable provenance and attribution but is completely invisible to the user.
+**Mission:** bridge ideas and implementation.
+
+**Vision:** a living attribution graph connecting ideas, agents, codebases, and outcomes.
+
+The core loop is offchain and useful without blockchain. Monad is an optional public-trust layer for artifact identity, provenance commitments, backing, challenges, and portable attestations.
 
 ## Problem Statement
 
@@ -52,7 +56,7 @@ A podcast host or blog author who wants attribution when their ideas are distill
 - FR4.2: ~~Search existing skill catalogs~~ → **Extract discrete technique shards from the stated need via LLM** (`POST /api/ingest {need}`), live at click time — no GitHub, no URL required. Shards are derived strictly from the typed need; a labeled local-shard fallback appears only when the API is unreachable.
 - FR4.3: Search existing skill catalogs for matches (Exa Compare stage, on demand), ranked by fit to user's environment
 - FR4.4: Identify gaps — where existing skills partially cover the need but miss context
-- FR4.5: Suggest source material (podcasts, blogs) that contains relevant thinking for uncovered gaps
+- FR4.5: Suggest source material (podcasts, blogs, talks) that articulates the need well — **post–Ready Spec Ship wedge, not judge-path scope.** User has a vague idea but no URL; fondof surfaces 3–5 canonical sources (YouTube, HN, dev blogs), user picks one → re-ingest → forge with real provenance. Distinct from FR4.3 Compare (existing *skills*). See [`docs/submission-plan.md`](../../../docs/submission-plan.md). Do **not** reframe fondof as a trending-content search engine — optional enrichment between Need and Forge only.
 
 ### FR5: Skill Composition
 - FR5.1: Compose skills from multiple sources (not just single-source extraction)
@@ -67,16 +71,16 @@ A podcast host or blog author who wants attribution when their ideas are distill
 - FR6.3: Report where the skill helps and where it doesn't
 - FR6.4: Suggest refinements based on validation results
 
-### FR7: Provenance & Attribution (Blockchain Layer — Invisible)
-- FR7.1: Record source content hash on-chain when content is ingested
-- FR7.2: Record skill attestation (source hashes → skill hash → benchmark score) on publish
-- FR7.3: Track composition lineage (which sources contributed to which skill)
-- FR7.4: Enable attribution flow when skills are used or derived by others
-- FR7.5: All on-chain operations must be invisible to the user (no wallet prompts, no gas management, no confirmation screens)
+### FR7: Public Provenance & Trust (Optional Blockchain Layer)
+- FR7.1: Keep ordinary forging, hand-off, outcomes, and discovery useful without blockchain.
+- FR7.2: When a user chooses public proof, anchor the exact skill identity and source commitments; do not store full content, private repo data, rankings, or outcomes on-chain.
+- FR7.3: Track composition lineage and attribution offchain; optionally anchor compact public commitments.
+- FR7.4: Use backing, usage receipts, and challenges as contestable quality signals, not objective safety guarantees.
+- FR7.5: Abstract wallet and gas complexity through a relayer where possible; clearly label attested vs public-offchain artifacts and never fake attestation.
 
 ### FR8: Skill Lifecycle
 - FR8.1: Install skills locally for immediate use (copy for Cursor / Claude / Kiro — primary hand-off)
-- FR8.2: Publish skills to SkillPool with provenance attestation (source hashes on chain, artifact in edge meta)
+- FR8.2: Let users share skills publicly offchain, then optionally attest them on SkillPool when portable provenance or contestable quality matters.
 - FR8.3: Track skill decay — flag when source content has been updated or codebase has evolved
 - FR8.4: Propose skill updates when underlying thinking or project context changes
 - FR8.5: **Outcome receipts** — attach what a skill resulted in (short note + optional PR / screenshot URL) on the skill page and pool cards; quality becomes “did it help?” not only stake/use counts. Optional, honest, no fake metrics.
@@ -84,14 +88,14 @@ A podcast host or blog author who wants attribution when their ideas are distill
 ## Non-Functional Requirements
 
 ### NFR1: User Experience
-- NFR1.1: Blockchain interactions must be completely abstracted — zero crypto UX
+- NFR1.1: The core workflow must work without blockchain knowledge; optional attestation should have zero required crypto UX, with clear proof status when used.
 - NFR1.2: Content ingestion to first useful output in under 60 seconds
 - NFR1.3: Discovery results must feel instant (<2s)
 
 ### NFR2: Privacy & Security
 - NFR2.1: Repository code never leaves the user's control without explicit consent
 - NFR2.2: Only metadata (hashes, embeddings) stored externally; source code stays local or in user's GitHub
-- NFR2.3: Skills can be private (local only) or public (published with attestation)
+- NFR2.3: Skills can be private drafts, public offchain shares, or optionally attested public artifacts.
 
 ### NFR3: Extensibility
 - NFR3.1: Skill format must be agent-framework-agnostic (works with Kiro, Claude, Cursor, etc.)
@@ -99,9 +103,9 @@ A podcast host or blog author who wants attribution when their ideas are distill
 - NFR3.3: Project connections must be pluggable (start with GitHub, expand later)
 
 ### NFR4: Monad-Specific
-- NFR4.1: Leverage Monad's 10,000 TPS and 600ms finality for responsive attestation
-- NFR4.2: Use standard Solidity/EVM tooling for smart contracts
-- NFR4.3: Keep on-chain storage minimal — hashes and scores, not full content
+- NFR4.1: Use Monad where fast, low-cost public attestations or challenge signals create product value.
+- NFR4.2: Use standard Solidity/EVM tooling for the optional trust layer.
+- NFR4.3: Keep on-chain storage minimal — identities, commitments, backing, and challenge/use history; never full content or private project data.
 
 ## Constraints
 
@@ -117,5 +121,5 @@ A podcast host or blog author who wants attribution when their ideas are distill
 2. User pastes a URL (talk / blog / podcast) → real transcript/content + idea extraction completes
 3. Shards show repo fit: "Idea A applies to repo X (here's where). Idea B already has a skill (Compare)."
 4. User forges a skill → LLM composes it fitted to the repo's stack; copy to Cursor / Claude / Kiro
-5. Skill publishes to SkillPool on Monad (relayer, invisible to user) → provenance verifiable via explorer
-6. "I used this" raises the signal; outcome attachment (note / PR) shows on skill page + pool card
+5. A user can share a public skill without a chain; optional SkillPool attestation makes its identity/provenance and contestable signal independently inspectable
+6. A claimed use or outcome is labeled honestly; an outcome attachment (note / PR) shows on the skill page and may later support richer evidence

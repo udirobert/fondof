@@ -1,0 +1,50 @@
+<template>
+  <style>
+    @font-face { font-family: Outfit; src: url("capture/assets/fonts/03bda585a99c6450-s.p.32sris142tqlb.woff2") format("woff2"); font-weight: 400 500; }
+    @font-face { font-family: "Geist Mono"; src: url("capture/assets/fonts/1b99372b3eaef0c8-s.p.1gsd1jahc5dg_.woff2") format("woff2"); font-weight: 400 500; }
+    #root { position:relative; width:1080px; height:1920px; overflow:hidden; color:#221812; }
+    .clip { position:absolute; inset:0; } .ground { background:#F7F1E5; background-image:repeating-linear-gradient(90deg,rgba(34,24,18,.035) 0 1px,transparent 1px 48px); }
+    .ground::after { content:""; position:absolute; inset:96px 72px 420px; border:1px solid rgba(34,24,18,.12); border-radius:14px; }
+    .kicker { position:absolute; top:130px; left:86px; z-index:5; font:500 22px/1 "Geist Mono",monospace; letter-spacing:.15em; } .kicker b { color:#C5521C; font-size:28px; }
+    .rule { position:absolute; z-index:5; top:187px; left:86px; width:908px; height:1px; background:rgba(34,24,18,.18); transform-origin:left; }
+    .paper { position:absolute; border:1px solid rgba(34,24,18,.12); background:#FFDDCE; box-shadow:0 8px 24px rgba(34,24,18,.06); opacity:0; }
+    .paper-a { top:286px; left:-74px; width:410px; height:550px; transform:rotate(-7deg); } .paper-b { top:790px; right:-110px; width:440px; height:480px; transform:rotate(8deg); background:#F2C7B3; }
+    .evidence { position:absolute; left:86px; z-index:3; width:908px; overflow:hidden; border:1px solid rgba(34,24,18,.16); border-radius:10px; box-shadow:0 8px 24px rgba(34,24,18,.10); opacity:0; }
+    .steph { top:304px; height:458px; padding:48px; background:#FFDDCE; } .micro { color:#B53700; font:500 19px/1 "Geist Mono",monospace; letter-spacing:.11em; }
+    .steph h1 { max-width:690px; margin:58px 0 0; font:400 86px/.92 Outfit,sans-serif; letter-spacing:-.05em; } .steph p { margin:30px 0 0; font:500 20px/1 "Geist Mono",monospace; letter-spacing:.06em; }
+    .tape { position:absolute; top:-16px; right:126px; width:220px; height:43px; background:rgba(247,241,229,.72); transform:rotate(-3deg); }
+    .tab { position:absolute; z-index:5; height:58px; padding:18px 22px; border:1px solid rgba(34,24,18,.15); border-radius:6px; background:#FFDDCE; font:500 17px/1 "Geist Mono",monospace; letter-spacing:.06em; opacity:0; }
+    #f02-steph-tab { top:268px; left:86px; } #f02-thiel-tab { top:336px; right:86px; background:#F7F1E5; } #f02-paul-tab { top:404px; left:86px; }
+    .paul { top:278px; height:802px; background:#F7F1E5; } .paul img { display:block; width:100%; height:100%; object-fit:cover; object-position:left top; }
+    .label { position:absolute; z-index:3; right:28px; bottom:28px; padding:16px 18px; border:1px solid rgba(34,24,18,.16); border-radius:6px; background:#F7F1E5; font:500 18px/1 "Geist Mono",monospace; letter-spacing:.05em; }
+    .torn-edge { position:absolute; z-index:4; top:248px; right:-24px; width:156px; height:860px; background:#FFDDCE; clip-path:polygon(35% 0,100% 0,100% 100%,43% 100%,62% 90%,35% 82%,57% 72%,31% 61%,54% 50%,34% 39%,60% 27%,32% 16%); opacity:0; }
+    .receipt { top:314px; height:748px; padding:45px; background:#181615; color:#F7F1E5; } .receipt header { padding-bottom:26px; border-bottom:1px solid rgba(247,241,229,.18); color:#E8A55A; font:500 19px/1 "Geist Mono",monospace; letter-spacing:.1em; }
+    .receipt .code { margin-top:78px; font:400 34px/1.45 "Geist Mono",monospace; letter-spacing:-.045em; } .receipt .code b { color:#5DB8A6; font-weight:400; } .receipt .code span { color:#E8A55A; } .receipt .note { margin-top:44px; color:rgba(247,241,229,.63); font:500 19px/1.4 "Geist Mono",monospace; letter-spacing:.055em; }
+    .pin { position:absolute; z-index:7; width:92px; height:92px; display:grid; place-items:center; border:2px solid #221812; border-radius:50% 50% 50% 8px; background:#C5521C; color:#F7F1E5; box-shadow:5px 6px 0 #221812; font:500 34px/1 Outfit,sans-serif; transform:rotate(-12deg); opacity:0; }
+    .outcome { position:absolute; z-index:6; top:1250px; left:86px; width:908px; padding:38px 42px; border-radius:10px; background:#181615; color:#F7F1E5; opacity:0; } .outcome p { margin:0; font:400 66px/.98 Outfit,sans-serif; letter-spacing:-.04em; } .outcome small { display:block; margin-top:24px; color:#E8A55A; font:500 20px/1 "Geist Mono",monospace; letter-spacing:.1em; }
+  </style>
+  <div data-hf-id="hf-d0n2" id="root" data-composition-id="02-sources" data-start="0" data-duration="6.827" data-width="1080" data-height="1920">
+    <div data-hf-id="hf-57sd" class="clip ground" data-start="0" data-duration="6.827" data-track-index="0"></div>
+    <div data-hf-id="hf-cnzl" class="clip" data-start="0" data-duration="6.827" data-track-index="1">
+      <div data-hf-id="hf-ncu3" class="paper paper-a" id="f02-paper-a"></div><div data-hf-id="hf-bsq1" class="paper paper-b" id="f02-paper-b"></div>
+      <div data-hf-id="hf-2msz" id="f02-kicker" class="kicker"><b data-hf-id="hf-u3lo">✱</b> EVIDENCE / 02</div><div data-hf-id="hf-kfhb" id="f02-rule" class="rule"></div>
+      <article data-hf-id="hf-4wt7" id="f02-steph" class="evidence steph"><i data-hf-id="hf-oobh" class="tape" aria-hidden="true"></i><div data-hf-id="hf-rnld" class="micro">SOURCE THINKING / 01</div><h1 data-hf-id="hf-cm33">How things win.</h1><p data-hf-id="hf-zc52">stephango.com / moats</p></article>
+      <div data-hf-id="hf-0iu0" id="f02-steph-tab" class="tab">01 / stephango.com</div><div data-hf-id="hf-rqou" id="f02-thiel-tab" class="tab">03 / COMPETITION IS FOR LOSERS</div>
+      <article data-hf-id="hf-uhip" id="f02-paul" class="evidence paul"><img data-hf-id="hf-w5ns" src=".media/sources/paul-graham-schlep/screenshots/scroll-000.png" alt="Paul Graham Schlep Blindness article"><span data-hf-id="hf-tdv9" class="label">PAUL GRAHAM / SCHLEP BLINDNESS</span></article><div data-hf-id="hf-x68x" id="f02-paul-edge" class="torn-edge" aria-hidden="true"></div><div data-hf-id="hf-uagn" id="f02-paul-tab" class="tab">02 / DO THE HARD PART</div>
+      <article data-hf-id="hf-35xr" id="f02-receipt" class="evidence receipt"><header data-hf-id="hf-86dj">REAL REPO / SOURCE ROUTE</header><div data-hf-id="hf-dtq7" class="code"><b data-hf-id="hf-sqi0">originalSourceUrl</b>(sourceUrls)<br data-hf-id="hf-x5px"><span data-hf-id="hf-ev9r">/?url=</span>encodeURIComponent(sourceUrl)</div><p data-hf-id="hf-s37f" class="note">SOURCE → REPO CONTEXT → FITTED ACTION</p></article>
+      <img data-hf-id="hf-vf7s" id="f02-pin" class="pin" src=".media/generated/forger-courier-cutout.png" alt="" aria-hidden="true" style="width:360px;height:360px;border:0;border-radius:0;background:transparent;box-shadow:none;object-fit:contain;filter:drop-shadow(12px 14px 0 #C5521C)">
+      <section data-hf-id="hf-geyh" id="f02-outcome" class="outcome"><p data-hf-id="hf-8lst">Source → fit → outcome.</p><small data-hf-id="hf-g3cu">THE STACK CLONES SKIP</small></section>
+    </div>
+  </div>
+  <script>
+    (() => { const tl=gsap.timeline({paused:true}); window.__timelines=window.__timelines||{}; window.__timelines["02-sources"]=tl;
+      tl.fromTo("#f02-kicker",{opacity:0,y:-20},{opacity:1,y:0,duration:.28,ease:"expo.out"},.12); tl.fromTo("#f02-rule",{scaleX:0},{scaleX:1,duration:.42,ease:"power2.out"},.22);
+      tl.fromTo(["#f02-paper-a","#f02-paper-b"],{opacity:0,scale:.9},{opacity:1,scale:1,duration:.42,stagger:.08,ease:"power2.out"},.32);
+      tl.fromTo("#f02-steph",{opacity:0,y:68,rotation:-2},{opacity:1,y:0,rotation:0,duration:.54,ease:"power3.out"},.48); tl.to("#f02-steph",{opacity:0,y:-38,scale:.94,duration:.26,ease:"power2.in"},1.62); tl.fromTo("#f02-steph-tab",{opacity:0,x:-32},{opacity:1,x:0,duration:.25,ease:"steps(3)"},1.78);
+      tl.fromTo("#f02-thiel-tab",{opacity:0,x:32},{opacity:1,x:0,duration:.25,ease:"steps(3)"},1.92); tl.fromTo("#f02-paul",{opacity:0,y:76,rotation:1.5},{opacity:1,y:0,rotation:0,duration:.56,ease:"power4.out"},1.98); tl.fromTo("#f02-paul-edge",{opacity:0,x:70},{opacity:1,x:0,duration:.34,ease:"steps(3)"},2.28);
+      tl.fromTo("#f02-pin",{opacity:0,x:410,y:1110,scale:.7},{opacity:1,x:430,y:1080,scale:1,duration:.32,ease:"steps(3)"},2.72); tl.to("#f02-pin",{x:540,y:1130,duration:.42,ease:"steps(4)"},3.22);
+      tl.to(["#f02-paul","#f02-paul-edge","#f02-pin"],{opacity:0,y:-42,duration:.26,ease:"power2.in"},3.86); tl.fromTo("#f02-paul-tab",{opacity:0,x:-32},{opacity:1,x:0,duration:.25,ease:"steps(3)"},4.04); tl.to(["#f02-steph-tab","#f02-thiel-tab","#f02-paul-tab"],{opacity:0,duration:.18,ease:"power1.in"},4.14);
+      tl.fromTo("#f02-receipt",{opacity:0,x:72,rotation:1.5},{opacity:1,x:0,rotation:0,duration:.56,ease:"power3.out"},4.12); tl.to("#f02-receipt",{opacity:0,y:-34,duration:.25,ease:"power2.in"},5.46); tl.fromTo("#f02-outcome",{opacity:0,y:42,scale:.98},{opacity:1,y:0,scale:1,duration:.44,ease:"power3.out"},5.66);
+    })();
+  </script>
+</template>

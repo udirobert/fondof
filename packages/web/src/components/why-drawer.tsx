@@ -62,7 +62,7 @@ export function WhyDrawer() {
               </div>
               <p className="mx-auto mt-6 max-w-xl text-center text-xs text-muted">
                 Quality signals need speed — Monad’s TPS and ~300ms finality make
-                per-use tracking and live challenges viable.
+                low-cost public attestations and challenge signals viable when proof matters.
               </p>
             </div>
           </motion.div>

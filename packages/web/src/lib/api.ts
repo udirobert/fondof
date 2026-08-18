@@ -1,4 +1,5 @@
 import { API_BASE } from "@/lib/api-base";
+import { getToken } from "@/lib/auth";
 
 const API_URL = API_BASE;
 
@@ -58,13 +59,25 @@ export interface IngestResponse {
   error?: string;
 }
 
+export interface CanonicalSource {
+  id: string;
+  url: string;
+  domain: string;
+}
+
 export interface ForgeResponse {
   title: string;
   skillHash: string;
   sourceHashes: string[];
+  sourceUrls?: string[];
+  canonicalSources?: CanonicalSource[];
+  domains?: string[];
+  patternTypes?: string[];
+  derivedFromSkillHash?: string;
   markdown: string;
   fittedTo: string;
   composedAt: string;
+  private?: boolean;
   error?: string;
 }
 
@@ -77,10 +90,32 @@ export interface PublishResponse {
   error?: string;
 }
 
+export type EvidenceLevel =
+  | "none"
+  | "claimed-use"
+  | "outcome-attached"
+  | "linked-pr"
+  | "verified-pr";
+
+export interface SkillEvidence {
+  skillHash: string;
+  claimedUseCount: number;
+  claimAttemptCount?: number;
+  lastClaimedAt?: string;
+  outcome?: SkillOutcome;
+  level: EvidenceLevel;
+  updatedAt: string;
+}
+
 export interface SkillOutcome {
   note: string;
   prUrl?: string;
   screenshotUrl?: string;
+  attachedAt?: string;
+  prStatus?: "unverified" | "github-confirmed";
+  githubState?: "open" | "closed";
+  githubMerged?: boolean;
+  githubTitle?: string;
 }
 
 export interface SkillOnChainResponse {
@@ -100,11 +135,18 @@ export interface SkillOnChainResponse {
   landings?: Array<{ path: string; why: string }>;
   frameworks?: string[];
   languages?: string[];
+  domains?: string[];
+  patternTypes?: string[];
+  derivedFromSkillHash?: string;
   outcome?: SkillOutcome;
+  evidence?: SkillEvidence;
   /** Real source URLs (not just hashes) for provenance links */
   sourceUrls?: string[];
+  canonicalSources?: CanonicalSource[];
   /** False = public off-chain skill, not yet stamped on-chain */
   onChain?: boolean;
+  visibility?: "public" | "unlisted";
+  ownerLogin?: string;
   attestedTxHash?: string;
   attestedAt?: string;
   error?: string;
@@ -207,15 +249,33 @@ export async function ingestURLStream(
 }
 
 export async function forgeSkill(
-  ideas: Array<{ title: string; description: string; sourceUrl: string }>,
+  ideas: Array<{
+    title: string;
+    description: string;
+    sourceUrl: string;
+    domains?: string[];
+    applicability?: string[];
+    patternType?: string;
+  }>,
   repo?: { name: string; frameworks: string[]; languages: string[] },
   gapAgainst?: { title: string; url: string; snippet?: string },
-  options?: { private?: boolean },
+  options?: { private?: boolean; derivedFromSkillHash?: string },
 ): Promise<ForgeResponse> {
+  const token = getToken();
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  if (token) headers.Authorization = `Bearer ${token}`;
   const res = await fetch(`${API_URL}/api/forge`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ideas, repo, gapAgainst, private: options?.private }),
+    headers,
+    body: JSON.stringify({
+      ideas,
+      repo,
+      gapAgainst,
+      private: options?.private,
+      derivedFromSkillHash: options?.derivedFromSkillHash,
+    }),
   });
   return res.json();
 }
@@ -232,9 +292,14 @@ export async function publishSkill(
     frameworks?: string[];
   },
 ): Promise<PublishResponse> {
+  const token = getToken();
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  if (token) headers.Authorization = `Bearer ${token}`;
   const res = await fetch(`${API_URL}/api/publish`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: JSON.stringify({ skillHash, sourceHashes, ...meta }),
   });
   return res.json();
@@ -252,7 +317,12 @@ export async function publishSkillMeta(
     frameworks?: string[];
     outcome?: SkillOutcome | null;
   },
-): Promise<{ success?: boolean; error?: string; meta?: unknown }> {
+): Promise<{
+  success?: boolean;
+  error?: string;
+  meta?: unknown;
+  evidence?: SkillEvidence;
+}> {
   const res = await fetch(
     `${API_URL}/api/skills/${encodeURIComponent(skillHash)}/meta`,
     {
@@ -260,6 +330,49 @@ export async function publishSkillMeta(
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(meta),
     },
+  );
+  return res.json();
+}
+
+export async function shareSkill(
+  skillHash: string,
+  meta: {
+    title: string;
+    markdown: string;
+    repo?: string;
+    frameworks?: string[];
+    languages?: string[];
+    domains?: string[];
+    patternTypes?: string[];
+    derivedFromSkillHash?: string;
+    canonicalSources?: CanonicalSource[];
+    sourceUrls?: string[];
+    sourceHashes?: string[];
+    composedAt?: string;
+  },
+): Promise<{ success?: boolean; skillHash?: string; visibility?: string; error?: string }> {
+  const token = getToken();
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const res = await fetch(`${API_URL}/api/skills/${encodeURIComponent(skillHash)}/share`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(meta),
+  });
+  return res.json();
+}
+
+export async function unlistSkill(
+  skillHash: string,
+): Promise<{ success?: boolean; visibility?: string; error?: string }> {
+  const token = getToken();
+  const headers: Record<string, string> = {};
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const res = await fetch(
+    `${API_URL}/api/skills/${encodeURIComponent(skillHash)}/visibility`,
+    { method: "DELETE", headers },
   );
   return res.json();
 }
@@ -278,10 +391,45 @@ export async function getTopSkills(
 
 export async function recordUsage(
   hash: string,
-): Promise<{ success?: boolean; txHash?: string; error?: string }> {
-  const res = await fetch(`${API_URL}/api/skills/${hash}/use`, {
+  options?: { receiptKey?: string; consented?: boolean },
+): Promise<{
+  success?: boolean;
+  claimed?: boolean;
+  deduplicated?: boolean;
+  tracking?: "account" | "browser-consent" | "untracked";
+  txHash?: string;
+  evidence?: SkillEvidence;
+  note?: string;
+  error?: string;
+}> {
+  const token = getToken();
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const res = await fetch(`${API_URL}/api/skills/${encodeURIComponent(hash)}/use`, {
     method: "POST",
+    headers,
+    body: JSON.stringify(options ?? {}),
   });
+  return res.json();
+}
+
+export async function verifySkillPr(
+  hash: string,
+): Promise<{
+  success?: boolean;
+  evidence?: SkillEvidence;
+  note?: string;
+  error?: string;
+}> {
+  const token = getToken();
+  const headers: Record<string, string> = {};
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const res = await fetch(
+    `${API_URL}/api/skills/${encodeURIComponent(hash)}/verify-pr`,
+    { method: "POST", headers },
+  );
   return res.json();
 }
 
@@ -384,6 +532,8 @@ export interface ComposeResponse {
   ideas?: IdeaFromAPI[];
   skillHash?: string;
   skillUrl?: string | null;
+  canonicalSources?: CanonicalSource[];
+  derivedFromSkillHash?: string;
   title?: string;
   sourceUrl?: string;
   sourceHash?: string;
@@ -403,9 +553,14 @@ export async function composeSkill(body: {
   topShards?: number;
   private?: boolean;
 }): Promise<ComposeResponse> {
+  const token = getToken();
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  if (token) headers.Authorization = `Bearer ${token}`;
   const res = await fetch(`${API_URL}/api/compose`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: JSON.stringify(body),
   });
   return res.json();

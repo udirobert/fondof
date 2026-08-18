@@ -14,7 +14,7 @@ const STEPS = [
   {
     label: "03 Publish",
     title: "Prove use",
-    body: "SkillPool on Monad: signal = backing + usage − challenge losses. Contestable quality.",
+    body: "Optional public proof: backing + usage receipts − challenge losses. Contestable quality, not a safety guarantee.",
   },
   {
     label: "04 Outcomes",

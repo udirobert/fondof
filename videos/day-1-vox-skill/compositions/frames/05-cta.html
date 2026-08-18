@@ -1,0 +1,204 @@
+<template>
+  <style>
+    @font-face {
+      font-family: "Shrikhand";
+      src: url("assets/fonts/Shrikhand-400.ttf") format("truetype");
+      font-weight: 400;
+    }
+    @font-face {
+      font-family: "Space Grotesk";
+      src: url("assets/fonts/SpaceGrotesk-600.ttf") format("truetype");
+      font-weight: 600;
+    }
+    #root {
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      position: relative;
+    }
+    .clip {
+      position: absolute;
+    }
+    #f05-bg {
+      inset: 0;
+      background:
+        radial-gradient(circle at 80% 18%, rgba(216, 0, 15, 0.08), transparent 40%),
+        radial-gradient(circle, #1c1410 1.1px, transparent 1.2px) 0 0 / 14px 14px,
+        #f5f2ef;
+    }
+    #f05-label {
+      top: 56px;
+      left: 88px;
+      font-family: "Space Grotesk", sans-serif;
+      font-weight: 600;
+      font-size: 22px;
+      letter-spacing: 0.22em;
+      color: #d8000f;
+    }
+    .cut-mid {
+      object-fit: contain;
+      object-position: bottom center;
+      filter: grayscale(1) contrast(1.15);
+    }
+    .cut-fg {
+      object-fit: contain;
+      object-position: bottom center;
+      filter: grayscale(1) contrast(1.1) drop-shadow(8px 10px 0 #d8000f);
+    }
+    #f05-hand {
+      left: 1180px;
+      top: 40px;
+      width: 640px;
+      height: 820px;
+    }
+    #f05-board {
+      left: 1080px;
+      top: 520px;
+      width: 780px;
+      height: 420px;
+    }
+    #f05-ghost,
+    #f05-title {
+      left: 88px;
+      top: 140px;
+      width: 1000px;
+      font-family: "Shrikhand", serif;
+      font-size: 96px;
+      line-height: 0.9;
+    }
+    #f05-ghost {
+      color: #d8000f;
+    }
+    #f05-title {
+      color: #1c1410;
+    }
+    #f05-url {
+      left: 88px;
+      top: 380px;
+      font-family: "Space Grotesk", sans-serif;
+      font-weight: 600;
+      font-size: 36px;
+      letter-spacing: 0.04em;
+      color: #1c1410;
+      background: #f5f2ef;
+      padding: 6px 0;
+    }
+    #f05-cta {
+      left: 88px;
+      top: 470px;
+      border: 3px solid #1c1410;
+      background: #d8000f;
+      color: #fff;
+      font-family: "Space Grotesk", sans-serif;
+      font-weight: 600;
+      font-size: 32px;
+      letter-spacing: 0.14em;
+      padding: 22px 36px;
+    }
+    .f05-chip {
+      border: 3px solid #1c1410;
+      background: #1c1410;
+      color: #fff;
+      font-family: "Space Grotesk", sans-serif;
+      font-weight: 600;
+      font-size: 22px;
+      letter-spacing: 0.12em;
+      padding: 14px 20px;
+    }
+    #f05-chip-a {
+      left: 88px;
+      top: 600px;
+    }
+    #f05-chip-b {
+      left: 280px;
+      top: 600px;
+    }
+    #f05-chip-c {
+      left: 430px;
+      top: 600px;
+    }
+    #f05-compose {
+      left: 88px;
+      top: 700px;
+      font-family: "Space Grotesk", sans-serif;
+      font-weight: 600;
+      font-size: 22px;
+      letter-spacing: 0.12em;
+      color: #1c1410;
+      background: #f5f2ef;
+      padding: 6px 0;
+    }
+  </style>
+  <div
+    id="root"
+    data-composition-id="05-cta"
+    data-start="0"
+    data-duration="5.991"
+    data-width="1920"
+    data-height="1080"
+  >
+    <div id="f05-bg" class="clip" data-start="0" data-duration="5.991" data-track-index="0"></div>
+    <div id="f05-label" class="clip" data-start="0" data-duration="5.991" data-track-index="1">
+      COPY THE SKILL
+    </div>
+    <img
+      id="f05-hand"
+      class="clip cut-mid"
+      src="assets/cutouts/skill-hand-cut.png"
+      data-start="0"
+      data-duration="5.991"
+      data-track-index="2"
+      alt=""
+    />
+    <img
+      id="f05-board"
+      class="clip cut-fg"
+      src="assets/cutouts/clipboard-cut.png"
+      data-start="0"
+      data-duration="5.991"
+      data-track-index="3"
+      alt=""
+    />
+    <div id="f05-ghost" class="clip" data-start="0" data-duration="5.991" data-track-index="4" data-layout-allow-overlap>
+      COPY IT
+    </div>
+    <div id="f05-title" class="clip" data-start="0" data-duration="5.991" data-track-index="5" data-layout-allow-overlap>
+      COPY IT
+    </div>
+    <div id="f05-url" class="clip" data-start="0" data-duration="5.991" data-track-index="6">
+      fondof.netlify.app
+    </div>
+    <div id="f05-cta" class="clip" data-start="0" data-duration="5.991" data-track-index="7">
+      COPY FOR YOUR AGENT
+    </div>
+    <div id="f05-chip-a" class="clip f05-chip" data-start="0" data-duration="5.991" data-track-index="8">
+      CURSOR
+    </div>
+    <div id="f05-chip-b" class="clip f05-chip" data-start="0" data-duration="5.991" data-track-index="9">
+      KIRO
+    </div>
+    <div id="f05-chip-c" class="clip f05-chip" data-start="0" data-duration="5.991" data-track-index="10">
+      CLAUDE
+    </div>
+    <div id="f05-compose" class="clip" data-start="0" data-duration="5.991" data-track-index="11">
+      POST /api/compose
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+  <script>
+    window.__timelines = window.__timelines || {};
+    const tl = gsap.timeline({ paused: true });
+    tl.fromTo("#f05-board", { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" }, 0);
+    tl.fromTo("#f05-label", { opacity: 0 }, { opacity: 1, duration: 0.25 }, 0.08);
+    tl.fromTo("#f05-hand", { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.45, ease: "power3.out" }, 0.2);
+    tl.fromTo("#f05-ghost", { opacity: 0, y: 36 }, { opacity: 1, y: 10, x: 10, duration: 0.4, ease: "power3.out" }, 0.55);
+    tl.fromTo("#f05-title", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" }, 0.65);
+    tl.fromTo("#f05-url", { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.3 }, 0.95);
+    tl.fromTo("#f05-cta", { opacity: 0, y: 20, scale: 0.94 }, { opacity: 1, y: 0, scale: 1, duration: 0.35, ease: "power3.out" }, 1.15);
+    tl.fromTo("#f05-chip-a", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.25, ease: "power3.out" }, 1.45);
+    tl.fromTo("#f05-chip-b", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.25, ease: "power3.out" }, 1.6);
+    tl.fromTo("#f05-chip-c", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.25, ease: "power3.out" }, 1.75);
+    tl.fromTo("#f05-compose", { opacity: 0 }, { opacity: 1, duration: 0.3 }, 2.05);
+    window.__timelines["05-cta"] = tl;
+  </script>
+</template>

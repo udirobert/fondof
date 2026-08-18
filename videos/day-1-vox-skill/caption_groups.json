@@ -1,0 +1,1147 @@
+{
+  "total_duration_s": 38.499,
+  "width": 1920,
+  "height": 1080,
+  "groups": [
+    {
+      "id": "caption-group-0",
+      "frame": 1,
+      "start": 0,
+      "end": 0.43,
+      "text": "You saw",
+      "words": [
+        {
+          "id": "caption-word-0-0",
+          "text": "You",
+          "start": 0,
+          "end": 0.163
+        },
+        {
+          "id": "caption-word-0-1",
+          "text": "saw",
+          "start": 0.232,
+          "end": 0.383
+        }
+      ]
+    },
+    {
+      "id": "caption-group-1",
+      "frame": 1,
+      "start": 0.43,
+      "end": 0.801,
+      "text": "this on",
+      "words": [
+        {
+          "id": "caption-word-1-0",
+          "text": "this",
+          "start": 0.43,
+          "end": 0.557
+        },
+        {
+          "id": "caption-word-1-1",
+          "text": "on",
+          "start": 0.627,
+          "end": 0.72
+        }
+      ]
+    },
+    {
+      "id": "caption-group-2",
+      "frame": 1,
+      "start": 0.801,
+      "end": 1.416,
+      "text": "YouTube and",
+      "words": [
+        {
+          "id": "caption-word-2-0",
+          "text": "YouTube",
+          "start": 0.801,
+          "end": 1.265
+        },
+        {
+          "id": "caption-word-2-1",
+          "text": "and",
+          "start": 1.3,
+          "end": 1.37
+        }
+      ]
+    },
+    {
+      "id": "caption-group-3",
+      "frame": 1,
+      "start": 1.416,
+      "end": 1.858,
+      "text": "wanted your",
+      "words": [
+        {
+          "id": "caption-word-3-0",
+          "text": "wanted",
+          "start": 1.416,
+          "end": 1.649
+        },
+        {
+          "id": "caption-word-3-1",
+          "text": "your",
+          "start": 1.683,
+          "end": 1.8
+        }
+      ]
+    },
+    {
+      "id": "caption-group-4",
+      "frame": 1,
+      "start": 1.858,
+      "end": 2.31,
+      "text": "agent to",
+      "words": [
+        {
+          "id": "caption-word-4-0",
+          "text": "agent",
+          "start": 1.858,
+          "end": 2.148
+        },
+        {
+          "id": "caption-word-4-1",
+          "text": "to",
+          "start": 2.183,
+          "end": 2.241
+        }
+      ]
+    },
+    {
+      "id": "caption-group-5",
+      "frame": 1,
+      "start": 2.31,
+      "end": 2.814,
+      "text": "do it.",
+      "words": [
+        {
+          "id": "caption-word-5-0",
+          "text": "do",
+          "start": 2.31,
+          "end": 2.426
+        },
+        {
+          "id": "caption-word-5-1",
+          "text": "it.",
+          "start": 2.508,
+          "end": 2.694
+        }
+      ]
+    },
+    {
+      "id": "caption-group-6",
+      "frame": 1,
+      "start": 2.972,
+      "end": 3.626,
+      "text": "Problem:",
+      "words": [
+        {
+          "id": "caption-word-6-0",
+          "text": "Problem:",
+          "start": 2.972,
+          "end": 3.506
+        }
+      ]
+    },
+    {
+      "id": "caption-group-7",
+      "frame": 1,
+      "start": 3.68,
+      "end": 4.226,
+      "text": "the talk",
+      "words": [
+        {
+          "id": "caption-word-7-0",
+          "text": "the",
+          "start": 3.68,
+          "end": 3.796
+        },
+        {
+          "id": "caption-word-7-1",
+          "text": "talk",
+          "start": 3.855,
+          "end": 4.145
+        }
+      ]
+    },
+    {
+      "id": "caption-group-8",
+      "frame": 1,
+      "start": 4.226,
+      "end": 5.039,
+      "text": "is Remotion",
+      "words": [
+        {
+          "id": "caption-word-8-0",
+          "text": "is",
+          "start": 4.226,
+          "end": 4.331
+        },
+        {
+          "id": "caption-word-8-1",
+          "text": "Remotion",
+          "start": 4.412,
+          "end": 4.969
+        }
+      ]
+    },
+    {
+      "id": "caption-group-9",
+      "frame": 1,
+      "start": 5.039,
+      "end": 5.844,
+      "text": "and Claude.",
+      "words": [
+        {
+          "id": "caption-word-9-0",
+          "text": "and",
+          "start": 5.039,
+          "end": 5.155
+        },
+        {
+          "id": "caption-word-9-1",
+          "text": "Claude.",
+          "start": 5.224,
+          "end": 5.724
+        }
+      ]
+    },
+    {
+      "id": "caption-group-10",
+      "frame": 1,
+      "start": 5.933,
+      "end": 7.028,
+      "text": "You're on Cursor.",
+      "words": [
+        {
+          "id": "caption-word-10-0",
+          "text": "You're",
+          "start": 5.933,
+          "end": 6.153
+        },
+        {
+          "id": "caption-word-10-1",
+          "text": "on",
+          "start": 6.2,
+          "end": 6.281
+        },
+        {
+          "id": "caption-word-10-2",
+          "text": "Cursor.",
+          "start": 6.351,
+          "end": 6.908
+        }
+      ]
+    },
+    {
+      "id": "caption-group-11",
+      "frame": 1,
+      "start": 7.233,
+      "end": 7.918,
+      "text": "fondof fits",
+      "words": [
+        {
+          "id": "caption-word-11-0",
+          "text": "fondof",
+          "start": 7.233,
+          "end": 7.651
+        },
+        {
+          "id": "caption-word-11-1",
+          "text": "fits",
+          "start": 7.697,
+          "end": 7.883
+        }
+      ]
+    },
+    {
+      "id": "caption-group-12",
+      "frame": 1,
+      "start": 7.918,
+      "end": 8.464,
+      "text": "the thinking",
+      "words": [
+        {
+          "id": "caption-word-12-0",
+          "text": "the",
+          "start": 7.918,
+          "end": 7.988
+        },
+        {
+          "id": "caption-word-12-1",
+          "text": "thinking",
+          "start": 8.046,
+          "end": 8.406
+        }
+      ]
+    },
+    {
+      "id": "caption-group-13",
+      "frame": 1,
+      "start": 8.464,
+      "end": 9.613,
+      "text": "to any agent.",
+      "words": [
+        {
+          "id": "caption-word-13-0",
+          "text": "to",
+          "start": 8.464,
+          "end": 8.533
+        },
+        {
+          "id": "caption-word-13-1",
+          "text": "any",
+          "start": 8.649,
+          "end": 8.893
+        },
+        {
+          "id": "caption-word-13-2",
+          "text": "agent.",
+          "start": 8.963,
+          "end": 9.613
+        }
+      ]
+    },
+    {
+      "id": "caption-group-14",
+      "frame": 2,
+      "start": 9.613,
+      "end": 9.915,
+      "text": "So we",
+      "words": [
+        {
+          "id": "caption-word-14-0",
+          "text": "So",
+          "start": 9.613,
+          "end": 9.764
+        },
+        {
+          "id": "caption-word-14-1",
+          "text": "we",
+          "start": 9.81,
+          "end": 9.88
+        }
+      ]
+    },
+    {
+      "id": "caption-group-15",
+      "frame": 2,
+      "start": 9.915,
+      "end": 10.368,
+      "text": "gave fondof",
+      "words": [
+        {
+          "id": "caption-word-15-0",
+          "text": "gave",
+          "start": 9.915,
+          "end": 10.077
+        },
+        {
+          "id": "caption-word-15-1",
+          "text": "fondof",
+          "start": 10.101,
+          "end": 10.333
+        }
+      ]
+    },
+    {
+      "id": "caption-group-16",
+      "frame": 2,
+      "start": 10.368,
+      "end": 10.728,
+      "text": "the talk",
+      "words": [
+        {
+          "id": "caption-word-16-0",
+          "text": "the",
+          "start": 10.368,
+          "end": 10.437
+        },
+        {
+          "id": "caption-word-16-1",
+          "text": "talk",
+          "start": 10.472,
+          "end": 10.681
+        }
+      ]
+    },
+    {
+      "id": "caption-group-17",
+      "frame": 2,
+      "start": 10.728,
+      "end": 11.683,
+      "text": "as a URL.",
+      "words": [
+        {
+          "id": "caption-word-17-0",
+          "text": "as",
+          "start": 10.728,
+          "end": 10.797
+        },
+        {
+          "id": "caption-word-17-1",
+          "text": "a",
+          "start": 10.844,
+          "end": 10.867
+        },
+        {
+          "id": "caption-word-17-2",
+          "text": "URL.",
+          "start": 10.937,
+          "end": 11.563
+        }
+      ]
+    },
+    {
+      "id": "caption-group-18",
+      "frame": 2,
+      "start": 11.772,
+      "end": 12.937,
+      "text": "Live extract.",
+      "words": [
+        {
+          "id": "caption-word-18-0",
+          "text": "Live",
+          "start": 11.772,
+          "end": 12.074
+        },
+        {
+          "id": "caption-word-18-1",
+          "text": "extract.",
+          "start": 12.144,
+          "end": 12.817
+        }
+      ]
+    },
+    {
+      "id": "caption-group-19",
+      "frame": 2,
+      "start": 13.026,
+      "end": 13.491,
+      "text": "Shards from",
+      "words": [
+        {
+          "id": "caption-word-19-0",
+          "text": "Shards",
+          "start": 13.026,
+          "end": 13.328
+        },
+        {
+          "id": "caption-word-19-1",
+          "text": "from",
+          "start": 13.351,
+          "end": 13.456
+        }
+      ]
+    },
+    {
+      "id": "caption-group-20",
+      "frame": 2,
+      "start": 13.491,
+      "end": 14.176,
+      "text": "this video,",
+      "words": [
+        {
+          "id": "caption-word-20-0",
+          "text": "this",
+          "start": 13.491,
+          "end": 13.595
+        },
+        {
+          "id": "caption-word-20-1",
+          "text": "video,",
+          "start": 13.653,
+          "end": 14.083
+        }
+      ]
+    },
+    {
+      "id": "caption-group-21",
+      "frame": 2,
+      "start": 14.176,
+      "end": 14.443,
+      "text": "not a",
+      "words": [
+        {
+          "id": "caption-word-21-0",
+          "text": "not",
+          "start": 14.176,
+          "end": 14.338
+        },
+        {
+          "id": "caption-word-21-1",
+          "text": "a",
+          "start": 14.373,
+          "end": 14.396
+        }
+      ]
+    },
+    {
+      "id": "caption-group-22",
+      "frame": 2,
+      "start": 14.443,
+      "end": 15.372,
+      "text": "canned list.",
+      "words": [
+        {
+          "id": "caption-word-22-0",
+          "text": "canned",
+          "start": 14.443,
+          "end": 14.698
+        },
+        {
+          "id": "caption-word-22-1",
+          "text": "list.",
+          "start": 14.745,
+          "end": 15.372
+        }
+      ]
+    },
+    {
+      "id": "caption-group-23",
+      "frame": 3,
+      "start": 15.372,
+      "end": 16.641,
+      "text": "Forge for fondof.",
+      "words": [
+        {
+          "id": "caption-word-23-0",
+          "text": "Forge",
+          "start": 15.372,
+          "end": 15.755
+        },
+        {
+          "id": "caption-word-23-1",
+          "text": "for",
+          "start": 15.79,
+          "end": 15.906
+        },
+        {
+          "id": "caption-word-23-2",
+          "text": "fondof.",
+          "start": 15.964,
+          "end": 16.521
+        }
+      ]
+    },
+    {
+      "id": "caption-group-24",
+      "frame": 3,
+      "start": 16.696,
+      "end": 17.779,
+      "text": "Locked background.",
+      "words": [
+        {
+          "id": "caption-word-24-0",
+          "text": "Locked",
+          "start": 16.696,
+          "end": 16.986
+        },
+        {
+          "id": "caption-word-24-1",
+          "text": "background.",
+          "start": 17.032,
+          "end": 17.659
+        }
+      ]
+    },
+    {
+      "id": "caption-group-25",
+      "frame": 3,
+      "start": 17.903,
+      "end": 18.882,
+      "text": "Three layers.",
+      "words": [
+        {
+          "id": "caption-word-25-0",
+          "text": "Three",
+          "start": 17.903,
+          "end": 18.193
+        },
+        {
+          "id": "caption-word-25-1",
+          "text": "layers.",
+          "start": 18.251,
+          "end": 18.762
+        }
+      ]
+    },
+    {
+      "id": "caption-group-26",
+      "frame": 3,
+      "start": 19.041,
+      "end": 20.728,
+      "text": "Voice-over holds the cut.",
+      "words": [
+        {
+          "id": "caption-word-26-0",
+          "text": "Voice-over",
+          "start": 19.041,
+          "end": 19.679
+        },
+        {
+          "id": "caption-word-26-1",
+          "text": "holds",
+          "start": 19.749,
+          "end": 20.039
+        },
+        {
+          "id": "caption-word-26-2",
+          "text": "the",
+          "start": 20.086,
+          "end": 20.155
+        },
+        {
+          "id": "caption-word-26-3",
+          "text": "cut.",
+          "start": 20.213,
+          "end": 20.608
+        }
+      ]
+    },
+    {
+      "id": "caption-group-27",
+      "frame": 3,
+      "start": 20.887,
+      "end": 22.268,
+      "text": "Remotion springs stay in",
+      "words": [
+        {
+          "id": "caption-word-27-0",
+          "text": "Remotion",
+          "start": 20.887,
+          "end": 21.398
+        },
+        {
+          "id": "caption-word-27-1",
+          "text": "springs",
+          "start": 21.479,
+          "end": 21.862
+        },
+        {
+          "id": "caption-word-27-2",
+          "text": "stay",
+          "start": 21.908,
+          "end": 22.152
+        },
+        {
+          "id": "caption-word-27-3",
+          "text": "in",
+          "start": 22.175,
+          "end": 22.233
+        }
+      ]
+    },
+    {
+      "id": "caption-group-28",
+      "frame": 3,
+      "start": 22.268,
+      "end": 23.236,
+      "text": "the citation.",
+      "words": [
+        {
+          "id": "caption-word-28-0",
+          "text": "the",
+          "start": 22.268,
+          "end": 22.338
+        },
+        {
+          "id": "caption-word-28-1",
+          "text": "citation.",
+          "start": 22.373,
+          "end": 23.116
+        }
+      ]
+    },
+    {
+      "id": "caption-group-29",
+      "frame": 3,
+      "start": 23.36,
+      "end": 24.544,
+      "text": "We name data-start",
+      "words": [
+        {
+          "id": "caption-word-29-0",
+          "text": "We",
+          "start": 23.36,
+          "end": 23.511
+        },
+        {
+          "id": "caption-word-29-1",
+          "text": "name",
+          "start": 23.592,
+          "end": 23.836
+        },
+        {
+          "id": "caption-word-29-2",
+          "text": "data-start",
+          "start": 23.882,
+          "end": 24.497
+        }
+      ]
+    },
+    {
+      "id": "caption-group-30",
+      "frame": 3,
+      "start": 24.544,
+      "end": 25.496,
+      "text": "and GSAP.",
+      "words": [
+        {
+          "id": "caption-word-30-0",
+          "text": "and",
+          "start": 24.544,
+          "end": 24.637
+        },
+        {
+          "id": "caption-word-30-1",
+          "text": "GSAP.",
+          "start": 24.706,
+          "end": 25.496
+        }
+      ]
+    },
+    {
+      "id": "caption-group-31",
+      "frame": 4,
+      "start": 25.496,
+      "end": 25.902,
+      "text": "We used",
+      "words": [
+        {
+          "id": "caption-word-31-0",
+          "text": "We",
+          "start": 25.496,
+          "end": 25.647
+        },
+        {
+          "id": "caption-word-31-1",
+          "text": "used",
+          "start": 25.705,
+          "end": 25.868
+        }
+      ]
+    },
+    {
+      "id": "caption-group-32",
+      "frame": 4,
+      "start": 25.902,
+      "end": 26.076,
+      "text": "it on",
+      "words": [
+        {
+          "id": "caption-word-32-0",
+          "text": "it",
+          "start": 25.902,
+          "end": 25.949
+        },
+        {
+          "id": "caption-word-32-1",
+          "text": "on",
+          "start": 25.984,
+          "end": 26.042
+        }
+      ]
+    },
+    {
+      "id": "caption-group-33",
+      "frame": 4,
+      "start": 26.076,
+      "end": 26.719,
+      "text": "this clip.",
+      "words": [
+        {
+          "id": "caption-word-33-0",
+          "text": "this",
+          "start": 26.076,
+          "end": 26.181
+        },
+        {
+          "id": "caption-word-33-1",
+          "text": "clip.",
+          "start": 26.227,
+          "end": 26.599
+        }
+      ]
+    },
+    {
+      "id": "caption-group-34",
+      "frame": 4,
+      "start": 26.808,
+      "end": 27.377,
+      "text": "Same plate.",
+      "words": [
+        {
+          "id": "caption-word-34-0",
+          "text": "Same",
+          "start": 26.808,
+          "end": 27.052
+        },
+        {
+          "id": "caption-word-34-1",
+          "text": "plate.",
+          "start": 27.075,
+          "end": 27.354
+        }
+      ]
+    },
+    {
+      "id": "caption-group-35",
+      "frame": 4,
+      "start": 27.377,
+      "end": 28.251,
+      "text": "Same stagger.",
+      "words": [
+        {
+          "id": "caption-word-35-0",
+          "text": "Same",
+          "start": 27.377,
+          "end": 27.574
+        },
+        {
+          "id": "caption-word-35-1",
+          "text": "stagger.",
+          "start": 27.609,
+          "end": 28.131
+        }
+      ]
+    },
+    {
+      "id": "caption-group-36",
+      "frame": 4,
+      "start": 28.457,
+      "end": 29.269,
+      "text": "Hero first,",
+      "words": [
+        {
+          "id": "caption-word-36-0",
+          "text": "Hero",
+          "start": 28.457,
+          "end": 28.735
+        },
+        {
+          "id": "caption-word-36-1",
+          "text": "first,",
+          "start": 28.805,
+          "end": 29.223
+        }
+      ]
+    },
+    {
+      "id": "caption-group-37",
+      "frame": 4,
+      "start": 29.269,
+      "end": 30.283,
+      "text": "then the cutouts.",
+      "words": [
+        {
+          "id": "caption-word-37-0",
+          "text": "then",
+          "start": 29.269,
+          "end": 29.432
+        },
+        {
+          "id": "caption-word-37-1",
+          "text": "the",
+          "start": 29.478,
+          "end": 29.548
+        },
+        {
+          "id": "caption-word-37-2",
+          "text": "cutouts.",
+          "start": 29.583,
+          "end": 30.163
+        }
+      ]
+    },
+    {
+      "id": "caption-group-38",
+      "frame": 4,
+      "start": 30.488,
+      "end": 31.022,
+      "text": "Music under",
+      "words": [
+        {
+          "id": "caption-word-38-0",
+          "text": "Music",
+          "start": 30.488,
+          "end": 30.79
+        },
+        {
+          "id": "caption-word-38-1",
+          "text": "under",
+          "start": 30.837,
+          "end": 30.988
+        }
+      ]
+    },
+    {
+      "id": "caption-group-39",
+      "frame": 4,
+      "start": 31.022,
+      "end": 31.51,
+      "text": "the voice,",
+      "words": [
+        {
+          "id": "caption-word-39-0",
+          "text": "the",
+          "start": 31.022,
+          "end": 31.092
+        },
+        {
+          "id": "caption-word-39-1",
+          "text": "voice,",
+          "start": 31.138,
+          "end": 31.464
+        }
+      ]
+    },
+    {
+      "id": "caption-group-40",
+      "frame": 4,
+      "start": 31.51,
+      "end": 32.032,
+      "text": "never over",
+      "words": [
+        {
+          "id": "caption-word-40-0",
+          "text": "never",
+          "start": 31.51,
+          "end": 31.742
+        },
+        {
+          "id": "caption-word-40-1",
+          "text": "over",
+          "start": 31.8,
+          "end": 31.974
+        }
+      ]
+    },
+    {
+      "id": "caption-group-41",
+      "frame": 4,
+      "start": 32.032,
+      "end": 32.508,
+      "text": "it.",
+      "words": [
+        {
+          "id": "caption-word-41-0",
+          "text": "it.",
+          "start": 32.032,
+          "end": 32.508
+        }
+      ]
+    },
+    {
+      "id": "caption-group-42",
+      "frame": 5,
+      "start": 32.508,
+      "end": 32.972,
+      "text": "Copy it",
+      "words": [
+        {
+          "id": "caption-word-42-0",
+          "text": "Copy",
+          "start": 32.508,
+          "end": 32.856
+        },
+        {
+          "id": "caption-word-42-1",
+          "text": "it",
+          "start": 32.891,
+          "end": 32.938
+        }
+      ]
+    },
+    {
+      "id": "caption-group-43",
+      "frame": 5,
+      "start": 32.972,
+      "end": 33.623,
+      "text": "into Cursor,",
+      "words": [
+        {
+          "id": "caption-word-43-0",
+          "text": "into",
+          "start": 32.972,
+          "end": 33.1
+        },
+        {
+          "id": "caption-word-43-1",
+          "text": "Cursor,",
+          "start": 33.147,
+          "end": 33.588
+        }
+      ]
+    },
+    {
+      "id": "caption-group-44",
+      "frame": 5,
+      "start": 33.623,
+      "end": 34.319,
+      "text": "or Kiro,",
+      "words": [
+        {
+          "id": "caption-word-44-0",
+          "text": "or",
+          "start": 33.623,
+          "end": 33.773
+        },
+        {
+          "id": "caption-word-44-1",
+          "text": "Kiro,",
+          "start": 33.832,
+          "end": 34.284
+        }
+      ]
+    },
+    {
+      "id": "caption-group-45",
+      "frame": 5,
+      "start": 34.319,
+      "end": 35.171,
+      "text": "or Claude.",
+      "words": [
+        {
+          "id": "caption-word-45-0",
+          "text": "or",
+          "start": 34.319,
+          "end": 34.482
+        },
+        {
+          "id": "caption-word-45-1",
+          "text": "Claude.",
+          "start": 34.551,
+          "end": 35.051
+        }
+      ]
+    },
+    {
+      "id": "caption-group-46",
+      "frame": 5,
+      "start": 35.376,
+      "end": 35.654,
+      "text": "If an",
+      "words": [
+        {
+          "id": "caption-word-46-0",
+          "text": "If",
+          "start": 35.376,
+          "end": 35.515
+        },
+        {
+          "id": "caption-word-46-1",
+          "text": "an",
+          "start": 35.561,
+          "end": 35.619
+        }
+      ]
+    },
+    {
+      "id": "caption-group-47",
+      "frame": 5,
+      "start": 35.654,
+      "end": 36.084,
+      "text": "agent can",
+      "words": [
+        {
+          "id": "caption-word-47-0",
+          "text": "agent",
+          "start": 35.654,
+          "end": 35.898
+        },
+        {
+          "id": "caption-word-47-1",
+          "text": "can",
+          "start": 35.933,
+          "end": 36.037
+        }
+      ]
+    },
+    {
+      "id": "caption-group-48",
+      "frame": 5,
+      "start": 36.084,
+      "end": 36.653,
+      "text": "compose from",
+      "words": [
+        {
+          "id": "caption-word-48-0",
+          "text": "compose",
+          "start": 36.084,
+          "end": 36.467
+        },
+        {
+          "id": "caption-word-48-1",
+          "text": "from",
+          "start": 36.49,
+          "end": 36.606
+        }
+      ]
+    },
+    {
+      "id": "caption-group-49",
+      "frame": 5,
+      "start": 36.653,
+      "end": 37.349,
+      "text": "a URL,",
+      "words": [
+        {
+          "id": "caption-word-49-0",
+          "text": "a",
+          "start": 36.653,
+          "end": 36.676
+        },
+        {
+          "id": "caption-word-49-1",
+          "text": "URL,",
+          "start": 36.757,
+          "end": 37.28
+        }
+      ]
+    },
+    {
+      "id": "caption-group-50",
+      "frame": 5,
+      "start": 37.349,
+      "end": 37.663,
+      "text": "that is",
+      "words": [
+        {
+          "id": "caption-word-50-0",
+          "text": "that",
+          "start": 37.349,
+          "end": 37.512
+        },
+        {
+          "id": "caption-word-50-1",
+          "text": "is",
+          "start": 37.547,
+          "end": 37.616
+        }
+      ]
+    },
+    {
+      "id": "caption-group-51",
+      "frame": 5,
+      "start": 37.663,
+      "end": 38.619,
+      "text": "the product.",
+      "words": [
+        {
+          "id": "caption-word-51-0",
+          "text": "the",
+          "start": 37.663,
+          "end": 37.732
+        },
+        {
+          "id": "caption-word-51-1",
+          "text": "product.",
+          "start": 37.767,
+          "end": 38.499
+        }
+      ]
+    }
+  ]
+}

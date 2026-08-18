@@ -2,17 +2,13 @@ import { Hono } from "hono";
 import type { Env } from "../index.js";
 import { chat } from "../lib/llm.js";
 import { cacheGetJson, cachePutJson, sha256Hex } from "../lib/edge-cache.js";
-import { recordPublicSkill } from "../lib/skill-registry.js";
+import {
+  addSkillToSourceIndexes,
+  recordPublicSkill,
+} from "../lib/skill-registry.js";
 import { rateLimit } from "../lib/rate-limit-mw.js";
-
-/** Entry in the source → skills mapping (stored in KV per domain). */
-interface SourceEntry {
-  skillHash: string;
-  title: string;
-  sourceUrl: string;
-  fittedTo: string;
-  forgedAt: string;
-}
+import { canonicalSources, type CanonicalSource } from "../lib/source-url.js";
+import { resolveSession } from "./auth.js";
 
 const COMPOSE_SYSTEM = `You are an expert skill author for AI coding agents. Compose a skill that is:
 1. Fitted to the target codebase (respects its stack and conventions)
@@ -28,9 +24,9 @@ Output markdown with EXACTLY these ## sections (plus a single # title):
 
 Rules:
 - Context: 2–4 sentences max.
-- Guidance: ONE primary pattern with a small code example (prefer TypeScript). No essay.
+- Guidance: ONE primary pattern with a small TypeScript example. Use only repository files, APIs, packages, and endpoints explicitly named in the target or ideas. If no verified API is provided, use a self-contained function with no imports.
 - Anti-patterns: 2–4 bullets.
-- References: at most 5 bullets (source titles/URLs).
+- References: at most 5 bullets. Cite only the source titles and URLs supplied in the ideas; never invent documentation URLs, package names, imports, or APIs.
 - Total draft under ~3500 characters when possible.
 - Do not repeat the same advice in multiple sections.
 
@@ -41,10 +37,21 @@ export const forgeRoute = new Hono<{ Bindings: Env }>();
 const FORGE_TTL = 60 * 60; // 1h — same ideas + repo → same draft
 
 export interface ForgeInput {
-  ideas: Array<{ title: string; description: string; sourceUrl: string }>;
+  ideas: Array<{
+    title: string;
+    description: string;
+    sourceUrl: string;
+    sourceHash?: string;
+    domains?: string[];
+    applicability?: string[];
+    patternType?: string;
+  }>;
   repo?: { name: string; frameworks: string[]; languages: string[] };
   gapAgainst?: { title: string; url: string; snippet?: string };
+  derivedFromSkillHash?: string;
+  /** Explicit false shares publicly; omitted/true keeps the draft private. */
   private?: boolean;
+  owner?: { userId: number; login: string };
 }
 
 export interface ForgePayload {
@@ -55,6 +62,11 @@ export interface ForgePayload {
   fittedTo: string;
   composedAt: string;
   private: boolean;
+  sourceUrls: string[];
+  canonicalSources: CanonicalSource[];
+  domains: string[];
+  patternTypes: string[];
+  derivedFromSkillHash?: string;
 }
 
 /**
@@ -66,11 +78,14 @@ export async function forgeSkillCore(
   env: Env,
   body: ForgeInput,
 ): Promise<{ payload: ForgePayload; cacheHit: boolean }> {
-  const isPrivate = body.private === true;
+  const isPrivate = body.private !== false;
 
   const ideasStr = body.ideas
-    .map((i, idx) => `${idx + 1}. ${i.title}: ${i.description}`)
-    .join("\n");
+    .map(
+      (idea, index) =>
+        `${index + 1}. ${idea.title}: ${idea.description}\nSource: ${idea.sourceUrl}`,
+    )
+    .join("\n\n");
 
   const repoStr = body.repo
     ? `Target: ${body.repo.name} (${body.repo.frameworks.join(", ")}, ${body.repo.languages.join(", ")})`
@@ -80,12 +95,45 @@ export async function forgeSkillCore(
     ? `GAP_AGAINST:${body.gapAgainst.url}:${body.gapAgainst.title}:${body.gapAgainst.snippet ?? ""}`
     : "";
 
+  const sourceUrls = [...new Set(body.ideas.map((i) => i.sourceUrl))];
+  const canonicalSourceRecords = await canonicalSources(sourceUrls);
+
   const cacheKey = `forge:v4:${await sha256Hex(
     `${repoStr}\n${ideasStr}\n${gapStr}\nprivate:${isPrivate}`,
   )}`;
   const hit = await cacheGetJson<ForgePayload>(cacheKey);
   if (hit?.markdown) {
-    return { payload: hit, cacheHit: true };
+    const cachedPayload = hit.canonicalSources
+      ? hit
+      : { ...hit, canonicalSources: canonicalSourceRecords };
+    if (!cachedPayload.private) {
+      await recordPublicSkill(env, {
+        hash: cachedPayload.skillHash,
+        title: cachedPayload.title,
+        markdown: cachedPayload.markdown,
+        repo: body.repo?.name,
+        frameworks: body.repo?.frameworks,
+        languages: body.repo?.languages,
+        sourceUrls: [...new Set(body.ideas.map((idea) => idea.sourceUrl))].filter(
+          (url) => url.startsWith("http"),
+        ),
+        canonicalSources: cachedPayload.canonicalSources,
+        sourceHashes: cachedPayload.sourceHashes,
+        domains: [...new Set(body.ideas.flatMap((idea) => idea.domains ?? []))],
+        patternTypes: [
+          ...new Set(
+            body.ideas
+              .map((idea) => idea.patternType)
+              .filter((type): type is string => !!type),
+          ),
+        ],
+        derivedFromSkillHash: body.derivedFromSkillHash,
+        composedAt: cachedPayload.composedAt,
+        ownerId: body.owner?.userId,
+        ownerLogin: body.owner?.login,
+      });
+    }
+    return { payload: cachedPayload, cacheHit: true };
   }
 
   const gapBlock = body.gapAgainst
@@ -115,7 +163,6 @@ Write markdown with # title then ## Context, ## Guidance (one code example), ## 
   const title = titleMatch ? titleMatch[1] : "Forged Skill";
 
   // Add attribution preamble
-  const sourceUrls = [...new Set(body.ideas.map((i) => i.sourceUrl))];
   const sourceList = sourceUrls
     .filter((u) => u && !u.startsWith("https://fondof.local"))
     .map((u) => `  - ${u}`)
@@ -134,15 +181,18 @@ Write markdown with # title then ## Context, ## Guidance (one code example), ## 
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
 
-  // Source hashes from the ideas
-  const sourceHashes = [...new Set(body.ideas.map((i) => i.sourceUrl))].map((url) => {
-    // Simple hash of the URL for provenance linking
+  // Prefer the ingestion pipeline's content hash. Local/demo inputs fall back
+  // to a deterministic URL commitment until a real source snapshot exists.
+  const sourceHashes = [...new Set(body.ideas.map((idea) => {
+    const contentHash = idea.sourceHash?.trim();
+    if (contentHash && /^[0-9a-f]{64}$/i.test(contentHash)) return contentHash.toLowerCase();
+
     let hash = 0;
-    for (let i = 0; i < url.length; i++) {
-      hash = ((hash << 5) - hash + url.charCodeAt(i)) | 0;
+    for (let i = 0; i < idea.sourceUrl.length; i++) {
+      hash = ((hash << 5) - hash + idea.sourceUrl.charCodeAt(i)) | 0;
     }
     return Math.abs(hash).toString(16).padStart(64, "0");
-  });
+  }))];
 
   const payload: ForgePayload = {
     title,
@@ -152,6 +202,17 @@ Write markdown with # title then ## Context, ## Guidance (one code example), ## 
     fittedTo: body.repo?.name ?? "general",
     composedAt: new Date().toISOString(),
     private: isPrivate,
+    sourceUrls,
+    canonicalSources: canonicalSourceRecords,
+    domains: [...new Set(body.ideas.flatMap((idea) => idea.domains ?? []))],
+    patternTypes: [
+      ...new Set(
+        body.ideas
+          .map((idea) => idea.patternType)
+          .filter((type): type is string => !!type),
+      ),
+    ],
+    derivedFromSkillHash: body.derivedFromSkillHash,
   };
   await cachePutJson(cacheKey, payload, FORGE_TTL);
 
@@ -171,36 +232,31 @@ Write markdown with # title then ## Context, ## Guidance (one code example), ## 
         frameworks: body.repo?.frameworks,
         languages: body.repo?.languages,
         sourceUrls: realSources,
+        canonicalSources: canonicalSourceRecords,
         sourceHashes,
+        domains: [...new Set(body.ideas.flatMap((idea) => idea.domains ?? []))],
+        patternTypes: [
+          ...new Set(
+            body.ideas
+              .map((idea) => idea.patternType)
+              .filter((type): type is string => !!type),
+          ),
+        ],
+        derivedFromSkillHash: body.derivedFromSkillHash,
         composedAt: payload.composedAt,
+        ownerId: body.owner?.userId,
+        ownerLogin: body.owner?.login,
       });
     } catch {
       /* best-effort — never fail the forge for registry issues */
     }
 
-    for (const url of realSources) {
-      try {
-        const domain = new URL(url).hostname.replace(/^www\./, "");
-        const sourceKey = `source:${domain}`;
-        const existing =
-          (await env.SESSIONS.get(sourceKey, "json")) as SourceEntry[] | null;
-        const entries = existing || [];
-        if (!entries.some((e) => e.skillHash === skillHash)) {
-          entries.push({
-            skillHash,
-            title,
-            sourceUrl: url,
-            fittedTo: body.repo?.name ?? "general",
-            forgedAt: new Date().toISOString(),
-          });
-          await env.SESSIONS.put(sourceKey, JSON.stringify(entries), {
-            expirationTtl: 60 * 60 * 24 * 365,
-          });
-        }
-      } catch {
-        // Skip malformed URLs
-      }
-    }
+    await addSkillToSourceIndexes(env, realSources, {
+      skillHash,
+      title,
+      fittedTo: body.repo?.name ?? "general",
+      forgedAt: payload.composedAt,
+    });
   }
 
   return { payload, cacheHit: false };
@@ -211,8 +267,18 @@ forgeRoute.post("/forge", rateLimit("forge"), async (c) => {
 
   if (!body.ideas?.length) return c.json({ error: "ideas array is required" }, 400);
 
+  const session = await resolveSession(
+    c.req.header("Authorization"),
+    c.env.SESSIONS,
+  );
+
   try {
-    const { payload, cacheHit } = await forgeSkillCore(c.env, body);
+    const { payload, cacheHit } = await forgeSkillCore(c.env, {
+      ...body,
+      owner: session
+        ? { userId: session.userId, login: session.login }
+        : undefined,
+    });
     c.header("X-Cache", cacheHit ? "HIT" : "MISS");
     return c.json(payload);
   } catch (e) {

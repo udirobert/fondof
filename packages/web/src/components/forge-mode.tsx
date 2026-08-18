@@ -25,6 +25,7 @@ import {
   getSkillSignal,
   publishSkill,
   publishSkillMeta,
+  shareSkill,
 } from "@/lib/api";
 import {
   FORGE_BACKING,
@@ -55,6 +56,7 @@ import { skillFitCheck } from "@/lib/skill-fit-check";
 import { parseSkillSections } from "@/lib/skill-sections";
 import { whereItLands } from "@/lib/where-it-lands";
 import { track } from "@/lib/track";
+import { publicSkillHashFromUrl } from "@/lib/skill-share";
 import { checkForge, recordForge, type ForgeCheck } from "@/lib/billing";
 
 type Phase = "ritual" | "compose" | "attested";
@@ -93,6 +95,7 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
   const [skillHash, setSkillHash] = useState<string | null>(null);
   const [sourceHashes, setSourceHashes] = useState<string[]>([]);
   const [publishing, setPublishing] = useState(false);
+  const [sharing, setSharing] = useState(false);
   const [composing, setComposing] = useState(false);
   const [copied, setCopied] = useState(false);
   const [_explorer, setExplorer] = useState<string | null>(null);
@@ -156,6 +159,10 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
           ideas.map((idea) => ({
             title: idea.title,
             description: idea.description,
+            domains: idea.domains,
+            applicability: idea.domains,
+            patternType: idea.patternType,
+            sourceHash: idea.sourceHash,
             sourceUrl:
               idea.sourceUrl && idea.sourceUrl.length > 0
                 ? idea.sourceUrl
@@ -171,7 +178,12 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
               : ["TypeScript"],
           },
           gap,
-          { private: forgePrivate },
+          {
+            private: forgePrivate,
+            derivedFromSkillHash: gap
+              ? publicSkillHashFromUrl(gap.url) ?? undefined
+              : undefined,
+          },
         );
 
       if (signal.cancelled) return;
@@ -213,11 +225,13 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
         setUsageCount(null);
         setChallengeNote(null);
         setPublishNote(null);
+        setSharing(false);
         setLinkCopied(false);
         setCelebrate(false);
         setWalletTxHash(undefined);
         setShowFullDraft(false);
         setForgeTitle(null);
+        setForgePrivate(true);
         setShowPoolMore(false);
         pendingMarkdown.current = null;
         streamCancel.current?.();
@@ -386,6 +400,66 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
     void publishSkillMeta(hash, artifact);
   };
 
+  const shareDraft = async () => {
+    if (!skillHash || !draft || !ready) return;
+    setSharing(true);
+    setPublishNote(null);
+    const preview = skillPreviewFromMarkdown(
+      draft,
+      forgeTitle ?? ideas[0]?.title,
+    );
+    const landings = whereItLands({
+      repoName: repo || undefined,
+      frameworks: repoMeta?.frameworks,
+      languages: repoMeta?.languages?.map((l) => l.language),
+      ideaText: ideas.map((i) => `${i.title} ${i.description}`).join(" "),
+    });
+    const gap =
+      ideas.length === 1
+        ? useAppStore.getState().gapByIdeaId[ideas[0].id]
+        : undefined;
+
+    try {
+      const res = await shareSkill(skillHash, {
+        title: preview.title,
+        markdown: draft,
+        repo: repo || undefined,
+        frameworks: repoMeta?.frameworks,
+        languages: repoMeta?.languages?.map((l) => l.language),
+        domains: [...new Set(ideas.flatMap((idea) => idea.domains))],
+        patternTypes: [...new Set(ideas.map((idea) => idea.patternType))],
+        derivedFromSkillHash: gap
+          ? publicSkillHashFromUrl(gap.url) ?? undefined
+          : undefined,
+        sourceUrls: ideas
+          .map((idea) => idea.sourceUrl)
+          .filter((url): url is string => !!url && url.startsWith("http")),
+        sourceHashes,
+      });
+      if (res.error) {
+        setPublishNote(res.error);
+      } else {
+        setForgePrivate(false);
+        track("skill_shared", { skillHash });
+        setPublishNote(
+          "Shared publicly — the skill now has a source page and can be re-forged. Attestation remains optional.",
+        );
+        void publishSkillMeta(skillHash, {
+          title: preview.title,
+          blurb: preview.blurb,
+          repo: repo || undefined,
+          markdown: draft,
+          landings,
+          frameworks: repoMeta?.frameworks,
+        });
+      }
+    } catch {
+      setPublishNote("Couldn’t share this draft right now. It remains private.");
+    } finally {
+      setSharing(false);
+    }
+  };
+
   const publish = async () => {
     setPublishing(true);
     setPublishNote(null);
@@ -463,8 +537,8 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
           setExplorer(res.explorer ?? txExplorer(res.txHash));
           setPublishNote(
             isConnected
-              ? "Published via fondof relayer (wallet forge unavailable)."
-              : "Published via fondof relayer on Monad.",
+              ? "Attested via fondof relayer (wallet forge unavailable)."
+              : "Attested via fondof relayer on Monad.",
           );
           stashLiveMeta(skillHash);
           setPhase("attested");
@@ -709,20 +783,23 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
                         <div className="mb-4 flex items-center justify-between rounded-lg border border-ink/8 bg-mist/40 px-3 py-2">
                           <div className="text-[11px] text-foreground-secondary">
                             {forgePrivate
-                              ? "Private — won't appear on your profile or source pages"
-                              : "Public — appears on your profile and source pages"}
+                              ? "Private draft — share only when you want attribution and re-forging"
+                              : "Public share — appears on your skill and source pages"}
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => setForgePrivate((p) => !p)}
-                            className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors ${
-                              forgePrivate
-                                ? "bg-ember/10 text-ember"
-                                : "bg-ink/8 text-ink"
-                            }`}
-                          >
-                            {forgePrivate ? "Private" : "Public"}
-                          </button>
+                          {forgePrivate ? (
+                            <button
+                              type="button"
+                              onClick={() => void shareDraft()}
+                              disabled={!ready || sharing}
+                              className="shrink-0 rounded-full bg-ember px-2.5 py-1 text-[11px] font-medium text-paper transition-colors hover:bg-ember-hot disabled:opacity-40"
+                            >
+                              {sharing ? "Sharing…" : "Share publicly"}
+                            </button>
+                          ) : (
+                            <span className="shrink-0 rounded-full bg-ink/8 px-2.5 py-1 text-[11px] font-medium text-ink">
+                              Public
+                            </span>
+                          )}
                         </div>
 
                         <div className="mb-4">
@@ -730,8 +807,7 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
                             Skill preview
                           </p>
                           <p className="mt-0.5 text-[11px] text-muted">
-                            What goes live when you publish — not a doc to finish
-                            reading
+                            What your agent receives — not a doc to finish reading
                           </p>
                         </div>
 
@@ -868,7 +944,7 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
                       />
 
                       {/* Share panel (public forges only) */}
-                      {skillHash && !forgePrivate && phase === "attested" && (
+                      {skillHash && !forgePrivate && (phase === "compose" || phase === "attested") && (
                         <SkillSharePanel
                           skillHash={skillHash}
                           title={draftPreview.title}
@@ -884,12 +960,11 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
                             size={12}
                             className="transition-transform group-open:rotate-180"
                           />
-                          Publish to SkillPool (on-chain)
+                          Attest on SkillPool (optional)
                         </summary>
                         <div className="mt-3 space-y-3 border-t border-ink/8 pt-3">
                           <p className="text-[10px] leading-snug text-muted">
-                            Optional: publish on-chain for provenance and quality scoring.
-                            Wallet required.
+                            Optional: attest the shared artifact for portable provenance and a contestable quality signal. Wallet or relayer.
                           </p>
                           <WalletButton variant="panel" />
 
@@ -912,12 +987,14 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
                             <button
                               type="button"
                               onClick={() => void publish()}
-                              disabled={!ready || publishing}
+                              disabled={!ready || publishing || forgePrivate}
                               className="flex min-h-11 w-full items-center justify-center gap-2 rounded-full border border-ink/12 bg-paper px-4 text-sm text-ink transition-colors hover:border-ember/35 disabled:opacity-30"
                             >
                               <Shield size={14} />
                               {publishing ? (
-                                "Publishing…"
+                                "Attesting…"
+                              ) : forgePrivate ? (
+                                "Share publicly first"
                               ) : walletReady ? (
                                 <span className="inline-flex items-center gap-1.5">
                                   Publish as{" "}
@@ -927,7 +1004,7 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
                                   />
                                 </span>
                               ) : (
-                                "Publish to SkillPool"
+                                "Attest on SkillPool"
                               )}
                             </button>
                           )}

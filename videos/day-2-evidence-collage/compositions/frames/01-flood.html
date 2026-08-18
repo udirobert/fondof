@@ -1,0 +1,129 @@
+<template>
+  <style>
+    @font-face { font-family: Outfit; src: url("capture/assets/fonts/03bda585a99c6450-s.p.32sris142tqlb.woff2") format("woff2"); font-weight: 400 500; }
+    @font-face { font-family: "Geist Mono"; src: url("capture/assets/fonts/1b99372b3eaef0c8-s.p.1gsd1jahc5dg_.woff2") format("woff2"); font-weight: 400 500; }
+    #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; background: #F7F1E5; color: #221812; }
+    .clip { position: absolute; inset: 0; }
+    .ground {
+      background-color: #F7F1E5;
+      background-image:
+        repeating-linear-gradient(97deg, rgba(34,24,18,.035) 0 1px, transparent 1px 17px),
+        repeating-linear-gradient(7deg, rgba(34,24,18,.022) 0 1px, transparent 1px 29px);
+    }
+    .kicker { position: absolute; z-index: 8; top: 128px; left: 86px; font: 500 22px/1 "Geist Mono", monospace; letter-spacing: .15em; }
+    .kicker b { color: #C5521C; font-size: 28px; }
+    .rule { position: absolute; z-index: 8; top: 194px; left: 86px; width: 908px; height: 1px; background: rgba(34,24,18,.18); transform-origin: left; }
+
+    .clone-card {
+      position: absolute; z-index: 3; width: 430px; padding: 26px 30px;
+      border: 1px solid rgba(34,24,18,.14); border-radius: 10px; background: #F7F1E5;
+      box-shadow: 0 8px 24px rgba(34,24,18,.08); opacity: 0;
+    }
+    .clone-card .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .clone-card .tag { font: 500 15px/1 "Geist Mono", monospace; letter-spacing: .12em; color: rgba(34,24,18,.82); }
+    .clone-card h2 { margin: 12px 0 0; font: 400 44px/.95 Outfit, sans-serif; letter-spacing: -.04em; }
+    .clone-card .fake {
+      margin-top: 16px; padding: 10px 14px; border-radius: 6px; background: #181615;
+      color: rgba(247,241,229,.85); font: 400 19px/1.3 "Geist Mono", monospace; letter-spacing: -.03em;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .clone-card .fake .bad { color: #FFC98A; }
+    .clone-card .flag {
+      display: inline-block; margin-top: 12px; padding: 7px 10px; border: 1px solid #B53700; border-radius: 4px;
+      color: #B53700; font: 500 15px/1 "Geist Mono", monospace; letter-spacing: .1em; opacity: 0;
+    }
+    .c1 { top: 252px; left: 60px; transform: rotate(-5deg); }
+    .c2 { top: 296px; right: 48px; transform: rotate(4deg); }
+    .c3 { top: 596px; left: 120px; transform: rotate(2deg); }
+    .c4 { top: 640px; right: 90px; transform: rotate(-3deg); }
+    .c5 { top: 940px; left: 70px; transform: rotate(-2deg); }
+    .c6 { top: 984px; right: 60px; transform: rotate(5deg); }
+
+    .clerk {
+      position: absolute; z-index: 2; right: -36px; top: 540px; width: 340px; height: 370px;
+      object-fit: contain; object-position: bottom center;
+      filter: grayscale(1) contrast(1.12) drop-shadow(-10px 12px 0 rgba(197,82,28,.8));
+      opacity: 0;
+    }
+    .courier {
+      position: absolute; z-index: 6; left: -24px; top: 1170px; width: 420px; height: 420px;
+      object-fit: contain; object-position: bottom center;
+      filter: grayscale(1) contrast(1.12) drop-shadow(10px 12px 0 #C5521C);
+      opacity: 0;
+    }
+    .verdict {
+      position: absolute; z-index: 7; top: 1310px; right: 66px; padding: 20px 26px;
+      border: 2px solid #221812; border-radius: 8px; background: #FFDDCE;
+      font: 400 40px/1.05 Outfit, sans-serif; letter-spacing: -.03em;
+      transform: rotate(3deg); box-shadow: 6px 7px 0 rgba(34,24,18,.14); opacity: 0;
+    }
+  </style>
+  <div data-hf-id="hf-binq" id="root" data-composition-id="01-flood" data-start="0" data-duration="9.927" data-width="1080" data-height="1920">
+    <div data-hf-id="hf-89gv" id="f01-ground" class="clip ground" data-start="0" data-duration="9.927" data-track-index="0"></div>
+    <div data-hf-id="hf-gss4" id="f01-stage" class="clip" data-start="0" data-duration="9.927" data-track-index="1">
+      <div data-hf-id="hf-m2p3" id="f01-kicker" class="kicker"><b data-hf-id="hf-u3lo">✱</b> THE FLOOD / 01</div>
+      <div data-hf-id="hf-930q" id="f01-rule" class="rule"></div>
+
+      <div data-hf-id="hf-lwcu" id="f01-c1" class="clone-card c1" data-layout-allow-overlap="" data-layout-allow-occlusion="">
+        <div data-hf-id="hf-thy4" class="row"><span data-hf-id="hf-levo" class="tag">SKILL</span><span data-hf-id="hf-yruv" class="tag">★★★★☆</span></div>
+        <h2 data-hf-id="hf-xu6p">Prompt Tips</h2>
+        <div data-hf-id="hf-q99k" class="fake"><span data-hf-id="hf-byuz" class="bad">import</span> magic <span data-hf-id="hf-hdzm" class="bad">from</span> "nowhere"</div>
+        <span data-hf-id="hf-loi0" id="f01-flag1" class="flag">✗ HALLUCINATED IMPORT</span>
+      </div>
+      <div data-hf-id="hf-este" id="f01-c2" class="clone-card c2" data-layout-allow-overlap="" data-layout-allow-occlusion="">
+        <div data-hf-id="hf-lt04" class="row"><span data-hf-id="hf-h7sc" class="tag">SKILL</span><span data-hf-id="hf-njjb" class="tag">★★★★☆</span></div>
+        <h2 data-hf-id="hf-cafs">Auto Review</h2>
+        <div data-hf-id="hf-zyih" class="fake">client.<span data-hf-id="hf-v3rx" class="bad">deployToCloud</span>()</div>
+        <span data-hf-id="hf-6y85" id="f01-flag2" class="flag">✗ FAKE API</span>
+      </div>
+      <div data-hf-id="hf-42yq" id="f01-c3" class="clone-card c3" data-layout-allow-overlap="" data-layout-allow-occlusion="">
+        <div data-hf-id="hf-km31" class="row"><span data-hf-id="hf-g0v9" class="tag">SKILL</span><span data-hf-id="hf-h5qw" class="tag">★★★☆☆</span></div>
+        <h2 data-hf-id="hf-ljp7">Best Practices</h2>
+        <div data-hf-id="hf-g862" class="fake"><span data-hf-id="hf-d2m9" class="bad">require</span>("agent-sdk-v9")</div>
+      </div>
+      <div data-hf-id="hf-prmm" id="f01-c4" class="clone-card c4" data-layout-allow-overlap="" data-layout-allow-occlusion="">
+        <div data-hf-id="hf-l0e2" class="row"><span data-hf-id="hf-gf6a" class="tag">SKILL</span><span data-hf-id="hf-ydju" class="tag">★★★★★</span></div>
+        <h2 data-hf-id="hf-591v">Code Genius</h2>
+        <div data-hf-id="hf-vksb" class="fake">see docs/example (missing)</div>
+      </div>
+      <div data-hf-id="hf-u1qu" id="f01-c5" class="clone-card c5" data-layout-allow-overlap="" data-layout-allow-occlusion="">
+        <div data-hf-id="hf-mzx7" class="row"><span data-hf-id="hf-iepf" class="tag">SKILL</span><span data-hf-id="hf-xn74" class="tag">★★★☆☆</span></div>
+        <h2 data-hf-id="hf-3702">Agent Hacks</h2>
+        <div data-hf-id="hf-eg98" class="fake"><span data-hf-id="hf-0mza" class="bad">from</span> utils <span data-hf-id="hf-98fv" class="bad">import</span> helper</div>
+      </div>
+      <div data-hf-id="hf-1yiq" id="f01-c6" class="clone-card c6" data-layout-allow-overlap="" data-layout-allow-occlusion="">
+        <div data-hf-id="hf-ne88" class="row"><span data-hf-id="hf-it0g" class="tag">SKILL</span><span data-hf-id="hf-n58a" class="tag">★★★★☆</span></div>
+        <h2 data-hf-id="hf-5llr">10x Skill</h2>
+        <div data-hf-id="hf-w33z" class="fake">works with any framework*</div>
+      </div>
+
+      <img id="f01-clerk" class="clerk" src=".media/generated/char-clerk-cutout.png" alt="" data-layout-allow-occlusion="">
+      <img data-hf-id="hf-bith" id="f01-courier" class="courier" src=".media/generated/forger-courier-cutout.png" alt="">
+      <div data-hf-id="hf-os3v" id="f01-verdict" class="verdict">Written for no one.</div>
+    </div>
+  </div>
+  <script>
+    (() => {
+      const tl = gsap.timeline({ paused: true });
+      window.__timelines = window.__timelines || {};
+      window.__timelines["01-flood"] = tl;
+      tl.fromTo("#f01-kicker", { opacity: 0, y: -16 }, { opacity: 1, y: 0, duration: .28, ease: "expo.out" }, .08);
+      tl.fromTo("#f01-rule", { scaleX: 0 }, { scaleX: 1, duration: .42, ease: "power2.out" }, .16);
+      // cards rain in while VO runs "Every AI can generate a skill now." (0–2.3s)
+      ["#f01-c1", "#f01-c2", "#f01-c3", "#f01-c4", "#f01-c5", "#f01-c6"].forEach((sel, i) => {
+        tl.fromTo(sel, { opacity: 0, y: -300 }, { opacity: 1, y: 0, duration: .5, ease: "power3.out" }, .35 + i * .38);
+      });
+      // clerk peers out overwhelmed behind the cards (1.4s)
+      tl.fromTo("#f01-clerk", { opacity: 0, x: 90 }, { opacity: 1, x: 0, duration: .5, ease: "steps(5)" }, 1.4);
+      // courier arrives on "garbage." (3.36s)
+      tl.fromTo("#f01-courier", { opacity: 0, y: 90 }, { opacity: 1, y: 0, duration: .5, ease: "steps(5)" }, 2.6);
+      // flags on "Hallucinated imports." (4.2s) and "Fake APIs." (5.7s)
+      tl.fromTo("#f01-flag1", { opacity: 0, scale: .6 }, { opacity: 1, scale: 1, duration: .3, ease: "steps(3)" }, 4.2);
+      tl.fromTo("#f01-flag2", { opacity: 0, scale: .6 }, { opacity: 1, scale: 1, duration: .3, ease: "steps(3)" }, 5.7);
+      // verdict stamp on "Written for no one." (7.0s)
+      tl.fromTo("#f01-verdict", { opacity: 0, scale: 1.3, rotation: 8 }, { opacity: 1, scale: 1, rotation: 3, duration: .4, ease: "power4.out" }, 7.0);
+      // full-span anchor
+      tl.to({}, { duration: 9.927 }, 0);
+    })();
+  </script>
+</template>

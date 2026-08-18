@@ -161,17 +161,65 @@ Unchecked items are deferred or partial — not abandoned.
 - README Built with Kiro + 5-minute judge click path + `pnpm test` green
 
 **Remaining before Aug 23:**
-- Demo video recorded from `docs/demo-video.md`, uploaded (unlisted YouTube)
-- Google Form submission (repo + video + details) before 23:59 UTC
-- More durable meta than Cache API if titles evaporate (stretch)
+- **3 daily evidence clips** (~90s each, Aug 17–19): trending idea → ingest → forge → agent use → outcome — run sheet in [`docs/submission-plan.md`](../../../docs/submission-plan.md)
+- **Final synthesis video** (~3 min, Aug 22–23): montage daily clips + one live judge path — script in [`docs/demo-video.md`](../../../docs/demo-video.md)
+- Google Form submission (repo + synthesis video + traction metrics) before 23:59 UTC
+- Per-episode prep locked: topic, canonical URL (or Need text), target repo, skill hash, outcome note
 - CLI parity only if time left (low priority — web is primary)
 
 ## Direction (post–craft-first)
 
-**Product hierarchy:** personalised craft → agent hand-off → SkillPool proof → **outcome receipts** (what the skill resulted in).
+**Canonical strategy:**
 
-### Task 10.1: Outcome attachments (next build)
+```text
+Need or source → Extract → Fit / Forge → Copy / Use → Outcome → Share / Attribute → optional SkillPool proof
+```
+
+**Positioning:** fondof turns what developers learn — or need — into agent skills fitted to their codebase. Craft first, proof downstream. **Offchain for usefulness. Onchain for public trust.**
+
+### Implementation plan
+
+#### Phase A — Protect the core loop
+- [x] Make the lifecycle explicit: private draft → public share → optional attestation
+- [x] Keep Need / URL → Extract → Fit / Forge → Copy for agent fast and chain-independent
+- [x] Separate public-offchain, attested, and private states in API and UI copy
+- [x] Preserve honest degradation when the chain or relayer is unavailable
+
+#### Phase B — Make public artifacts controllable and attributable
+- [x] Add optional ownership and post-hoc unlist/hide for public skills; preserve immutable attestation history honestly
+- [x] Persist canonical source identity, idea domains, pattern type, stack tags, and parent-skill lineage; author/title metadata remains a later enrichment
+- [ ] Replace domain-only creator grouping with source identity while retaining domains as navigation
+- [x] Move public artifact and evidence storage to non-expiring KV records with migration from the old TTL/cache paths
+
+#### Phase C — Measure real value, not vanity activity
+- [x] Distinguish claimed use, outcome-attached, linked-PR, and GitHub-confirmed PR evidence states; confirmation still does not prove causality
+- [x] Add deduplicated, privacy-preserving receipts for authenticated users and explicitly consented browser keys; repo-fingerprint attribution remains deferred
+- [ ] Keep rankings and impact calculations offchain; publish the evidence behind each score
+- [ ] Build creator/source impact pages and genre/stack discovery only after enough outcome data exists
+
+#### Phase D — Use the chain only where it earns its place
+- [ ] Keep onchain data minimal: skill identity, source commitments, public forger, backing, and challenge/use history
+- [ ] Fix source commitments to represent canonical content snapshots, not only URL strings
+- [ ] Treat per-click/per-copy activity as analytics, not onchain usage
+- [ ] Add optional aggregate or high-confidence usage/outcome attestations only when they provide portable trust
+- [ ] Keep challenge resolution explicitly labeled as oracle-assisted until adjudication is genuinely decentralized
+
+#### Phase E — Turn evidence into distribution
+- [ ] Add shareable source-impact cards: adaptations, unique stacks, outcome-backed uses, and challenge history
+- [ ] Add lineage-aware “re-forge/remix” pages linking source → original skill → derived skills
+- [ ] Add multiple leaderboards such as most adapted, most outcome-backed, and rising—not one popularity score
+- [ ] Keep `/pool` downstream: evidence desk and discovery surface, never the homepage or generic marketplace
+
+### Task 10.1: Outcome attachments
 - [x] Optional outcome on skill page / meta: PR URL, short “what improved” note, optional screenshot URL
-- [x] Persist via edge meta (same path as markdown) — no fake metrics
+- [x] Persist via durable evidence records plus legacy edge meta fallback — no fake metrics
 - [x] Surface lightly on `/s/[hash]` and pool cards when present
 - [x] Do **not** rebrand as security scanner; keep untrusted-supply as problem context only
+
+### Task 10.2: Find sources (FR4.5 — post-submit wedge)
+- [ ] “Find sources” after need-extract — optional button, not a new primary tab
+- [ ] Exa / web query scoped to YouTube, HN, dev blogs — return 3–5 cards (title, snippet, match reason)
+- [ ] User picks source → re-ingest URL → merge or replace shards
+- [ ] Wire to existing Compare + delta forge when partial skill match exists
+- [ ] **Out of scope for Aug 23** unless ships in ~1 day without breaking judge path; it remains enrichment, not the core loop or a trending-content homepage
+- Plan: [`docs/submission-plan.md`](../../../docs/submission-plan.md)

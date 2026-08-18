@@ -34,3 +34,39 @@ export function fondofThisUrl(sourceUrl: string, origin?: string): string {
       : "https://fondof.netlify.app");
   return `${base}/?url=${encodeURIComponent(sourceUrl)}`;
 }
+
+/** Select a real source to re-forge, never the public fondof artifact itself. */
+export function originalSourceUrl(
+  sourceUrls: readonly string[] | null | undefined,
+): string | null {
+  for (const sourceUrl of sourceUrls ?? []) {
+    try {
+      const parsed = new URL(sourceUrl.trim());
+      if (parsed.protocol === "https:" || parsed.protocol === "http:") {
+        return parsed.toString();
+      }
+    } catch {
+      // Ignore direct-need and malformed provenance values.
+    }
+  }
+  return null;
+}
+
+/** Extract a parent skill hash from a public /s/[hash] URL. */
+export function publicSkillHashFromUrl(url: string): string | null {
+  try {
+    const pathname = new URL(url).pathname;
+    const match = pathname.match(/^\/s\/(0x?[a-f0-9]{8,})\/?$/i);
+    return match ? match[1]!.toLowerCase().replace(/^0x/, "") : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Start a new repo-fitted forge from an original public source. */
+export function sourceReforgePath(
+  sourceUrls: readonly string[] | null | undefined,
+): string | null {
+  const sourceUrl = originalSourceUrl(sourceUrls);
+  return sourceUrl ? `/?url=${encodeURIComponent(sourceUrl)}` : null;
+}

@@ -41,11 +41,11 @@ Returns JSON with these fields:
 - `markdown` — the forged skill, ready to save
 - `ideas` — the top shards that were used
 - `skillHash` — unique id for the skill
-- `skillUrl` — a real, shareable public page (`https://fondof.netlify.app/s/{skillHash}`); resolves even before any on-chain attestation
+- `skillUrl` — a shareable skill page (`https://fondof.netlify.app/s/{skillHash}`) when the result is shared publicly; useful without any on-chain attestation
 - `sourceUrl` — the original source
 - `title` — skill title
 - `fittedTo` — repo name it was fitted for
-- `onChain` — false until stamped via `POST /api/publish`
+- `onChain` — whether the public artifact has an optional SkillPool attestation; false does not mean the skill is unusable
 
 ## What to do with the result
 
@@ -54,12 +54,13 @@ Returns JSON with these fields:
    - Kiro: `.kiro/steering/<skill-name>.md`
    - Cursor: `.cursor/rules/<skill-name>.md`
    - Claude Code: append to `CLAUDE.md` or save as a standalone file
-3. Share `skillUrl` if someone wants to see the skill.
-4. Use the skill's guidance on relevant tasks going forward.
+3. Keep the draft private or share `skillUrl` if others should see and re-forge it.
+4. Use the skill's guidance on relevant tasks going forward; attach an outcome if it helped.
+5. Attest through SkillPool only when portable provenance or contestable public quality matters.
 
 ## Notes
 
-- Skills are **public by default** — a compose creates a real `/s/[hash]` page. Pass `"private": true` to opt out.
+- The lifecycle is **private draft → explicit public share → optional attestation**. Compose is private by default; pass `"private": false` when the result should be publicly shareable.
 - `topShards` (optional int, default 2, max 6) controls how many extracted ideas feed the forge. Add `"topShards": 3` to the body to change it.
 - The endpoint is rate-limited (10/hour per IP). On a 429, wait and retry.
 - If `ideas` comes back empty, the source could not be parsed — try a different URL or a more specific `need`.

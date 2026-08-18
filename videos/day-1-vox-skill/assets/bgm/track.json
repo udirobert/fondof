@@ -1,0 +1,9 @@
+{
+  "provider": "elevenlabs-music",
+  "model": "music_v2",
+  "duration_ms": 38000,
+  "force_instrumental": true,
+  "prompt": "Instrumental documentary magazine underscore, analog pads, light brushed percussion, no vocals, no lyrics, quiet under a narrator, 95 bpm, warm paper grain mood, tomato-red editorial energy without melody competing with speech",
+  "bytes": 608593,
+  "created_at": "2026-08-17T11:13:59.284Z"
+}

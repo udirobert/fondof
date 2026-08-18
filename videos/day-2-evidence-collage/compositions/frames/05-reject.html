@@ -1,0 +1,70 @@
+<template>
+  <style>
+    @font-face { font-family: Outfit; src: url("capture/assets/fonts/03bda585a99c6450-s.p.32sris142tqlb.woff2") format("woff2"); font-weight: 400 500; }
+    @font-face { font-family: "Geist Mono"; src: url("capture/assets/fonts/1b99372b3eaef0c8-s.p.1gsd1jahc5dg_.woff2") format("woff2"); font-weight: 400 500; }
+    #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; background: #F7F1E5; color: #221812; }
+    .clip { position: absolute; inset: 0; }
+    .ground { background: #F7F1E5; background-image: repeating-linear-gradient(90deg, rgba(34,24,18,.026) 0 1px, transparent 1px 52px); }
+    .kicker { position: absolute; z-index: 8; top: 128px; left: 86px; font: 500 22px/1 "Geist Mono", monospace; letter-spacing: .15em; }
+    .kicker b { color: #C5521C; font-size: 28px; }
+    .rule { position: absolute; z-index: 8; top: 194px; left: 86px; width: 908px; height: 1px; background: rgba(34,24,18,.18); transform-origin: left; }
+    .torn { position: absolute; z-index: 2; width: 360px; height: 430px; overflow: hidden; border: 1px solid rgba(34,24,18,.16); border-radius: 8px; background: #fff; box-shadow: 0 8px 24px rgba(34,24,18,.10); opacity: 0; }
+    .torn img { width: 100%; height: 100%; object-fit: cover; object-position: left top; filter: sepia(.22) saturate(.82); }
+    .torn-1 { top: 280px; left: 110px; }
+    .torn-2 { top: 330px; left: 360px; }
+    .torn-3 { top: 280px; right: 110px; }
+    .review-label { position: absolute; z-index: 7; top: 760px; left: 86px; font: 500 24px/1 "Geist Mono", monospace; letter-spacing: .12em; color: #B53700; opacity: 0; }
+    .slip { position: absolute; z-index: 7; width: 430px; padding: 22px 26px; border: 2px solid #C5521C; border-radius: 6px; background: #F7F1E5; box-shadow: 6px 7px 0 rgba(34,24,18,.16); font: 500 24px/1.2 "Geist Mono", monospace; letter-spacing: .06em; color: #221812; opacity: 0; }
+    .slip small { display: block; margin-bottom: 9px; color: #B53700; font-size: 16px; letter-spacing: .11em; }
+    .slip-import { top: 830px; left: 70px; transform: rotate(-4deg); }
+    .slip-reference { top: 1010px; right: 70px; transform: rotate(3deg); }
+    .stamp { position: absolute; z-index: 9; top: 1210px; left: 118px; width: 844px; padding: 34px 48px; border: 10px solid #C5521C; border-radius: 12px; background: #C5521C; color: #F7F1E5; text-align: center; opacity: 0; }
+    .stamp strong { display: block; font: 400 88px/.94 Outfit, sans-serif; letter-spacing: -.04em; }
+    .stamp span { display: block; margin-top: 14px; font: 500 27px/1 "Geist Mono", monospace; letter-spacing: .14em; }
+    .note { position: absolute; z-index: 8; top: 1480px; left: 86px; width: 908px; font: 500 20px/1.5 "Geist Mono", monospace; letter-spacing: .04em; color: #4a3a2e; opacity: 0; }
+    .inspector { position: absolute; z-index: 6; right: -20px; top: 700px; width: 300px; height: 310px; object-fit: contain; object-position: bottom center; filter: grayscale(1) contrast(1.12) drop-shadow(-10px 12px 0 rgba(197,82,28,.8)); opacity: 0; }
+    .clerk { position: absolute; z-index: 6; left: -24px; top: 960px; width: 270px; height: 290px; object-fit: contain; object-position: bottom center; filter: grayscale(1) contrast(1.12) drop-shadow(10px 12px 0 rgba(197,82,28,.8)); opacity: 0; }
+  </style>
+  <div data-hf-id="hf-4lp9" id="root" data-composition-id="05-reject" data-start="0" data-duration="6.212" data-width="1080" data-height="1920">
+    <div data-hf-id="hf-k4n3" id="f05-ground" class="clip ground" data-start="0" data-duration="6.212" data-track-index="0"></div>
+    <div data-hf-id="hf-wqq4" id="f05-stage" class="clip" data-start="0" data-duration="6.212" data-track-index="1">
+      <div data-hf-id="hf-gwoh" id="f05-kicker" class="kicker"><b data-hf-id="hf-u3lo">✱</b> THE REVIEW / 05</div>
+      <div data-hf-id="hf-egce" id="f05-rule" class="rule"></div>
+      <div data-hf-id="hf-fq7r" id="f05-t1" class="torn torn-1"><img data-hf-id="hf-qg0l" src=".media/sources/fondof-offchain-draft/screenshots/scroll-000.png" alt="Off-chain draft fragment one"></div>
+      <div data-hf-id="hf-dxs3" id="f05-t2" class="torn torn-2"><img data-hf-id="hf-gi4z" src=".media/sources/fondof-offchain-draft/screenshots/scroll-100.png" alt="Off-chain draft fragment two" style="object-position: 50% top;"></div>
+      <div data-hf-id="hf-40zz" id="f05-t3" class="torn torn-3"><img data-hf-id="hf-vbrk" src=".media/sources/fondof-offchain-draft/screenshots/full-page.png" alt="Off-chain draft fragment three" style="object-position: 20% top;"></div>
+      <div data-hf-id="hf-xcn1" id="f05-review" class="review-label">FIT REVIEW / FONDOF</div>
+      <div data-hf-id="hf-8hyi" id="f05-slip-1" class="slip slip-import"><small data-hf-id="hf-gvco">FINDING 01</small>INVENTED IMPORT</div>
+      <div data-hf-id="hf-javh" id="f05-slip-2" class="slip slip-reference"><small data-hf-id="hf-fofl">FINDING 02</small>FAKE REFERENCE</div>
+      <img id="f05-inspector" class="inspector" src=".media/generated/char-inspector-cutout.png" alt="" data-layout-allow-overlap data-layout-allow-occlusion>
+      <img id="f05-clerk" class="clerk" src=".media/generated/char-clerk-cutout.png" alt="" data-layout-allow-overlap data-layout-allow-occlusion>
+      <div data-hf-id="hf-wixw" id="f05-stamp" class="stamp" data-layout-allow-overlap=""><strong data-hf-id="hf-4few">REJECTED</strong><span data-hf-id="hf-oqsu">NOT FITTED</span></div>
+      <p data-hf-id="hf-ileq" id="f05-note" class="note">Never published. Never trained on. Just evidence.</p>
+    </div>
+  </div>
+  <script>
+    (() => {
+      const tl = gsap.timeline({ paused: true });
+      window.__timelines = window.__timelines || {};
+      window.__timelines["05-reject"] = tl;
+      tl.fromTo("#f05-kicker", { opacity: 0, y: -16 }, { opacity: 1, y: 0, duration: .28, ease: "expo.out" }, .05);
+      tl.fromTo("#f05-rule", { scaleX: 0 }, { scaleX: 1, duration: .4, ease: "power2.out" }, .12);
+      // "Then the fit review caught..." — torn draft fragments spread on the desk
+      tl.fromTo(["#f05-t1", "#f05-t2", "#f05-t3"], { opacity: 0, y: 70 }, { opacity: 1, y: 0, duration: .5, stagger: .14, ease: "power2.out" }, .15);
+      tl.fromTo("#f05-review", { opacity: 0, x: -30 }, { opacity: 1, x: 0, duration: .3, ease: "steps(3)" }, .55);
+      // the inspector opens the review; the clerk watches their draft on trial
+      tl.fromTo("#f05-inspector", { opacity: 0, x: 90 }, { opacity: 1, x: 0, duration: .5, ease: "steps(5)" }, .5);
+      tl.fromTo("#f05-clerk", { opacity: 0, y: 60 }, { opacity: 1, y: 0, duration: .5, ease: "steps(5)" }, 1.0);
+      tl.to(["#f05-inspector", "#f05-clerk"], { opacity: 0, duration: .3, ease: "power1.in" }, 4.6);
+      // "invented imports" (1.36) and "fake references" (2.58)
+      tl.fromTo("#f05-slip-1", { opacity: 0, x: -90, rotation: -9 }, { opacity: 1, x: 0, rotation: -4, duration: .4, ease: "steps(4)" }, 1.36);
+      tl.fromTo("#f05-slip-2", { opacity: 0, x: 90, rotation: 8 }, { opacity: 1, x: 0, rotation: 3, duration: .4, ease: "steps(4)" }, 2.58);
+      // "Rejected." (3.79) — stamp slams
+      tl.fromTo("#f05-stamp", { opacity: 0, scale: 1.5, filter: "blur(10px)" }, { opacity: 1, scale: 1, filter: "blur(0px)", duration: .4, ease: "power4.out" }, 3.79);
+      // "No mercy." (4.70) — fragments swept off the desk
+      tl.to(["#f05-t1", "#f05-t2", "#f05-t3", "#f05-slip-1", "#f05-slip-2"], { x: "-=1250", rotation: "-=9", opacity: 0, duration: .7, stagger: .06, ease: "power2.in" }, 4.7);
+      tl.fromTo("#f05-note", { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: .4, ease: "power2.out" }, 4.95);
+      tl.to({}, { duration: 6.212 }, 0);
+    })();
+  </script>
+</template>

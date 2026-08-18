@@ -2,8 +2,13 @@ import { Hono } from "hono";
 import type { Env } from "../index.js";
 import { forgeOnChain } from "../lib/monad.js";
 import { putSkillMeta, type LandingHitRecord } from "../lib/skill-meta.js";
-import { markSkillAttested } from "../lib/skill-registry.js";
+import {
+  getSkillRecord,
+  markSkillAttested,
+  recordPublicSkill,
+} from "../lib/skill-registry.js";
 import { rateLimit } from "../lib/rate-limit-mw.js";
+import { resolveSession } from "./auth.js";
 
 export const publishRoute = new Hono<{ Bindings: Env }>();
 
@@ -46,6 +51,30 @@ publishRoute.post("/publish", rateLimit("publish"), async (c) => {
         markdown,
         landings,
         frameworks,
+      });
+    }
+
+    // Older wallet/relayer callers may have attested before creating a public
+    // registry record. Preserve that artifact durably when enough metadata is
+    // present; newer private-first flows already have the record.
+    const existing = await getSkillRecord(c.env, skillHash);
+    if (!existing && title?.trim() && markdown?.trim()) {
+      const session = await resolveSession(
+        c.req.header("Authorization"),
+        c.env.SESSIONS,
+      );
+      await recordPublicSkill(c.env, {
+        hash: skillHash,
+        title,
+        blurb,
+        repo,
+        markdown,
+        frameworks,
+        sourceUrls: [],
+        sourceHashes,
+        composedAt: new Date().toISOString(),
+        ownerId: session?.userId,
+        ownerLogin: session?.login,
       });
     }
 

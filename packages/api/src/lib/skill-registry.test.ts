@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   getPublicSkill,
+  getSkillRecord,
   listPublicSkills,
   markSkillAttested,
+  patchPublicSkill,
   recordPublicSkill,
+  unlistPublicSkill,
   type PublicSkillInput,
 } from "./skill-registry.js";
 
@@ -66,7 +69,7 @@ const baseInput: PublicSkillInput = {
   repo: "myapp",
   frameworks: ["next"],
   languages: ["typescript"],
-  sourceUrls: ["https://youtube.com/watch?v=abc"],
+  sourceUrls: ["https://youtube.com/watch?v=abcdefghijk"],
   sourceHashes: ["deadbeef"],
   composedAt: "2026-08-19T12:00:00.000Z",
 };
@@ -79,7 +82,37 @@ describe("skill-registry (durable public skills)", () => {
     expect(rec?.hash).toBe("abc123");
     expect(rec?.title).toBe("Retry Budgets");
     expect(rec?.onChain).toBe(false);
+    expect(rec?.storageVersion).toBe(2);
+    expect(rec?.canonicalSources?.[0]?.id).toMatch(/^src_[0-9a-f]{32}$/);
+    expect(rec?.canonicalSources?.[0]?.url).toBe(
+      "https://www.youtube.com/watch?v=abcdefghijk",
+    );
     expect(rec?.markdown).toContain("## Context");
+  });
+
+  it("patches public metadata without relying on the cache layer", async () => {
+    const env = envWith(fakeKV());
+    await recordPublicSkill(env, baseInput);
+    await patchPublicSkill(env, "abc123", {
+      title: "Retry Budgets Updated",
+      markdown: "# Retry Budgets Updated",
+    });
+    const rec = await getPublicSkill(env, "abc123");
+    expect(rec?.title).toBe("Retry Budgets Updated");
+    expect(rec?.markdown).toBe("# Retry Budgets Updated");
+    expect(rec?.storageVersion).toBe(2);
+  });
+
+  it("preserves explicit parent lineage", async () => {
+    const env = envWith(fakeKV());
+    await recordPublicSkill(env, {
+      ...baseInput,
+      hash: "child",
+      derivedFromSkillHash: "0xPARENT",
+    });
+    expect((await getPublicSkill(env, "child"))?.derivedFromSkillHash).toBe(
+      "parent",
+    );
   });
 
   it("returns null for unknown hashes", async () => {
@@ -94,6 +127,41 @@ describe("skill-registry (durable public skills)", () => {
     const rec = await getPublicSkill(env, "abc123");
     expect(rec?.onChain).toBe(true);
     expect(rec?.attestedTxHash).toBe("0xabc");
+  });
+
+  it("unlists only for the owner and removes source discovery", async () => {
+    const kv = fakeKV();
+    const env = envWith(kv);
+    await recordPublicSkill(env, {
+      ...baseInput,
+      ownerId: 42,
+      ownerLogin: "ada",
+    });
+    await kv.put(
+      "source:youtube.com",
+      JSON.stringify([
+        {
+          skillHash: "abc123",
+          title: baseInput.title,
+          sourceUrl: baseInput.sourceUrls[0],
+          fittedTo: baseInput.repo ?? "general",
+          forgedAt: baseInput.composedAt,
+        },
+      ]),
+    );
+
+    expect(await unlistPublicSkill(env, "abc123", 7)).toBe("forbidden");
+    expect(await getPublicSkill(env, "abc123")).not.toBeNull();
+    expect(await unlistPublicSkill(env, "abc123", 42)).toBe("ok");
+    expect(await getPublicSkill(env, "abc123")).toBeNull();
+    expect((await getSkillRecord(env, "abc123"))?.visibility).toBe("unlisted");
+    expect(await kv.get("source:youtube.com")).toBeNull();
+  });
+
+  it("cannot unlist an unowned legacy skill", async () => {
+    const env = envWith(fakeKV());
+    await recordPublicSkill(env, baseInput);
+    expect(await unlistPublicSkill(env, "abc123", 42)).toBe("forbidden");
   });
 
   it("markSkillAttested is false when no record exists", async () => {

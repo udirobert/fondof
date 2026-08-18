@@ -1,0 +1,132 @@
+<template>
+  <style>
+    @font-face { font-family: Outfit; src: url("capture/assets/fonts/03bda585a99c6450-s.p.32sris142tqlb.woff2") format("woff2"); font-weight: 400 500; }
+    @font-face { font-family: "Geist Mono"; src: url("capture/assets/fonts/1b99372b3eaef0c8-s.p.1gsd1jahc5dg_.woff2") format("woff2"); font-weight: 400 500; }
+    #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; background: #F7F1E5; color: #221812; }
+    .clip { position: absolute; inset: 0; }
+    .ground { background-color: #F7F1E5; background-image: repeating-linear-gradient(0deg, rgba(34,24,18,.03) 0 1px, transparent 1px 52px); }
+    .kicker { position: absolute; z-index: 8; top: 128px; left: 86px; font: 500 22px/1 "Geist Mono", monospace; letter-spacing: .15em; }
+    .kicker b { color: #C5521C; font-size: 28px; }
+    .rule { position: absolute; z-index: 8; top: 194px; left: 86px; width: 908px; height: 1px; background: rgba(34,24,18,.18); transform-origin: left; }
+
+    .source-row { position: absolute; top: 260px; left: 86px; display: flex; gap: 26px; }
+    .mini { width: 286px; height: 170px; border: 1px solid rgba(34,24,18,.16); border-radius: 10px; background: #fff; box-shadow: 0 8px 20px rgba(34,24,18,.10); overflow: hidden; opacity: 0; }
+    .mini img { width: 100%; height: 100%; object-fit: cover; object-position: left top; filter: sepia(.15) saturate(.9); }
+    .mini span { position: absolute; left: 14px; bottom: 12px; padding: 8px 10px; border-radius: 5px; background: rgba(24,22,21,.88); color: #F7F1E5; font: 500 14px/1 "Geist Mono", monospace; letter-spacing: .06em; }
+
+    .arrow { position: absolute; z-index: 3; left: 524px; top: 480px; width: 10px; height: 180px; background: #C5521C; border-radius: 5px; transform-origin: top; opacity: 0; }
+    .arrow::after { content: ""; position: absolute; left: 50%; bottom: -26px; transform: translateX(-50%); width: 0; height: 0; border-left: 26px solid transparent; border-right: 26px solid transparent; border-top: 36px solid #C5521C; }
+
+    .forge {
+      position: absolute; z-index: 4; top: 690px; left: 140px; width: 800px; padding: 54px 56px;
+      background: #181615; color: #F7F1E5; border-radius: 16px;
+      border: 1px solid rgba(247,241,229,.16);
+      box-shadow: 0 14px 34px rgba(34,24,18,.18);
+      opacity: 0;
+    }
+    .forge small { display: block; color: #E8A55A; font: 500 20px/1 "Geist Mono", monospace; letter-spacing: .12em; }
+    .forge h2 { margin: 18px 0 0; font: 400 80px/1.02 Outfit, sans-serif; letter-spacing: -.04em; }
+    .forge .repo { margin-top: 22px; display: inline-block; padding: 12px 18px; border: 1px solid rgba(247,241,229,.35); border-radius: 6px; color: #5DB8A6; font: 500 22px/1 "Geist Mono", monospace; letter-spacing: .05em; }
+    .forge .progress { margin-top: 28px; height: 10px; border-radius: 5px; background: rgba(247,241,229,.16); overflow: hidden; }
+    .forge .progress i { display: block; height: 100%; width: 0%; background: #C5521C; border-radius: 5px; }
+
+    .draft-card {
+      position: absolute; z-index: 5; top: 1220px; left: 140px; width: 800px; padding: 40px 48px;
+      border: 1px solid rgba(34,24,18,.16); border-radius: 14px; background: #FFDDCE;
+      box-shadow: 8px 9px 0 rgba(34,24,18,.12);
+      opacity: 0;
+    }
+    .draft-card small { display: block; color: #8A3511; font: 500 18px/1 "Geist Mono", monospace; letter-spacing: .1em; }
+    .draft-card h3 { margin: 14px 0 0; font: 400 56px/1 Outfit, sans-serif; letter-spacing: -.03em; }
+    .draft-card .code { margin-top: 18px; padding: 14px 16px; border-radius: 6px; background: rgba(34,24,18,.08); font: 400 22px/1.35 "Geist Mono", monospace; color: #221812; }
+    .draft-card .code .bad { color: #B53700; font-weight: 500; }
+
+    .repo-tag {
+      position: absolute; z-index: 6; top: 680px; right: 86px; padding: 14px 22px;
+      border: 2px solid #221812; border-radius: 6px; background: #C5521C; color: #F7F1E5;
+      font: 500 22px/1 "Geist Mono", monospace; letter-spacing: .08em;
+      transform: rotate(4deg); box-shadow: 5px 6px 0 rgba(34,24,18,.16); opacity: 0;
+    }
+    .clone-badge {
+      position: absolute; z-index: 6; top: 1160px; left: 86px; padding: 16px 24px;
+      border: 2px dashed #221812; border-radius: 6px; background: rgba(24,22,21,.06);
+      font: 500 22px/1 "Geist Mono", monospace; letter-spacing: .06em; color: #221812;
+      transform: rotate(-2deg); opacity: 0;
+    }
+    .courier {
+      position: absolute; z-index: 7; right: -24px; top: 1150px; width: 380px; height: 420px;
+      object-fit: contain; object-position: bottom center;
+      filter: grayscale(1) contrast(1.12) drop-shadow(-10px 12px 0 rgba(197,82,28,.8));
+      opacity: 0;
+    }
+    .smith {
+      position: absolute; z-index: 4; left: -30px; top: 1240px; width: 300px; height: 320px;
+      object-fit: contain; object-position: bottom center;
+      filter: grayscale(1) contrast(1.12) drop-shadow(10px 12px 0 rgba(197,82,28,.8));
+      opacity: 0;
+    }
+  </style>
+  <div data-hf-id="hf-65ib" id="root" data-composition-id="04-forge" data-start="0" data-duration="7.652" data-width="1080" data-height="1920">
+    <div data-hf-id="hf-ay09" id="f04-ground" class="clip ground" data-start="0" data-duration="7.652" data-track-index="0"></div>
+    <div data-hf-id="hf-h5ru" id="f04-stage" class="clip" data-start="0" data-duration="7.652" data-track-index="1">
+      <div data-hf-id="hf-8svu" id="f04-kicker" class="kicker"><b data-hf-id="hf-u3lo">✱</b> THE FORGE / 04</div>
+      <div data-hf-id="hf-p6cl" id="f04-rule" class="rule"></div>
+
+      <div data-hf-id="hf-d7fw" id="f04-srcs" class="source-row">
+        <div data-hf-id="hf-2ibz" id="f04-mini-a" class="mini"><img data-hf-id="hf-mxr3" src=".media/sources/paul-graham-schlep/screenshots/scroll-000.png" alt="Paul Graham"><span data-hf-id="hf-h4j0">PG</span></div>
+        <div data-hf-id="hf-rmuc" id="f04-mini-b" class="mini"><img data-hf-id="hf-6u5i" src=".media/sources/thiel-competition/screenshots/scroll-000.png" alt="Peter Thiel"><span data-hf-id="hf-ipql">THIEL</span></div>
+        <div data-hf-id="hf-um3x" id="f04-mini-c" class="mini"><img data-hf-id="hf-ufxo" src=".media/sources/stephango-moats/screenshots/scroll-000.png" alt="Kepano"><span data-hf-id="hf-isr9">KEPANO</span></div>
+      </div>
+
+      <div data-hf-id="hf-ss4c" id="f04-arrow" class="arrow" aria-hidden="true"></div>
+
+      <section data-hf-id="hf-dsy9" id="f04-forge" class="forge">
+        <small data-hf-id="hf-z557">FONDOF FORGE</small>
+        <h2 data-hf-id="hf-vp9q">One skill.<br data-hf-id="hf-x5px">Made for this repo.</h2>
+        <span data-hf-id="hf-dne3" class="repo">target: /your-repo</span>
+        <div data-hf-id="hf-31j5" class="progress"><i data-hf-id="hf-vuvj" id="f04-progress"></i></div>
+      </section>
+
+      <section data-hf-id="hf-ywqi" id="f04-draft" class="draft-card">
+        <small data-hf-id="hf-aoqs">DRAFT OUTPUT</small>
+        <h3 data-hf-id="hf-fw4d">First draft</h3>
+        <div data-hf-id="hf-h0il" class="code"><span data-hf-id="hf-eub3" class="bad">import ghost-module</span> from "nowhere"</div>
+      </section>
+
+      <div data-hf-id="hf-bsk2" id="f04-repo-tag" class="repo-tag">THIS REPO ✓</div>
+      <div data-hf-id="hf-nej7" id="f04-clone-badge" class="clone-badge">LOOKS CONVINCING ⚠</div>
+      <img id="f04-smith" class="smith" src=".media/generated/char-smith-cutout.png" alt="" data-layout-allow-occlusion>
+      <img data-hf-id="hf-lqwy" id="f04-courier" class="courier" src=".media/generated/forger-courier-cutout.png" alt="">
+    </div>
+  </div>
+  <script>
+    (() => {
+      const tl = gsap.timeline({ paused: true });
+      window.__timelines = window.__timelines || {};
+      window.__timelines["04-forge"] = tl;
+
+      tl.fromTo("#f04-kicker", { opacity: 0, y: -16 }, { opacity: 1, y: 0, duration: .28, ease: "expo.out" }, .05);
+      tl.fromTo("#f04-rule", { scaleX: 0 }, { scaleX: 1, duration: .4, ease: "power2.out" }, .12);
+
+      // "fondof forged them into a single skill." (0.0–2.3)
+      tl.fromTo(["#f04-mini-a", "#f04-mini-b", "#f04-mini-c"], { opacity: 0, y: -26 }, { opacity: 1, y: 0, duration: .4, stagger: .12, ease: "power2.out" }, .15);
+      tl.to("#f04-arrow", { opacity: 1, scaleY: 1, duration: .35, ease: "power2.out" }, .7);
+      tl.fromTo("#f04-forge", { opacity: 0, y: 70, scale: .96 }, { opacity: 1, y: 0, scale: 1, duration: .6, ease: "power3.out" }, .9);
+      // the smith runs the forge
+      tl.fromTo("#f04-smith", { opacity: 0, y: 80 }, { opacity: 1, y: 0, duration: .5, ease: "steps(5)" }, 1.0);
+      tl.to(["#f04-mini-a", "#f04-mini-b", "#f04-mini-c"], { y: 140, scale: .55, opacity: 0, duration: .7, stagger: .1, ease: "power2.in" }, 1.1);
+      tl.fromTo("#f04-progress", { width: "0%" }, { width: "100%", duration: 1.1, ease: "power1.inOut" }, 1.1);
+
+      // "Fitted to this repo." (2.8–4.1)
+      tl.fromTo("#f04-repo-tag", { opacity: 0, scale: 1.3, rotation: 10 }, { opacity: 1, scale: 1, rotation: 4, duration: .35, ease: "power4.out" }, 2.85);
+      tl.fromTo("#f04-draft", { opacity: 0, y: 90, scale: .96 }, { opacity: 1, y: 0, scale: 1, duration: .55, ease: "power3.out" }, 3.1);
+
+      // "But the first draft? It looked convincing." (4.4–7.15)
+      tl.fromTo("#f04-courier", { opacity: 0, x: 120 }, { opacity: 1, x: 0, duration: .5, ease: "steps(5)" }, 4.35);
+      tl.to("#f04-forge", { opacity: 0, duration: .3, ease: "power1.in" }, 4.4);
+      tl.fromTo("#f04-clone-badge", { opacity: 0, scale: .7 }, { opacity: 1, scale: 1, duration: .3, ease: "back.out(2.2)" }, 5.6);
+
+      tl.to({}, { duration: 7.652 }, 0);
+    })();
+  </script>
+</template>

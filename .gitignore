@@ -37,6 +37,27 @@ coverage/
 *.sqlite
 *.sqlite3
 
+# Video production (HyperFrames / Editframe / Remotion)
+# Keep composition source (HTML, briefs, storyboards). Ignore renders,
+# captures, media caches, and files we upload to X / YouTube.
+videos/**/renders/
+videos/**/capture/
+videos/**/.media/
+videos/**/snapshots/
+videos/**/.hyperframes/
+videos/**/.thumbnails/
+videos/**/.waveform-cache/
+videos/**/*.mp4
+videos/**/*.mov
+videos/**/*.webm
+videos/**/*.mkv
+videos/**/*.wav
+videos/**/*.mp3
+*.mp4
+*.mov
+*.webm
+*.mkv
+
 
 # Wrangler
 .dev.vars

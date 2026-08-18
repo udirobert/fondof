@@ -22,6 +22,7 @@ import {
   listOpenChallenges,
   publishSkill,
   recordUsage,
+  unlistSkill,
   resolveChallenge,
   type OnChainChallenge,
   type SkillOnChainResponse,
@@ -33,7 +34,12 @@ import {
   SKILL_POOL_ADDRESS,
   shortAddress,
 } from "@/lib/monad-chain";
-import { skillPublicPath, skillShareUrl, skillTweetIntent } from "@/lib/skill-share";
+import {
+  skillPublicPath,
+  skillShareUrl,
+  skillTweetIntent,
+  sourceReforgePath,
+} from "@/lib/skill-share";
 import { FondofWordmark } from "@/components/fondof-wordmark";
 import { IdentityLabel } from "@/components/identity-label";
 import { ReceiptStormButton } from "@/components/receipt-storm-button";
@@ -54,6 +60,21 @@ import { SkillOutcomePanel } from "@/components/skill-outcome";
 import { getSkillMeta } from "@/lib/skill-meta";
 import { whereItLands } from "@/lib/where-it-lands";
 import { track } from "@/lib/track";
+import { fetchSession, getToken } from "@/lib/auth";
+
+const RECEIPT_CONSENT_KEY = "fondof_receipt_consent";
+const RECEIPT_KEY = "fondof_receipt_key";
+
+function getBrowserReceiptKey(): string {
+  const existing = localStorage.getItem(RECEIPT_KEY);
+  if (existing) return existing;
+  const next =
+    typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  localStorage.setItem(RECEIPT_KEY, next);
+  return next;
+}
 
 /* ─── Collapsible on-chain provenance section ─── */
 interface ProvenanceDisclosureProps {
@@ -221,6 +242,10 @@ export default function SkillPublicPage() {
   const [loading, setLoading] = useState(true);
   const [using, setUsing] = useState(false);
   const [attesting, setAttesting] = useState(false);
+  const [unlisting, setUnlisting] = useState(false);
+  const [receiptConsent, setReceiptConsent] = useState(false);
+  const [receiptPrompt, setReceiptPrompt] = useState(false);
+  const [viewerLogin, setViewerLogin] = useState<string | null>(null);
   const [challenging, setChallenging] = useState(false);
   const [resolvingId, setResolvingId] = useState<number | null>(null);
   const [acquiring, setAcquiring] = useState(false);
@@ -270,9 +295,16 @@ export default function SkillPublicPage() {
     setMetaTitle(meta?.title ?? null);
     setMetaBlurb(meta?.blurb ?? null);
     setMetaRepo(meta?.repo ?? null);
+    setReceiptConsent(
+      typeof window !== "undefined" &&
+        localStorage.getItem(RECEIPT_CONSENT_KEY) === "yes",
+    );
     const acquireStory = takeAcquireNote();
     if (acquireStory) setNote(acquireStory);
     void refresh();
+    void fetchSession().then((session) => {
+      setViewerLogin(session?.user?.login ?? null);
+    });
     void getTopSkills(4)
       .then((res) => {
         const list = (res.skills ?? [])
@@ -303,24 +335,41 @@ export default function SkillPublicPage() {
   const skillMarkdown = skill?.markdown?.trim() || "";
   const showLanding = Boolean(metaRepo || skill?.repo || landingHits.length);
 
-  // Extract source domains from the attribution preamble comment
-  const sourceDomains = (() => {
+  // Prefer durable public-record sources; keep preamble parsing for legacy artifacts.
+  const legacySourceUrls = (() => {
     const match = skillMarkdown.match(
       /<!-- Forged with fondof[^]*?Sources:\n([\s\S]*?)-->/,
     );
     if (!match) return [];
-    const urls = match[1]
+    return match[1]
       .split("\n")
-      .map((l) => l.replace(/^\s*-\s*/, "").trim())
-      .filter((u) => u.startsWith("http"));
+      .map((line) => line.replace(/^\s*-\s*/, "").trim())
+      .filter((url) => url.startsWith("http"));
+  })();
+  const sourceUrls =
+    skill?.sourceUrls && skill.sourceUrls.length > 0
+      ? skill.sourceUrls
+      : legacySourceUrls;
+  const canonicalSources = skill?.canonicalSources ?? [];
+  const sourceDomains = (() => {
     const domains = new Set<string>();
-    for (const u of urls) {
-      try {
-        domains.add(new URL(u).hostname.replace(/^www\./, ""));
-      } catch { /* skip */ }
+    for (const source of canonicalSources) domains.add(source.domain);
+    if (domains.size === 0) {
+      for (const sourceUrl of sourceUrls) {
+        try {
+          domains.add(new URL(sourceUrl).hostname.replace(/^www\./, ""));
+        } catch {
+          // Ignore direct-need and malformed provenance values.
+        }
+      }
     }
     return [...domains];
   })();
+  const reforgePath = sourceReforgePath(
+    canonicalSources.length > 0
+      ? canonicalSources.map((source) => source.url)
+      : sourceUrls,
+  );
 
   const onCopy = async () => {
     try {
@@ -345,14 +394,35 @@ export default function SkillPublicPage() {
     }
   };
 
-  const onUse = async () => {
+  const onUse = async (afterConsent = false) => {
+    const signedIn = Boolean(getToken());
+    if (!signedIn && !receiptConsent && !afterConsent) {
+      setReceiptPrompt(true);
+      return;
+    }
+
     setUsing(true);
     setNote(null);
     try {
-      const res = await recordUsage(hash);
+      const res = await recordUsage(
+        hash,
+        signedIn
+          ? undefined
+          : { receiptKey: getBrowserReceiptKey(), consented: true },
+      );
       if (res.error) setNote(res.error);
       else {
-        setNote("Recorded — an agent use just bumped this skill’s proven score.");
+        setReceiptPrompt(false);
+        setNote(
+          res.note ??
+            (res.txHash
+              ? "Claimed use recorded — the optional on-chain receipt also landed."
+              : "Claimed use recorded off-chain — this is not verified project impact."),
+        );
+        track("skill_used_claimed", { skillHash: hash });
+        if (res.evidence) {
+          setSkill((s) => (s ? { ...s, evidence: res.evidence } : s));
+        }
         setPulseBeat((b) => b + 1);
         setSignalPlayKey((k) => k + 1);
         void refresh();
@@ -361,6 +431,25 @@ export default function SkillPublicPage() {
       setNote("Couldn’t record usage right now.");
     } finally {
       setUsing(false);
+    }
+  };
+
+  const onUnlist = async () => {
+    setUnlisting(true);
+    setNote(null);
+    try {
+      const res = await unlistSkill(hash);
+      if (res.error) {
+        setNote(res.error);
+      } else {
+        setNote("Hidden from public discovery. Any on-chain attestation remains part of the public chain history.");
+        track("skill_unlisted", { skillHash: hash });
+        router.push("/");
+      }
+    } catch {
+      setNote("Couldn’t change visibility right now.");
+    } finally {
+      setUnlisting(false);
     }
   };
 
@@ -524,6 +613,27 @@ export default function SkillPublicPage() {
           </p>
         )}
 
+        {skill?.derivedFromSkillHash && (
+          <p className="text-center text-[11px] text-muted">
+            Delta forged from{" "}
+            <Link
+              href={skillPublicPath(skill.derivedFromSkillHash)}
+              className="text-ember hover:underline"
+            >
+              parent skill
+            </Link>
+          </p>
+        )}
+
+        {canonicalSources.length > 0 && (
+          <p className="text-center text-[10px] text-muted">
+            Canonical source identity ·{" "}
+            <span className="font-mono" title={canonicalSources.map((s) => s.url).join("\n")}>
+              {canonicalSources[0]!.id}
+            </span>
+          </p>
+        )}
+
         {showLanding && (
           <WhereItLandsList
             hits={landingHits}
@@ -573,14 +683,65 @@ export default function SkillPublicPage() {
             skillHash={hash}
             titleHint={metaTitle ?? skill.title}
             outcome={skill.outcome}
-            onSaved={(outcome) => {
-              setSkill((s) => (s ? { ...s, outcome } : s));
+            evidence={skill.evidence}
+            onSaved={(outcome, evidence) => {
+              setSkill((s) =>
+                s ? { ...s, outcome, evidence: evidence ?? s.evidence } : s,
+              );
               setNote("Outcome attached — quality means it helped.");
             }}
           />
         )}
 
+        {skill?.visibility === "public" &&
+          skill.ownerLogin &&
+          viewerLogin === skill.ownerLogin && (
+            <section className="rounded-xl border border-ink/8 bg-mist/30 p-3">
+              <p className="text-[11px] leading-snug text-muted">
+                You own this public share. Hiding it removes it from the pool and source pages; any attestation history remains immutable.
+              </p>
+              <button
+                type="button"
+                onClick={() => void onUnlist()}
+                disabled={unlisting}
+                className="mt-2 min-h-9 rounded-full border border-ink/12 px-3 text-xs text-muted hover:border-ember/35 hover:text-ink disabled:opacity-40"
+              >
+                {unlisting ? "Hiding…" : "Hide public skill"}
+              </button>
+            </section>
+          )}
+
         {/* Primary actions — skill usage */}
+        {receiptPrompt && !getToken() && (
+          <section className="rounded-xl border border-ink/10 bg-mist/40 p-3">
+            <p className="text-[11px] leading-snug text-foreground-secondary">
+              To avoid counting the same anonymous browser repeatedly, fondof can
+              store a random receipt key in this browser. It never stores your IP
+              address or repository contents.
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  localStorage.setItem(RECEIPT_CONSENT_KEY, "yes");
+                  setReceiptConsent(true);
+                  void onUse(true);
+                }}
+                className="min-h-9 rounded-full bg-ember px-3 text-[11px] font-medium text-paper hover:bg-ember-hot"
+              >
+                Allow browser receipt
+              </button>
+              <button
+                type="button"
+                onClick={() => setReceiptPrompt(false)}
+                className="min-h-9 px-2 text-[11px] text-muted hover:text-ink"
+              >
+                Not now
+              </button>
+            </div>
+          </section>
+        )}
+
         <div className="flex flex-col gap-2">
           {skillMarkdown ? (
             <button
@@ -609,11 +770,11 @@ export default function SkillPublicPage() {
           <button
             type="button"
             onClick={() => void onUse()}
-            disabled={using || !skill || skill.onChain === false}
+            disabled={using || !skill}
             className="flex min-h-11 items-center justify-center gap-2 rounded-full border border-ink/12 bg-paper px-4 text-sm text-ink hover:border-ember/35 disabled:opacity-40"
           >
             <Zap size={14} />
-            {using ? "Recording…" : "I used this — grow Proof"}
+            {using ? "Recording…" : "I used this — record a claimed use"}
           </button>
           <a
             href={skillTweetIntent({ hash, title: metaTitle ?? undefined })}
@@ -729,12 +890,12 @@ export default function SkillPublicPage() {
             <Flame size={14} />
             Forge your own · extract → select → publish
           </Link>
-          {skillMarkdown && (
+          {reforgePath && (
             <Link
-              href={`/?url=${encodeURIComponent(shareUrl || skillShareUrl(hash))}`}
+              href={reforgePath}
               className="inline-flex items-center gap-2 text-xs text-muted hover:text-ink"
             >
-              Fork this skill · re-fit to your repo
+              Re-forge from {sourceDomains[0] ?? "source"} · fit to your repo
             </Link>
           )}
           <p className="text-center text-[10px] text-muted">

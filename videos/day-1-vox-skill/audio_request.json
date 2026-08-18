@@ -1,0 +1,42 @@
+{
+  "lines": [
+    {
+      "id": "01",
+      "sfx": [
+        "paper-whoosh",
+        "stamp"
+      ]
+    },
+    {
+      "id": "02",
+      "sfx": [
+        "key-tick",
+        "pop"
+      ]
+    },
+    {
+      "id": "03",
+      "sfx": [
+        "card-place",
+        "tick"
+      ]
+    },
+    {
+      "id": "04",
+      "sfx": [
+        "spring-pop",
+        "whoosh-soft"
+      ]
+    },
+    {
+      "id": "05",
+      "sfx": [
+        "stamp",
+        "whoosh-soft"
+      ]
+    }
+  ],
+  "bgm": {
+    "mode": "none"
+  }
+}

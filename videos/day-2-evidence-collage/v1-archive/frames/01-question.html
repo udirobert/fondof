@@ -1,0 +1,324 @@
+<template>
+  <style>
+    @font-face {
+      font-family: "Outfit";
+      src: url("capture/assets/fonts/03bda585a99c6450-s.p.32sris142tqlb.woff2") format("woff2");
+      font-style: normal;
+      font-weight: 400;
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: "Geist Mono";
+      src: url("capture/assets/fonts/1b99372b3eaef0c8-s.p.1gsd1jahc5dg_.woff2") format("woff2");
+      font-style: normal;
+      font-weight: 400 500;
+      font-display: swap;
+    }
+
+    #root {
+      position: relative;
+      width: 1080px;
+      height: 1920px;
+      overflow: hidden;
+      container-type: size;
+    }
+
+    .f01-question-ground {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background-color: #F7F1E5;
+      background-image:
+        repeating-linear-gradient(97deg, rgba(34, 24, 18, 0.035) 0 1px, transparent 1px 17px),
+        repeating-linear-gradient(7deg, rgba(34, 24, 18, 0.022) 0 1px, transparent 1px 29px);
+    }
+
+    .f01-question-ground::before,
+    .f01-question-ground::after {
+      position: absolute;
+      display: block;
+      width: 2px;
+      height: 1420px;
+      background: rgba(34, 24, 18, 0.08);
+      content: "";
+    }
+
+    .f01-question-ground::before {
+      top: 150px;
+      left: 112px;
+    }
+
+    .f01-question-ground::after {
+      top: 320px;
+      right: 134px;
+    }
+
+    .f01-question-index {
+      position: absolute;
+      top: 128px;
+      left: 86px;
+      display: flex;
+      align-items: center;
+      gap: 13px;
+      color: #221812;
+      font-family: "Geist Mono", monospace;
+      font-size: 24px;
+      font-weight: 500;
+      letter-spacing: 0.16em;
+      line-height: 1;
+    }
+
+    .f01-question-index-mark {
+      color: #C5521C;
+      font-size: 31px;
+      letter-spacing: 0;
+    }
+
+    .f01-question-rule {
+      position: absolute;
+      top: 194px;
+      left: 86px;
+      width: 908px;
+      height: 1px;
+      background: rgba(34, 24, 18, 0.18);
+    }
+
+    .f01-question-strip {
+      position: absolute;
+      top: 436px;
+      left: 86px;
+      width: 908px;
+      min-height: 252px;
+      padding: 35px 40px 39px;
+      box-sizing: border-box;
+      border: 1px solid rgba(34, 24, 18, 0.16);
+      border-radius: 12px;
+      background: #FFDDCE;
+      box-shadow: 0 1px 3px rgba(34, 24, 18, 0.08), 0 4px 16px rgba(34, 24, 18, 0.04);
+    }
+
+    .f01-question-prompt {
+      margin-bottom: 28px;
+      color: rgba(34, 24, 18, 0.6);
+      font-family: "Geist Mono", monospace;
+      font-size: 21px;
+      font-weight: 400;
+      letter-spacing: 0.02em;
+      line-height: 1;
+    }
+
+    .f01-question-text-row {
+      display: flex;
+      align-items: baseline;
+      width: 100%;
+      min-height: 66px;
+      color: #221812;
+      font-family: "Geist Mono", monospace;
+      font-size: 35px;
+      font-weight: 400;
+      letter-spacing: -0.045em;
+      line-height: 1.18;
+      white-space: nowrap;
+    }
+
+    .f01-question-text-wrap {
+      display: inline-flex;
+      align-items: baseline;
+      min-width: 785px;
+      white-space: pre;
+    }
+
+    .f01-question-cursor {
+      display: inline-block;
+      width: 13px;
+      height: 42px;
+      margin-left: 8px;
+      background: #C5521C;
+      vertical-align: -7px;
+    }
+
+    .f01-question-skill-label {
+      position: absolute;
+      top: 704px;
+      left: 472px;
+      z-index: 2;
+      padding: 10px 15px 9px;
+      border: 1px solid rgba(34, 24, 18, 0.18);
+      border-radius: 6px;
+      background: #F7F1E5;
+      color: #221812;
+      font-family: "Geist Mono", monospace;
+      font-size: 20px;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      line-height: 1;
+    }
+
+    .f01-question-question {
+      position: absolute;
+      top: 890px;
+      left: 86px;
+      z-index: 3;
+      width: 875px;
+      color: #221812;
+      font-family: "Outfit";
+      font-size: 116px;
+      font-weight: 400;
+      letter-spacing: -0.028em;
+      line-height: 0.98;
+    }
+
+    .f01-question-worth-wrap {
+      position: relative;
+      display: inline-block;
+    }
+
+    .f01-question-marker {
+      position: absolute;
+      right: -8px;
+      bottom: 1px;
+      left: -9px;
+      z-index: 0;
+      height: 21px;
+      border-radius: 3px;
+      background: #C5521C;
+      opacity: 0.78;
+      transform-origin: left center;
+    }
+
+    .f01-question-word {
+      position: relative;
+      z-index: 1;
+    }
+
+    .f01-question-tab {
+      position: absolute;
+      z-index: 1;
+      box-sizing: border-box;
+      width: 212px;
+      padding: 20px 25px;
+      border: 1px solid rgba(34, 24, 18, 0.14);
+      border-radius: 8px;
+      background: #F7F1E5;
+      color: rgba(34, 24, 18, 0.72);
+      font-family: "Geist Mono", monospace;
+      font-size: 18px;
+      font-weight: 400;
+      letter-spacing: 0.05em;
+      line-height: 1.25;
+    }
+
+    .f01-question-tab::before {
+      display: block;
+      width: 32px;
+      height: 1px;
+      margin-bottom: 12px;
+      background: #C5521C;
+      content: "";
+    }
+
+    .f01-question-tab-one {
+      top: 1210px;
+      left: 20px;
+    }
+
+    .f01-question-tab-two {
+      top: 1330px;
+      right: 20px;
+    }
+
+    .f01-question-tab-three {
+      top: 1462px;
+      left: 192px;
+    }
+  </style>
+
+  <div data-hf-id="hf-kxog" id="root" data-composition-id="01-question" data-start="0" data-duration="4.319" data-width="1080" data-height="1920">
+    <div data-hf-id="hf-fskt" class="clip f01-question-ground" data-start="0" data-duration="4.319" data-track-index="0"></div>
+    <div data-hf-id="hf-tr6q" id="f01-question-index" class="f01-question-index">
+      <span data-hf-id="hf-a4bb" class="f01-question-index-mark">✱</span><span data-hf-id="hf-4v7b">QUESTION / 01</span>
+    </div>
+    <div data-hf-id="hf-svfs" id="f01-question-rule" class="f01-question-rule"></div>
+
+    <section data-hf-id="hf-c743" id="f01-question-strip" class="f01-question-strip" aria-label="query strip">
+      <div data-hf-id="hf-wpx8" class="f01-question-prompt">PROMPT /</div>
+      <div data-hf-id="hf-t56b" class="f01-question-text-row">
+        <span data-hf-id="hf-fv1h" id="f01-question-query" class="f01-question-text-wrap"></span><span data-hf-id="hf-p161" id="f01-question-cursor" class="f01-question-cursor"></span>
+      </div>
+    </section>
+
+    <div data-hf-id="hf-9y13" id="f01-question-skill-label" class="f01-question-skill-label">SKILL</div>
+
+    <div data-hf-id="hf-75eo" id="f01-question-question" class="f01-question-question">
+      <span data-hf-id="hf-n32n" class="f01-question-worth-wrap"><span data-hf-id="hf-pn49" id="f01-question-marker" class="f01-question-marker"></span><span data-hf-id="hf-ydre" class="f01-question-word">worth</span></span>
+      <span data-hf-id="hf-mush"> keeping?</span>
+    </div>
+
+    <div data-hf-id="hf-wb4s" id="f01-question-tab-one" class="f01-question-tab f01-question-tab-one">Steph Ango / moats</div>
+    <div data-hf-id="hf-gs03" id="f01-question-tab-two" class="f01-question-tab f01-question-tab-two">Peter Thiel / competition</div>
+    <div data-hf-id="hf-5dgi" id="f01-question-tab-three" class="f01-question-tab f01-question-tab-three">Paul Graham / schlep</div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+  <script>
+    (() => {
+      const tl = gsap.timeline({ paused: true });
+      const DURATION = 3.819;
+      const sequence = [
+        { t: 0.00, text: "" },
+        { t: 0.20, text: "If" },
+        { t: 0.34, text: "If every" },
+        { t: 0.52, text: "If every AI" },
+        { t: 0.71, text: "If every AI can" },
+        { t: 0.92, text: "If every AI can generate" },
+        { t: 1.40, text: "If every AI can generate a skill" },
+        { t: 1.72, text: "If every AI can generated a skill" },
+        { t: 2.14, text: "If every AI can generate a skill" },
+        { t: 2.58, text: "If every AI can make a skill" },
+        { t: 3.08, text: "If every AI can generate a skill" }
+      ];
+
+      const query = document.getElementById("f01-question-query");
+      const cursor = document.getElementById("f01-question-cursor");
+      const driver = { t: 0 };
+      const blink = { p: 0 };
+
+      function textAt(time) {
+        for (let i = sequence.length - 1; i >= 0; i -= 1) {
+          if (time >= sequence[i].t) return sequence[i].text;
+        }
+        return "";
+      }
+
+      tl.fromTo("#f01-question-index", { opacity: 0, y: -14 }, { opacity: 1, y: 0, duration: 0.28, ease: "power2.out" }, 0.03);
+      tl.fromTo("#f01-question-rule", { scaleX: 0, transformOrigin: "left center" }, { scaleX: 1, duration: 0.45, ease: "power2.out" }, 0.10);
+      tl.fromTo("#f01-question-strip", { opacity: 0, y: 28 }, { opacity: 1, y: 0, duration: 0.38, ease: "power2.out" }, 0.12);
+      tl.to(driver, {
+        t: DURATION,
+        duration: DURATION,
+        ease: "none",
+        onUpdate: () => {
+          query.textContent = textAt(driver.t);
+        }
+      }, 0);
+      tl.to(blink, {
+        p: Math.PI * 2 * 6,
+        duration: DURATION,
+        ease: "none",
+        onUpdate: () => {
+          cursor.style.opacity = Math.sin(blink.p) > 0 ? "1" : "0";
+        }
+      }, 0);
+      tl.fromTo("#f01-question-skill-label", { opacity: 0, x: -56 }, { opacity: 1, x: 0, duration: 0.28, ease: "power2.out" }, 1.44);
+      tl.fromTo("#f01-question-question", { opacity: 0, y: 48 }, { opacity: 1, y: 0, duration: 0.34, ease: "power2.out" }, 3.30);
+      tl.fromTo("#f01-question-marker", { scaleX: 0, skewX: -2 }, { scaleX: 1, skewX: -2, duration: 0.38, ease: "power2.out" }, 3.43);
+      tl.fromTo("#f01-question-tab-one", { opacity: 0, x: -120 }, { opacity: 1, x: 0, duration: 0.32, ease: "power2.out" }, 3.38);
+      tl.fromTo("#f01-question-tab-two", { opacity: 0, x: 120 }, { opacity: 1, x: 0, duration: 0.28, ease: "power2.out" }, 3.49);
+      tl.fromTo("#f01-question-tab-three", { opacity: 0, y: 72 }, { opacity: 1, y: 0, duration: 0.24, ease: "power2.out" }, 3.57);
+
+      window.__timelines = window.__timelines || {};
+      window.__timelines["01-question"] = tl;
+    })();
+  </script>
+</template>
