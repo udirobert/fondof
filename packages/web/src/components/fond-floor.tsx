@@ -186,6 +186,21 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
     for (const s of processing) removeSource(s.url);
   }, [ideas.length, removeSource, setIngesting]);
 
+  const removeSourceWithIdeas = useCallback((url: string) => {
+    const state = useAppStore.getState();
+    const remainingIdeas = state.ideas.filter((i) => i.sourceUrl !== url);
+    const remainingSources = state.sources.filter((s) => s.url !== url);
+    removeSource(url);
+    setIdeas(remainingIdeas);
+    const remainingIds = new Set(remainingIdeas.map((i) => i.id));
+    useAppStore.setState((s) => ({
+      selectedIdeaIds: new Set([...s.selectedIdeaIds].filter((id) => remainingIds.has(id))),
+    }));
+    if (remainingSources.length === 0) {
+      setMode("pad");
+    }
+  }, [removeSource, setIdeas, setMode]);
+
   const runIngest = useCallback(
     async (input: { url: string } | { need: string }) => {
       abortRef.current?.abort();
@@ -725,6 +740,7 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
                             ? undefined
                             : () => setTextDrawerUrl(source.url)
                         }
+                        onRemove={() => removeSourceWithIdeas(source.url)}
                       />
                     </div>
                   ))}
