@@ -764,11 +764,17 @@ export default function SkillPublicPage() {
           />
         )}
 
-        {!loading && skill && (
+        {!loading && skill && !agentUrl && (
           <SkillAgentPanel
             skillHash={hash}
             titleHint={metaTitle ?? skill.title}
-            agentUrl={agentUrl}
+            agentUrl={null}
+            isOwner={
+              Boolean(viewerLogin) &&
+              (skill.ownerLogin
+                ? viewerLogin === skill.ownerLogin
+                : true)
+            }
             onSaved={(url) => {
               setAgentUrl(url);
               setSkill((s) => (s ? { ...s, agentUrl: url } : s));
@@ -826,6 +832,24 @@ export default function SkillPublicPage() {
         )}
 
         <div className="flex flex-col gap-2">
+          {/* Talk to this skill — primary when agent exists */}
+          {!loading && skill && agentUrl && (
+            <SkillAgentPanel
+              skillHash={hash}
+              titleHint={metaTitle ?? skill.title}
+              agentUrl={agentUrl}
+              isOwner={
+                Boolean(viewerLogin) &&
+                (skill.ownerLogin
+                  ? viewerLogin === skill.ownerLogin
+                  : true)
+              }
+              onSaved={(url) => {
+                setAgentUrl(url);
+                setSkill((s) => (s ? { ...s, agentUrl: url } : s));
+              }}
+            />
+          )}
           {skillMarkdown ? (
             <button
               type="button"

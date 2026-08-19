@@ -10,29 +10,32 @@ interface SkillAgentPanelProps {
   titleHint?: string | null;
   /** Existing agent URL if already saved */
   agentUrl?: string | null;
+  /** Only show the attach form if the viewer owns this skill */
+  isOwner?: boolean;
   onSaved: (agentUrl: string) => void;
 }
 
 function isValidAgentUrl(url: string): boolean {
   try {
     const u = new URL(url);
-    if (u.protocol !== "https:" && u.protocol !== "http:") return false;
-    // Accept ElevenLabs widget/share URLs and any https link
-    return true;
+    return u.protocol === "https:" || u.protocol === "http:";
   } catch {
     return false;
   }
 }
 
 /**
- * Optional ElevenAgent link panel — paste the share URL after creating the
- * agent via ElevenLabs Hosted MCP. Saves to the skill's edge meta so the
- * link persists on the public skill page.
+ * ElevenAgent link panel.
+ *
+ * - agentUrl present → shows a prominent "Talk to this skill" button (visible to all)
+ * - agentUrl absent + isOwner → shows collapsed "Attach agent link" prompt
+ * - agentUrl absent + !isOwner → renders nothing
  */
 export function SkillAgentPanel({
   skillHash,
   titleHint,
   agentUrl,
+  isOwner,
   onSaved,
 }: SkillAgentPanelProps) {
   const [open, setOpen] = useState(false);
@@ -56,7 +59,7 @@ export function SkillAgentPanel({
       }
       onSaved(trimmed);
       track("agent_url_attached", { skillHash });
-      setStatus("Agent link saved — visitors can talk to this skill.");
+      setStatus("Agent link saved.");
       setOpen(false);
     } catch {
       setStatus("Couldn't save — try again.");
@@ -65,51 +68,83 @@ export function SkillAgentPanel({
     }
   };
 
-  // Already have an agent URL — show the talk link + edit button
-  if (agentUrl && !open) {
+  // Agent exists — prominent button visible to everyone
+  if (agentUrl) {
     return (
-      <section className="space-y-2" aria-label="Talk to this skill">
-        <p className="text-[11px] uppercase tracking-wider text-muted">
+      <div className="space-y-1">
+        <a
+          href={agentUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={() => track("agent_link_clicked", { skillHash })}
+          className="flex min-h-11 items-center justify-center gap-2 rounded-full border border-ember/40 bg-paper px-4 text-sm font-medium text-ember hover:bg-ember/5"
+        >
+          <Mic size={15} />
           Talk to this skill
+          <ExternalLink size={12} className="opacity-60" />
+        </a>
+        <p className="text-center text-[10px] text-muted">
+          ElevenAgent · grounded in this skill via fondof
         </p>
-        <div className="flex items-center justify-between gap-3 rounded-xl border border-ink/10 bg-paper px-3 py-3">
-          <div className="flex min-w-0 items-center gap-2">
-            <Mic size={14} className="shrink-0 text-ember" />
-            <a
-              href={agentUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 truncate text-[13px] font-medium text-ember hover:underline"
+        {isOwner && (
+          <div className="text-center">
+            <button
+              type="button"
+              onClick={() => {
+                setUrl(agentUrl);
+                setOpen(true);
+              }}
+              className="text-[10px] text-muted hover:text-ink"
             >
-              Open ElevenAgent
-              <ExternalLink size={11} className="shrink-0" />
-            </a>
+              Edit agent link
+            </button>
+            {open && (
+              <div className="mt-2 space-y-2 rounded-xl border border-ink/10 bg-paper px-3 py-3 text-left">
+                <div className="flex items-center justify-between">
+                  <p className="text-[11px] uppercase tracking-wider text-muted">Update agent link</p>
+                  <button type="button" onClick={() => { setOpen(false); setStatus(null); }} aria-label="Close">
+                    <X size={14} className="text-muted" />
+                  </button>
+                </div>
+                <input
+                  type="url"
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  placeholder="https://elevenlabs.io/app/talk-to-agent/…"
+                  className="w-full rounded-lg border border-ink/10 bg-parchment/40 px-3 py-2 font-mono text-[11px] text-ink placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-ember/40"
+                  autoFocus
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    disabled={busy || !isValidAgentUrl(url.trim())}
+                    onClick={() => void submit()}
+                    className="inline-flex min-h-9 items-center gap-1 rounded-full bg-ember px-3 text-[12px] font-medium text-paper hover:bg-ember-hot disabled:opacity-40"
+                  >
+                    {busy ? "Saving…" : <><Check size={12} /> Save</>}
+                  </button>
+                  <button type="button" onClick={() => { setOpen(false); setStatus(null); }} className="min-h-9 px-2 text-[12px] text-muted hover:text-ink">
+                    Cancel
+                  </button>
+                </div>
+                {status && <p className="text-[11px] text-ember" role="status">{status}</p>}
+              </div>
+            )}
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              setUrl(agentUrl);
-              setOpen(true);
-            }}
-            className="shrink-0 text-[11px] text-muted hover:text-ink"
-          >
-            Edit
-          </button>
-        </div>
-        <p className="text-[10px] leading-snug text-muted">
-          Created via ElevenLabs Hosted MCP · grounded in this skill
-        </p>
-      </section>
+        )}
+      </div>
     );
   }
 
-  // Collapsed prompt to add an agent link
+  // No agent yet — only show attach form to owner
+  if (!isOwner) return null;
+
   if (!open) {
     return (
       <div className="rounded-xl border border-dashed border-ink/15 bg-mist/30 px-3 py-3">
         <p className="text-[12px] leading-snug text-foreground-secondary">
-          Created the ElevenAgent? Paste its share link here so visitors can
-          talk to this skill directly.
+          Created an ElevenAgent from this skill? Paste the share link to add a{" "}
+          <span className="font-medium text-ink">Talk to this skill</span> button.
         </p>
         <button
           type="button"
@@ -123,28 +158,16 @@ export function SkillAgentPanel({
     );
   }
 
-  // Expanded input form
   return (
     <div className="space-y-2 rounded-xl border border-ink/10 bg-paper px-3 py-3">
       <div className="flex items-center justify-between">
-        <p className="text-[11px] uppercase tracking-wider text-muted">
-          ElevenAgent share link
-        </p>
-        <button
-          type="button"
-          onClick={() => {
-            setOpen(false);
-            setStatus(null);
-          }}
-          className="text-muted hover:text-ink"
-          aria-label="Close"
-        >
-          <X size={14} />
+        <p className="text-[11px] uppercase tracking-wider text-muted">ElevenAgent share link</p>
+        <button type="button" onClick={() => { setOpen(false); setStatus(null); }} aria-label="Close">
+          <X size={14} className="text-muted" />
         </button>
       </div>
       <p className="text-[11px] leading-snug text-foreground-secondary">
-        Copy the Talk to a Skill prompt, run it in Claude with ElevenLabs
-        Hosted MCP connected, approve the agent, then paste the share URL below.
+        Copy the <span className="font-medium text-ink">Talk to a Skill</span> prompt below, run it in an MCP-capable agent with ElevenLabs connected, then paste the share URL here.
       </p>
       <label className="block space-y-1">
         <span className="text-[11px] text-muted">Agent share URL</span>
@@ -152,7 +175,7 @@ export function SkillAgentPanel({
           type="url"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
-          placeholder="https://elevenlabs.io/app/talk-to…"
+          placeholder="https://elevenlabs.io/app/talk-to-agent/…"
           className="w-full rounded-lg border border-ink/10 bg-parchment/40 px-3 py-2 font-mono text-[11px] text-ink placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-ember/40"
           autoFocus
         />
@@ -164,31 +187,17 @@ export function SkillAgentPanel({
           onClick={() => void submit()}
           className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-ember px-3 text-[12px] font-medium text-paper hover:bg-ember-hot disabled:opacity-40"
         >
-          {busy ? (
-            "Saving…"
-          ) : (
-            <>
-              <Check size={13} />
-              Save agent link
-            </>
-          )}
+          {busy ? "Saving…" : <><Check size={13} /> Save agent link</>}
         </button>
         <button
           type="button"
-          onClick={() => {
-            setOpen(false);
-            setStatus(null);
-          }}
+          onClick={() => { setOpen(false); setStatus(null); }}
           className="min-h-9 px-2 text-[12px] text-muted hover:text-ink"
         >
           Cancel
         </button>
       </div>
-      {status && (
-        <p className="text-[11px] leading-snug text-ember" role="status">
-          {status}
-        </p>
-      )}
+      {status && <p className="text-[11px] leading-snug text-ember" role="status">{status}</p>}
     </div>
   );
 }
