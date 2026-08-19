@@ -1,6 +1,7 @@
 "use client";
 
-import { lazy, Suspense, type ReactNode } from "react";
+import { lazy, Suspense, useState, type ReactNode } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 /**
  * Lazy-load WagmiProvider — wagmi + viem are heavy (~100KB+) and only needed
@@ -10,9 +11,23 @@ import { lazy, Suspense, type ReactNode } from "react";
 const WagmiWrapper = lazy(() => import("@/components/wagmi-wrapper"));
 
 export function Providers({ children }: { children: ReactNode }) {
+  // Wagmi v3 uses React Query internally for connection and transaction state.
+  // The app does not otherwise use React Query directly, but Wagmi still needs
+  // one stable client above its hooks.
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: { staleTime: 30_000, refetchOnWindowFocus: false },
+        },
+      }),
+  );
+
   return (
-    <Suspense fallback={children}>
-      <WagmiWrapper>{children}</WagmiWrapper>
-    </Suspense>
+    <QueryClientProvider client={queryClient}>
+      <Suspense fallback={children}>
+        <WagmiWrapper>{children}</WagmiWrapper>
+      </Suspense>
+    </QueryClientProvider>
   );
 }
