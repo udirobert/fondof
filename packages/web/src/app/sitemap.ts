@@ -10,6 +10,16 @@ const BASE = "https://fondof.netlify.app";
  */
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date().toISOString();
+  const genres = [
+    "reliability",
+    "performance",
+    "architecture",
+    "security",
+    "developer-tools",
+    "product-and-ux",
+    "data-and-state",
+    "team-practice",
+  ];
 
   return [
     {
@@ -30,5 +40,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "weekly",
       priority: 0.6,
     },
+    ...genres.map((genre) => ({
+      url: `${BASE}/discover/${genre}`,
+      lastModified: now,
+      changeFrequency: "daily" as const,
+      priority: 0.7,
+    })),
   ];
 }

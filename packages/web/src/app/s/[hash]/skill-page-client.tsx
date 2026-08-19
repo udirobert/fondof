@@ -613,6 +613,20 @@ export default function SkillPublicPage() {
           </p>
         )}
 
+        {skill?.genres && skill.genres.length > 0 && (
+          <p className="flex flex-wrap items-center justify-center gap-2 text-center text-[11px] text-muted">
+            {skill.genres.map((genre) => (
+              <Link
+                key={genre.slug}
+                href={`/discover/${genre.slug}`}
+                className="rounded-full border border-ink/10 bg-paper px-2.5 py-1 text-ember hover:border-ember/35"
+              >
+                {genre.label}
+              </Link>
+            ))}
+          </p>
+        )}
+
         {skill?.derivedFromSkillHash && (
           <p className="text-center text-[11px] text-muted">
             Delta forged from{" "}
@@ -621,6 +635,17 @@ export default function SkillPublicPage() {
               className="text-ember hover:underline"
             >
               parent skill
+            </Link>
+          </p>
+        )}
+
+        {skill && (
+          <p className="text-center text-[11px] text-muted">
+            <Link
+              href={`/remix/${encodeURIComponent(hash)}`}
+              className="text-ember hover:underline"
+            >
+              Explore parent and remix lineage
             </Link>
           </p>
         )}

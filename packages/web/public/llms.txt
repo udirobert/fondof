@@ -18,6 +18,8 @@ fondof turns what developers learn — or need — into personalised coding skil
 - Source pages: https://fondof.netlify.app/from/[domain]
 - User portfolios: https://fondof.netlify.app/u/[github-login]
 - Pool (quality desk): https://fondof.netlify.app/pool
+- Genre discovery: https://fondof.netlify.app/discover/[genre]
+- Remix lineage: https://fondof.netlify.app/remix/[hash]
 - API: https://fondof-api.trustfall.workers.dev
 
 ## API endpoints
@@ -33,9 +35,14 @@ fondof turns what developers learn — or need — into personalised coding skil
 - POST /api/publish — optionally attest a public skill on SkillPool
 - POST /api/skills/{hash}/share — explicitly share a private draft publicly
 - DELETE /api/skills/{hash}/visibility — owner-only hide/unlist
-- GET /api/skills — public skill discovery; `sort=impact|outcomes|adapted|recent` gives focused evidence views (not causal impact). Optional `domain`, `framework`, and `language` filters expose topic/stack discovery.
+- GET /api/skills — public skill discovery; `sort=impact|outcomes|adapted|recent` gives focused evidence views (not causal impact). Optional `genre`, `domain`, `framework`, and `language` filters expose deterministic topic/stack discovery.
+- GET /discover/[genre] — genre landing pages such as reliability, performance, architecture, and developer-tools.
 - GET /api/skills/creator/:login — evidence summary for public skills owned by a GitHub login
-- GET /api/sources/:domain — list skills forged from a source plus an evidence-backed impact snapshot
+- GET /api/skills/:hash/lineage — parent and public remix metadata for a skill
+- GET /api/sources/:domain — list skills forged from a source plus an evidence-backed impact snapshot and optional self-claim
+- POST /api/sources/:domain/claim — authenticated self-claim, explicitly not proof of authorship
+- POST /api/sources/:domain/claim/challenge — short-lived nonce for proving domain control
+- POST /api/sources/:domain/claim/verify — verify nonce on a public page under the claimed domain
 - GET /api/sources/:domain/impact — compact source evidence summary for cards/embeds
 - GET /api/sources/:domain/badge.svg — embeddable badge
 - POST /api/skills/{hash}/use — record a claimed use; signed-in users deduplicate by account, anonymous users can opt into a random browser receipt key; this is not verified impact

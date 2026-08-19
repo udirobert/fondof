@@ -6,6 +6,7 @@ import {
   type EvidenceSummary,
 } from "../lib/skill-evidence.js";
 import { getSkillRecord } from "../lib/skill-registry.js";
+import { resolveSession } from "./auth.js";
 
 export const sourcesRoute = new Hono<{ Bindings: Env }>();
 
@@ -31,6 +32,39 @@ export interface SourceSkillResponse extends SourceEntry {
   evidence?: EvidenceSummary;
 }
 
+export type SourceClaimStatus = "self-claimed" | "domain-verified";
+
+export interface SourceClaim {
+  domain: string;
+  login: string;
+  userId: number;
+  status: SourceClaimStatus;
+  claimedAt: string;
+  proofUrl?: string;
+  verifiedAt?: string;
+}
+
+interface SourceClaimChallenge {
+  domain: string;
+  userId: number;
+  token: string;
+  createdAt: string;
+}
+
+const CLAIM_CHALLENGE_TTL = 15 * 60;
+
+function claimKey(domain: string): string {
+  return `source-claim:${domain}`;
+}
+
+function challengeKey(domain: string, userId: number): string {
+  return `source-claim-challenge:${domain}:${userId}`;
+}
+
+function normalizeDomain(raw: string): string {
+  return raw.toLowerCase().replace(/^www\./, "");
+}
+
 function emptyImpact(): SourceImpactSummary {
   return {
     skillCount: 0,
@@ -54,10 +88,15 @@ function emptyImpact(): SourceImpactSummary {
 async function sourceSnapshot(
   env: Env,
   domain: string,
-): Promise<{ skills: SourceSkillResponse[]; impact: SourceImpactSummary }> {
+): Promise<{
+  skills: SourceSkillResponse[];
+  impact: SourceImpactSummary;
+  claim: SourceClaim | null;
+}> {
   const entries =
     (await env.SESSIONS.get(`source:${domain}`, "json")) as SourceEntry[] | null;
-  if (!entries?.length) return { skills: [], impact: emptyImpact() };
+  const claim = (await env.SESSIONS.get(claimKey(domain), "json")) as SourceClaim | null;
+  if (!entries?.length) return { skills: [], impact: emptyImpact(), claim };
 
   const unique = new Map<string, SourceSkillResponse>();
   await Promise.all(
@@ -96,7 +135,7 @@ async function sourceSnapshot(
     skills.map((skill) => skill.fittedTo).filter(Boolean),
   ).size;
 
-  return { skills, impact };
+  return { skills, impact, claim };
 }
 
 /**
@@ -104,7 +143,7 @@ async function sourceSnapshot(
  * Used by the /from/[source] page and the badge endpoint.
  */
 sourcesRoute.get("/sources/:domain", async (c) => {
-  const domain = c.req.param("domain")?.toLowerCase().replace(/^www\./, "");
+  const domain = normalizeDomain(c.req.param("domain") ?? "");
   if (!domain) return c.json({ error: "domain required" }, 400);
 
   const snapshot = await sourceSnapshot(c.env, domain);
@@ -113,15 +152,151 @@ sourcesRoute.get("/sources/:domain", async (c) => {
     skills: snapshot.skills,
     count: snapshot.skills.length,
     impact: snapshot.impact,
+    claim: snapshot.claim,
   });
 });
 
 /** Evidence summary only, useful for creator/source cards and aggregators. */
 sourcesRoute.get("/sources/:domain/impact", async (c) => {
-  const domain = c.req.param("domain")?.toLowerCase().replace(/^www\./, "");
+  const domain = normalizeDomain(c.req.param("domain") ?? "");
   if (!domain) return c.json({ error: "domain required" }, 400);
   const snapshot = await sourceSnapshot(c.env, domain);
-  return c.json({ domain, impact: snapshot.impact });
+  return c.json({ domain, impact: snapshot.impact, claim: snapshot.claim });
+});
+
+/**
+ * Self-claim a source domain. This is an attribution hint, not independent
+ * proof of authorship or authority over the domain.
+ */
+sourcesRoute.post("/sources/:domain/claim", async (c) => {
+  const domain = normalizeDomain(c.req.param("domain") ?? "");
+  if (!domain) return c.json({ error: "domain required" }, 400);
+  const session = await resolveSession(
+    c.req.header("Authorization"),
+    c.env.SESSIONS,
+  );
+  if (!session) return c.json({ error: "Sign in with GitHub to claim a source" }, 401);
+
+  const existing = (await c.env.SESSIONS.get(claimKey(domain), "json")) as SourceClaim | null;
+  if (existing && existing.userId !== session.userId) {
+    return c.json({ error: "This source already has a self-claim" }, 409);
+  }
+
+  const claim: SourceClaim = {
+    domain,
+    login: session.login,
+    userId: session.userId,
+    status: "self-claimed",
+    claimedAt: existing?.claimedAt ?? new Date().toISOString(),
+  };
+  await c.env.SESSIONS.put(claimKey(domain), JSON.stringify(claim));
+  return c.json({ success: true, claim });
+});
+
+/** Create a short-lived nonce for proving control of a source domain. */
+sourcesRoute.post("/sources/:domain/claim/challenge", async (c) => {
+  const domain = normalizeDomain(c.req.param("domain") ?? "");
+  if (!domain) return c.json({ error: "domain required" }, 400);
+  const session = await resolveSession(
+    c.req.header("Authorization"),
+    c.env.SESSIONS,
+  );
+  if (!session) return c.json({ error: "Sign in with GitHub to verify a source" }, 401);
+
+  const claim = (await c.env.SESSIONS.get(claimKey(domain), "json")) as SourceClaim | null;
+  if (!claim || claim.userId !== session.userId) {
+    return c.json({ error: "Create your self-claim before verifying domain control" }, 403);
+  }
+
+  const token = `fondof-claim-${crypto.randomUUID()}`;
+  const challenge: SourceClaimChallenge = {
+    domain,
+    userId: session.userId,
+    token,
+    createdAt: new Date().toISOString(),
+  };
+  await c.env.SESSIONS.put(
+    challengeKey(domain, session.userId),
+    JSON.stringify(challenge),
+    { expirationTtl: CLAIM_CHALLENGE_TTL },
+  );
+  return c.json({
+    success: true,
+    token,
+    instructions: `Publish this exact token on a public page under https://${domain}, then submit that page URL to verify control.`,
+    expiresInSeconds: CLAIM_CHALLENGE_TTL,
+  });
+});
+
+/** Verify a nonce published on a page under the claimed domain. */
+sourcesRoute.post("/sources/:domain/claim/verify", async (c) => {
+  const domain = normalizeDomain(c.req.param("domain") ?? "");
+  if (!domain) return c.json({ error: "domain required" }, 400);
+  const session = await resolveSession(
+    c.req.header("Authorization"),
+    c.env.SESSIONS,
+  );
+  if (!session) return c.json({ error: "Sign in with GitHub to verify a source" }, 401);
+  const body = (await c.req
+    .json<{ proofUrl?: string }>()
+    .catch(() => ({}))) as { proofUrl?: string };
+  const proofUrl = body.proofUrl?.trim();
+  if (!proofUrl) return c.json({ error: "proofUrl is required" }, 400);
+
+  const claim = (await c.env.SESSIONS.get(claimKey(domain), "json")) as SourceClaim | null;
+  if (!claim || claim.userId !== session.userId) {
+    return c.json({ error: "Create your self-claim before verifying domain control" }, 403);
+  }
+  const challenge = (await c.env.SESSIONS.get(
+    challengeKey(domain, session.userId),
+    "json",
+  )) as SourceClaimChallenge | null;
+  if (!challenge) return c.json({ error: "Verification challenge expired" }, 410);
+
+  let parsed: URL;
+  try {
+    parsed = new URL(proofUrl);
+  } catch {
+    return c.json({ error: "proofUrl must be a valid URL" }, 422);
+  }
+  if (
+    !["https:", "http:"].includes(parsed.protocol) ||
+    normalizeDomain(parsed.hostname) !== domain
+  ) {
+    return c.json({ error: "Proof URL must be hosted on the claimed domain" }, 422);
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(parsed.toString(), {
+      headers: { "User-Agent": "fondof-source-verifier" },
+      redirect: "follow",
+    });
+  } catch {
+    return c.json({ error: "Could not reach the proof URL" }, 502);
+  }
+  if (!response.ok) {
+    return c.json({ error: `Proof URL returned ${response.status}` }, 422);
+  }
+  const text = (await response.text()).slice(0, 500_000);
+  if (!text.includes(challenge.token)) {
+    return c.json({ error: "The verification token was not found on that page" }, 422);
+  }
+
+  const verifiedAt = new Date().toISOString();
+  const verifiedClaim: SourceClaim = {
+    ...claim,
+    status: "domain-verified",
+    proofUrl: parsed.toString().slice(0, 500),
+    verifiedAt,
+  };
+  await c.env.SESSIONS.put(claimKey(domain), JSON.stringify(verifiedClaim));
+  await c.env.SESSIONS.delete(challengeKey(domain, session.userId));
+  return c.json({
+    success: true,
+    claim: verifiedClaim,
+    note: "Domain control verified; this still does not independently verify authorship or influence.",
+  });
 });
 
 /**
@@ -129,7 +304,7 @@ sourcesRoute.get("/sources/:domain/impact", async (c) => {
  * Designed for embedding in show notes, blog footers, READMEs.
  */
 sourcesRoute.get("/sources/:domain/badge.svg", async (c) => {
-  const domain = c.req.param("domain")?.toLowerCase().replace(/^www\./, "");
+  const domain = normalizeDomain(c.req.param("domain") ?? "");
   if (!domain) {
     return c.text("missing domain", 400);
   }

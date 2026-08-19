@@ -3,6 +3,7 @@
  */
 
 import { API_BASE } from "@/lib/api-base";
+import { getToken } from "@/lib/auth";
 import type { EvidenceSummary } from "@/lib/api";
 
 export interface SourceSkillEntry {
@@ -23,11 +24,22 @@ export interface SourceImpactSummary extends EvidenceSummary {
   fittedRepoCount: number;
 }
 
+export interface SourceClaim {
+  domain: string;
+  login: string;
+  userId: number;
+  status: "self-claimed" | "domain-verified";
+  claimedAt: string;
+  proofUrl?: string;
+  verifiedAt?: string;
+}
+
 export interface SourceResponse {
   domain: string;
   skills: SourceSkillEntry[];
   count: number;
   impact: SourceImpactSummary;
+  claim?: SourceClaim | null;
 }
 
 /** Fetch all skills forged from a given source domain. */
@@ -38,6 +50,7 @@ export async function fetchSourceSkills(
     domain,
     skills: [],
     count: 0,
+    claim: null,
     impact: {
       skillCount: 0,
       skillsWithEvidence: 0,
@@ -61,4 +74,49 @@ export async function fetchSourceSkills(
   } catch {
     return empty;
   }
+}
+
+function authHeaders(): Record<string, string> {
+  const token = getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+export async function claimSource(domain: string): Promise<{
+  success?: boolean;
+  claim?: SourceClaim;
+  error?: string;
+}> {
+  const response = await fetch(
+    `${API_BASE}/api/sources/${encodeURIComponent(domain)}/claim`,
+    { method: "POST", headers: authHeaders() },
+  );
+  return response.json();
+}
+
+export async function createSourceClaimChallenge(domain: string): Promise<{
+  success?: boolean;
+  token?: string;
+  instructions?: string;
+  error?: string;
+}> {
+  const response = await fetch(
+    `${API_BASE}/api/sources/${encodeURIComponent(domain)}/claim/challenge`,
+    { method: "POST", headers: authHeaders() },
+  );
+  return response.json();
+}
+
+export async function verifySourceClaim(
+  domain: string,
+  proofUrl: string,
+): Promise<{ success?: boolean; claim?: SourceClaim; note?: string; error?: string }> {
+  const response = await fetch(
+    `${API_BASE}/api/sources/${encodeURIComponent(domain)}/claim/verify`,
+    {
+      method: "POST",
+      headers: { ...authHeaders(), "Content-Type": "application/json" },
+      body: JSON.stringify({ proofUrl }),
+    },
+  );
+  return response.json();
 }

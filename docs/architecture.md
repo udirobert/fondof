@@ -28,13 +28,16 @@ Public forges store source URL → skill hash mappings in KV (currently keyed by
 - `/api/sources/:domain` — source skills plus transparent evidence aggregation
 - `/api/sources/:domain/impact` — compact source impact summary for cards/embeds
 - `/api/sources/:domain/badge.svg` — embeddable badge for show notes / READMEs
-- `/api/skills?sort=impact|outcomes|adapted|recent` — focused discovery views with optional topic/stack filters
+- `/api/skills?sort=impact|outcomes|adapted|recent` — focused discovery views with optional genre/topic/stack filters
+- `/discover/[genre]` — formal genre landing pages for topic-led discovery
+- `/remix/[hash]` and `/api/skills/:hash/lineage` — ancestor/current/public-remix lineage views with source-aware re-forge action
 - `/u/[login]` and `/api/skills/creator/:login` — owner/creator evidence snapshots when ownership is known
-- Skill pages show source credit and a re-forge path
+- Source pages support an authenticated `self-claimed` identity hint plus optional nonce-based domain-control verification; neither is presented as verified authorship or influence
+- Skill pages show source credit, genre labels, lineage links, dynamic OG cards, and a re-forge path
 
-**Identity boundary:** domains remain grouping/navigation keys, not proof of thought-leader identity. Canonical source IDs and skill lineage are stored with public artifacts; rankings use explicit offchain evidence summaries and are not causal impact claims. Only compact public commitments need an onchain anchor.
+**Identity boundary:** domains remain grouping/navigation keys, not proof of thought-leader identity. Canonical source IDs and skill lineage are stored with public artifacts; genres are deterministic labels derived from persisted metadata (not LLM judgements); rankings use explicit offchain evidence summaries and are not causal impact claims. Only compact public commitments need an onchain anchor.
 
-No creator onboarding needed — pages populate from forge data. Optional domain claim for analytics (future).
+No creator onboarding needed — pages populate from forge data. Optional source claims are user-initiated and remain clearly labelled as self-claimed or domain-control verified, not verified thought-leader identity.
 
 ## Key contracts
 

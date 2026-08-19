@@ -26,6 +26,11 @@ import {
   unlistPublicSkill,
 } from "../lib/skill-registry.js";
 import { rateLimit } from "../lib/rate-limit-mw.js";
+import {
+  classifySkillGenres,
+  genreBySlug,
+  SKILL_GENRES,
+} from "../lib/skill-taxonomy.js";
 import { resolveSession } from "./auth.js";
 
 export const skillsRoute = new Hono<{ Bindings: Env }>();
@@ -164,7 +169,7 @@ skillsRoute.post("/skills/:hash/meta", rateLimit("publish"), async (c) => {
       await caches.default
         .delete(
           new Request(
-            `https://fondof-cache.internal/skills:pool:v3:${sort}::::${lim}`,
+            `https://fondof-cache.internal/skills:pool:v4:${sort}:::::${lim}`,
           ),
         )
         .catch(() => undefined);
@@ -259,7 +264,7 @@ skillsRoute.post("/skills/:hash/share", rateLimit("publish"), async (c) => {
       await caches.default
         .delete(
           new Request(
-            `https://fondof-cache.internal/skills:pool:v3:${sort}::::${lim}`,
+            `https://fondof-cache.internal/skills:pool:v4:${sort}:::::${lim}`,
           ),
         )
         .catch(() => undefined);
@@ -306,7 +311,7 @@ skillsRoute.delete(
         await caches.default
           .delete(
             new Request(
-              `https://fondof-cache.internal/skills:pool:v3:${sort}::::${lim}`,
+              `https://fondof-cache.internal/skills:pool:v4:${sort}:::::${lim}`,
             ),
           )
           .catch(() => undefined);
@@ -358,6 +363,72 @@ skillsRoute.get("/skills/creator/:login", async (c) => {
   }
 
   return c.json({ login, impact });
+});
+
+/**
+ * Return the public parent/child lineage for a skill. Content stays on the
+ * individual skill pages; this endpoint exposes only graph metadata.
+ */
+skillsRoute.get("/skills/:hash/lineage", async (c) => {
+  const hash = c.req.param("hash").toLowerCase().replace(/^0x/, "");
+  const record = await getPublicSkill(c.env, hash);
+  if (!record) return c.json({ error: "Skill not found" }, 404);
+
+  const records = await listPublicSkills(c.env, 100);
+  const node = (item: typeof record) => ({
+    hash: item.hash,
+    title: item.title,
+    repo: item.repo,
+    composedAt: item.composedAt,
+    derivedFromSkillHash: item.derivedFromSkillHash,
+    sourceUrls: item.sourceUrls,
+    canonicalSources: item.canonicalSources,
+    genres: classifySkillGenres({
+      domains: item.domains,
+      patternTypes: item.patternTypes,
+      frameworks: item.frameworks,
+      languages: item.languages,
+      title: item.title,
+      blurb: item.blurb,
+    }),
+  });
+  const children = records
+    .filter(
+      (record) =>
+        record.derivedFromSkillHash?.toLowerCase().replace(/^0x/, "") === hash,
+    )
+    .map(node)
+    .sort((a, b) => b.composedAt.localeCompare(a.composedAt));
+
+  const currentNode = node(record);
+  const immediateParent = record.derivedFromSkillHash
+    ? records.find(
+        (item) => item.hash === record.derivedFromSkillHash?.toLowerCase().replace(/^0x/, ""),
+      )
+    : undefined;
+  const ancestors: ReturnType<typeof node>[] = [];
+  const seen = new Set<string>([hash]);
+  let cursor = record.derivedFromSkillHash
+    ?.toLowerCase()
+    .replace(/^0x/, "");
+  while (cursor && !seen.has(cursor)) {
+    seen.add(cursor);
+    const ancestor = records.find((record) => record.hash === cursor);
+    if (!ancestor) break;
+    ancestors.unshift(node(ancestor));
+    cursor = ancestor.derivedFromSkillHash
+      ?.toLowerCase()
+      .replace(/^0x/, "");
+  }
+
+  return c.json({
+    skillHash: hash,
+    parent: immediateParent ? node(immediateParent) : null,
+    ancestors,
+    skill: currentNode,
+    children,
+    note: "Lineage records show derivation metadata; they do not prove that a parent caused a child outcome.",
+  });
 });
 
 // Get skill data + signal from chain (short edge cache — protects RPC)
@@ -431,6 +502,14 @@ skillsRoute.get("/skills/:hash", async (c) => {
       evidence,
       evidenceSummary: summarizeEvidence(evidence),
       outcome: evidence?.outcome ?? withMeta.outcome,
+      genres: classifySkillGenres({
+        domains: pub.domains,
+        patternTypes: pub.patternTypes,
+        frameworks: pub.frameworks,
+        languages: pub.languages,
+        title: pub.title,
+        blurb: pub.blurb,
+      }),
     };
     await cachePutJson(cacheKey, out, SKILL_TTL);
     c.header("X-Cache", "MISS");
@@ -453,6 +532,7 @@ skillsRoute.get("/skills/:hash", async (c) => {
       evidence,
       evidenceSummary: summarizeEvidence(evidence),
       outcome: evidence?.outcome ?? withMeta.outcome,
+      genres: [],
     };
     await cachePutJson(cacheKey, out, SKILL_TTL);
     c.header("X-Cache", "MISS");
@@ -475,8 +555,12 @@ skillsRoute.get("/skills", async (c) => {
   const domain = c.req.query("domain")?.trim().toLowerCase() || "";
   const framework = c.req.query("framework")?.trim().toLowerCase() || "";
   const language = c.req.query("language")?.trim().toLowerCase() || "";
-  const hasFilter = Boolean(domain || framework || language);
-  const cacheKey = `skills:pool:v3:${sort}:${domain}:${framework}:${language}:${limit}`;
+  const genreSlug = c.req.query("genre")?.trim().toLowerCase() || "";
+  if (genreSlug && !genreBySlug(genreSlug)) {
+    return c.json({ error: `Unknown genre: ${genreSlug}` }, 400);
+  }
+  const hasFilter = Boolean(domain || framework || language || genreSlug);
+  const cacheKey = `skills:pool:v4:${sort}:${domain}:${framework}:${language}:${genreSlug}:${limit}`;
 
   const hit = await cacheGetJson<{ skills: unknown[] }>(cacheKey);
   if (hit) {
@@ -500,7 +584,16 @@ skillsRoute.get("/skills", async (c) => {
     return (
       matches(record.domains, domain) &&
       matches(record.frameworks, framework) &&
-      matches(record.languages, language)
+      matches(record.languages, language) &&
+      (!genreSlug ||
+        classifySkillGenres({
+          domains: record.domains,
+          patternTypes: record.patternTypes,
+          frameworks: record.frameworks,
+          languages: record.languages,
+          title: record.title,
+          blurb: record.blurb,
+        }).some((genre) => genre.slug === genreSlug))
     );
   });
   if (pub.length > 0 || sort !== "recent" || hasFilter) {
@@ -545,6 +638,14 @@ skillsRoute.get("/skills", async (c) => {
           outcome: evidence?.outcome ?? withMeta.outcome,
           composedAt: rec.composedAt,
           lineageChildrenCount: childCounts.get(rec.hash) ?? 0,
+          genres: classifySkillGenres({
+            domains: rec.domains,
+            patternTypes: rec.patternTypes,
+            frameworks: rec.frameworks,
+            languages: rec.languages,
+            title: rec.title,
+            blurb: rec.blurb,
+          }),
         };
       }),
     );
@@ -580,14 +681,31 @@ skillsRoute.get("/skills", async (c) => {
       [...new Set(pub.flatMap((record) => record[field] ?? []))]
         .sort((a, b) => a.localeCompare(b))
         .slice(0, 40);
+    const genreCounts = new Map<string, number>();
+    for (const record of pub) {
+      for (const genre of classifySkillGenres({
+        domains: record.domains,
+        patternTypes: record.patternTypes,
+        frameworks: record.frameworks,
+        languages: record.languages,
+        title: record.title,
+        blurb: record.blurb,
+      })) {
+        genreCounts.set(genre.slug, (genreCounts.get(genre.slug) ?? 0) + 1);
+      }
+    }
     const payload = {
       skills: ordered.slice(0, limit),
       sort,
-      filters: { domain, framework, language },
+      filters: { domain, framework, language, genre: genreSlug },
       facets: {
         domains: facetValues("domains"),
         frameworks: facetValues("frameworks"),
         languages: facetValues("languages"),
+        genres: SKILL_GENRES.map((genre) => ({
+          ...genre,
+          count: genreCounts.get(genre.slug) ?? 0,
+        })).filter((genre) => genre.count > 0),
       },
     };
     await cachePutJson(cacheKey, payload, TOP_TTL);
@@ -622,10 +740,11 @@ skillsRoute.get("/skills", async (c) => {
         onChain: true,
         evidenceSummary: summarizeEvidence(null),
         lineageChildrenCount: 0,
+        genres: [],
       })),
       sort,
-      filters: { domain, framework, language },
-      facets: { domains: [], frameworks: [], languages: [] },
+      filters: { domain, framework, language, genre: genreSlug },
+      facets: { domains: [], frameworks: [], languages: [], genres: [] },
     };
     await cachePutJson(cacheKey, payload, TOP_TTL);
     c.header("X-Cache", "MISS");

@@ -6,9 +6,13 @@ import { useParams } from "next/navigation";
 import { Check, Copy, ExternalLink, Flame, Share2 } from "lucide-react";
 import { FondofWordmark } from "@/components/fondof-wordmark";
 import {
+  claimSource,
+  createSourceClaimChallenge,
   fetchSourceSkills,
+  type SourceClaim,
   type SourceImpactSummary,
   type SourceSkillEntry,
+  verifySourceClaim,
 } from "@/lib/sources";
 import {
   skillPublicPath,
@@ -17,6 +21,7 @@ import {
   sourceReforgePath,
 } from "@/lib/skill-share";
 import { track } from "@/lib/track";
+import { fetchSession, loginWithGitHub } from "@/lib/auth";
 
 /**
  * /from/[source] — shows all skills forged from a content source.
@@ -28,6 +33,14 @@ export default function SourcePage() {
   const domain = decodeURIComponent(params.source ?? "");
   const [skills, setSkills] = useState<SourceSkillEntry[]>([]);
   const [impact, setImpact] = useState<SourceImpactSummary | null>(null);
+  const [claim, setClaim] = useState<SourceClaim | null>(null);
+  const [viewerLogin, setViewerLogin] = useState<string | null>(null);
+  const [claiming, setClaiming] = useState(false);
+  const [verifyingClaim, setVerifyingClaim] = useState(false);
+  const [claimToken, setClaimToken] = useState<string | null>(null);
+  const [claimInstructions, setClaimInstructions] = useState<string | null>(null);
+  const [proofUrl, setProofUrl] = useState("");
+  const [claimNote, setClaimNote] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [copiedImpact, setCopiedImpact] = useState(false);
 
@@ -36,9 +49,76 @@ export default function SourcePage() {
     void fetchSourceSkills(domain).then((res) => {
       setSkills(res.skills);
       setImpact(res.impact);
+      setClaim(res.claim ?? null);
       setLoading(false);
     });
   }, [domain]);
+
+  useEffect(() => {
+    void fetchSession().then((session) => {
+      setViewerLogin(session?.user?.login ?? null);
+    });
+  }, []);
+
+  const onStartVerification = async () => {
+    if (verifyingClaim) return;
+    setVerifyingClaim(true);
+    setClaimNote(null);
+    try {
+      const response = await createSourceClaimChallenge(domain);
+      if (response.error) setClaimNote(response.error);
+      else {
+        setClaimToken(response.token ?? null);
+        setClaimInstructions(response.instructions ?? null);
+      }
+    } catch {
+      setClaimNote("Couldn’t create a verification challenge right now.");
+    } finally {
+      setVerifyingClaim(false);
+    }
+  };
+
+  const onVerifyClaim = async () => {
+    if (verifyingClaim || !proofUrl.trim()) return;
+    setVerifyingClaim(true);
+    setClaimNote(null);
+    try {
+      const response = await verifySourceClaim(domain, proofUrl.trim());
+      if (response.error) setClaimNote(response.error);
+      else if (response.claim) {
+        setClaim(response.claim);
+        setClaimToken(null);
+        setClaimInstructions(null);
+        setClaimNote(response.note ?? "Domain control verified.");
+      }
+    } catch {
+      setClaimNote("Couldn’t verify the source page right now.");
+    } finally {
+      setVerifyingClaim(false);
+    }
+  };
+
+  const onClaim = async () => {
+    if (claiming) return;
+    if (!viewerLogin) {
+      loginWithGitHub(window.location.pathname);
+      return;
+    }
+    setClaiming(true);
+    setClaimNote(null);
+    try {
+      const response = await claimSource(domain);
+      if (response.error) setClaimNote(response.error);
+      else if (response.claim) {
+        setClaim(response.claim);
+        setClaimNote("Self-claim saved. It is not independent proof of authorship.");
+      }
+    } catch {
+      setClaimNote("Couldn’t save the source claim right now.");
+    } finally {
+      setClaiming(false);
+    }
+  };
 
   const badgeUrl = `https://fondof-api.trustfall.workers.dev/api/sources/${encodeURIComponent(domain)}/badge.svg`;
   const impactUrl = sourceImpactShareUrl(domain);
@@ -84,6 +164,80 @@ export default function SourcePage() {
             {domain}
           </a>
         </div>
+
+        {claim ? (
+          <section className="rounded-xl border border-ink/8 bg-mist/30 px-3 py-3 text-center">
+            <p className="text-[11px] text-muted">
+              {claim.status === "domain-verified" ? "Domain control verified for" : "Self-claimed by"}{" "}
+              <Link href={`/u/${encodeURIComponent(claim.login)}`} className="text-ember hover:underline">
+                @{claim.login}
+              </Link>
+              {claim.status === "domain-verified" ? " · authorship not independently verified" : " · not independently verified"}
+            </p>
+            {claim.status === "domain-verified" && claim.proofUrl ? (
+              <a
+                href={claim.proofUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-1 inline-block text-[10px] text-ember hover:underline"
+              >
+                View domain proof
+              </a>
+            ) : (
+              <>
+                {!claimToken && (
+                  <button
+                    type="button"
+                    onClick={() => void onStartVerification()}
+                    disabled={verifyingClaim}
+                    className="mt-2 min-h-8 rounded-full border border-ink/12 px-3 text-[11px] text-ink hover:border-ember/35 disabled:opacity-40"
+                  >
+                    {verifyingClaim ? "Preparing…" : "Verify domain control"}
+                  </button>
+                )}
+                {claimInstructions && claimToken && (
+                  <div className="mt-3 space-y-2 text-left">
+                    <p className="text-[10px] leading-snug text-muted">{claimInstructions}</p>
+                    <code className="block overflow-x-auto rounded bg-paper px-2 py-1.5 font-mono text-[10px] text-ink">
+                      {claimToken}
+                    </code>
+                    <input
+                      type="url"
+                      value={proofUrl}
+                      onChange={(event) => setProofUrl(event.target.value)}
+                      placeholder={`https://${domain}/proof`}
+                      className="w-full rounded-lg border border-ink/10 bg-paper px-2.5 py-2 text-[11px] text-ink placeholder:text-muted"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => void onVerifyClaim()}
+                      disabled={verifyingClaim || !proofUrl.trim()}
+                      className="min-h-8 rounded-full bg-ember px-3 text-[11px] font-medium text-paper disabled:opacity-40"
+                    >
+                      {verifyingClaim ? "Checking…" : "Check proof page"}
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+            {claimNote && <p className="mt-2 text-[10px] text-ember">{claimNote}</p>}
+          </section>
+        ) : (
+          <section className="rounded-xl border border-dashed border-ink/15 bg-mist/30 px-3 py-3 text-center">
+            <p className="text-[11px] leading-snug text-muted">
+              Is this your source? Sign in to add a self-claim. fondof will not treat it as verified authorship.
+            </p>
+            <button
+              type="button"
+              onClick={() => void onClaim()}
+              disabled={claiming}
+              className="mt-2 min-h-8 rounded-full border border-ink/12 px-3 text-[11px] text-ink hover:border-ember/35 disabled:opacity-40"
+            >
+              {claiming ? "Saving…" : viewerLogin ? "Claim source identity" : "Sign in to claim"}
+            </button>
+            {claimNote && <p className="mt-2 text-[10px] text-ember">{claimNote}</p>}
+          </section>
+        )}
 
         {!loading && skills.length > 0 && (
           <>

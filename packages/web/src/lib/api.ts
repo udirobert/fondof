@@ -65,6 +65,16 @@ export interface CanonicalSource {
   domain: string;
 }
 
+export interface SkillGenre {
+  slug: string;
+  label: string;
+  description: string;
+}
+
+export interface GenreFacet extends SkillGenre {
+  count: number;
+}
+
 export interface ForgeResponse {
   title: string;
   skillHash: string;
@@ -155,6 +165,7 @@ export interface SkillOnChainResponse {
   patternTypes?: string[];
   derivedFromSkillHash?: string;
   lineageChildrenCount?: number;
+  genres?: SkillGenre[];
   outcome?: SkillOutcome;
   evidence?: SkillEvidence;
   /** Transparent discovery summary; not a causal impact claim. */
@@ -407,6 +418,32 @@ export async function getCreatorImpact(login: string): Promise<{
   return res.json();
 }
 
+export interface SkillLineageNode {
+  hash: string;
+  title: string;
+  repo?: string;
+  composedAt: string;
+  derivedFromSkillHash?: string;
+  sourceUrls?: string[];
+  canonicalSources?: CanonicalSource[];
+  genres?: SkillGenre[];
+}
+
+export async function getSkillLineage(hash: string): Promise<{
+  skillHash?: string;
+  parent?: SkillLineageNode | null;
+  ancestors?: SkillLineageNode[];
+  skill?: SkillLineageNode;
+  children?: SkillLineageNode[];
+  note?: string;
+  error?: string;
+}> {
+  const res = await fetch(
+    `${API_URL}/api/skills/${encodeURIComponent(hash)}/lineage`,
+  );
+  return res.json();
+}
+
 export async function getSkillSignal(hash: string): Promise<SkillOnChainResponse> {
   const res = await fetch(`${API_URL}/api/skills/${hash}`);
   return res.json();
@@ -415,7 +452,12 @@ export async function getSkillSignal(hash: string): Promise<SkillOnChainResponse
 export async function getTopSkills(
   limit = 5,
   sort: "recent" | "impact" | "outcomes" | "adapted" = "recent",
-): Promise<{ skills: SkillOnChainResponse[]; sort?: string; error?: string }> {
+): Promise<{
+  skills: SkillOnChainResponse[];
+  sort?: string;
+  facets?: { genres?: GenreFacet[] };
+  error?: string;
+}> {
   const res = await fetch(`${API_URL}/api/skills?limit=${limit}&sort=${sort}`);
   return res.json();
 }

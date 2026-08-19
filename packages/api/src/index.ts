@@ -84,14 +84,20 @@ What to do with it: save markdown into .kiro/steering/ or .cursor/rules/ (or CLA
 - POST /api/publish { skillHash, sourceHashes, … } — optionally attest a public skill on SkillPool
 - POST /api/skills/hash/share — explicitly share a private draft as a public offchain artifact
 - DELETE /api/skills/hash/visibility — owner-only hide/unlist from public discovery
-- GET /api/skills — public skill discovery; sort=impact|outcomes|adapted|recent gives focused evidence views (not causal impact). Optional domain, framework, and language filters expose topic/stack discovery.
+- GET /api/skills — public skill discovery; sort=impact|outcomes|adapted|recent gives focused evidence views (not causal impact). Optional genre, domain, framework, and language filters expose deterministic topic/stack discovery.
 - GET /api/skills/creator/{login} — evidence summary for public skills owned by a GitHub login
+- GET /api/skills/{hash}/lineage — parent and public remix metadata for a skill
+- GET /remix/{hash} — browsable web lineage page with a dynamic social card
+- GET /discover/{genre} — web genre landing pages such as reliability, performance, architecture, and developer-tools
 - GET /api/skills/{hash} — one skill (off-chain or attested)
 - POST /api/skills/{hash}/use — record a claimed use; signed-in users deduplicate by account, anonymous users need an explicit browser receipt key for deduplication
 - POST /api/skills/{hash}/meta — attach an outcome; linked PRs are stored as unverified evidence until independently checked
 - POST /api/skills/{hash}/verify-pr — optionally ask GitHub to confirm a linked public PR exists; confirmation does not prove causality
-- GET /api/sources/{domain} — source skills plus an evidence-backed impact snapshot
+- GET /api/sources/{domain} — source skills plus an evidence-backed impact snapshot and optional self-claim
 - GET /api/sources/{domain}/impact — compact source evidence summary
+- POST /api/sources/{domain}/claim — authenticated self-claim, explicitly not proof of authorship
+- POST /api/sources/{domain}/claim/challenge — short-lived nonce for proving domain control
+- POST /api/sources/{domain}/claim/verify — verify nonce on a public page under the claimed domain
 
 ## Notes
 

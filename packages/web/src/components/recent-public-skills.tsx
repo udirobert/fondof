@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ShieldCheck, FileText } from "lucide-react";
 import { API_BASE } from "@/lib/api-base";
 import { skillPublicPath } from "@/lib/skill-share";
-import type { EvidenceSummary } from "@/lib/api";
+import type { EvidenceSummary, GenreFacet, SkillGenre } from "@/lib/api";
 
 type DiscoverySort = "recent" | "impact" | "outcomes" | "adapted";
 
@@ -16,22 +16,31 @@ interface PoolSkill {
   onChain?: boolean;
   sourceUrls?: string[];
   evidenceSummary?: EvidenceSummary;
+  genres?: SkillGenre[];
 }
 
 /**
  * A simple, honest list of public skills (not txs). Pairs with the on-chain
  * draw ritual above — this is the browseable shelf.
  */
-export function RecentPublicSkills({ limit = 8 }: { limit?: number }) {
+export function RecentPublicSkills({
+  limit = 8,
+  initialGenre = "",
+}: {
+  limit?: number;
+  initialGenre?: string;
+}) {
   const [skills, setSkills] = useState<PoolSkill[] | null>(null);
   const [sort, setSort] = useState<DiscoverySort>("impact");
   const [domain, setDomain] = useState("");
   const [framework, setFramework] = useState("");
+  const [genre, setGenre] = useState(initialGenre);
   const [facets, setFacets] = useState<{
     domains: string[];
     frameworks: string[];
     languages: string[];
-  }>({ domains: [], frameworks: [], languages: [] });
+    genres: GenreFacet[];
+  }>({ domains: [], frameworks: [], languages: [], genres: [] });
 
   useEffect(() => {
     let cancelled = false;
@@ -41,6 +50,7 @@ export function RecentPublicSkills({ limit = 8 }: { limit?: number }) {
       sort,
       ...(domain ? { domain } : {}),
       ...(framework ? { framework } : {}),
+      ...(genre ? { genre } : {}),
     });
     fetch(`${API_BASE}/api/skills?${query.toString()}`)
       .then((r) => (r.ok ? r.json() : null))
@@ -51,6 +61,7 @@ export function RecentPublicSkills({ limit = 8 }: { limit?: number }) {
             domains: Array.isArray(data?.facets?.domains) ? data.facets.domains : [],
             frameworks: Array.isArray(data?.facets?.frameworks) ? data.facets.frameworks : [],
             languages: Array.isArray(data?.facets?.languages) ? data.facets.languages : [],
+            genres: Array.isArray(data?.facets?.genres) ? data.facets.genres : [],
           });
         }
       })
@@ -60,7 +71,7 @@ export function RecentPublicSkills({ limit = 8 }: { limit?: number }) {
     return () => {
       cancelled = true;
     };
-  }, [limit, sort, domain, framework]);
+  }, [limit, sort, domain, framework, genre]);
 
   if (skills === null) {
     return (
@@ -99,8 +110,18 @@ export function RecentPublicSkills({ limit = 8 }: { limit?: number }) {
           </span>
         ))}
       </div>
-      {(facets.domains.length > 0 || facets.frameworks.length > 0) && (
+      {(facets.genres.length > 0 || facets.domains.length > 0 || facets.frameworks.length > 0) && (
         <div className="mb-3 flex flex-wrap justify-center gap-2">
+          <label className="sr-only" htmlFor="pool-genre">Genre</label>
+          <select
+            id="pool-genre"
+            value={genre}
+            onChange={(event) => setGenre(event.target.value)}
+            className="rounded-full border border-ink/10 bg-paper px-2.5 py-1 text-[11px] text-muted"
+          >
+            <option value="">All genres</option>
+            {facets.genres.map((value) => <option key={value.slug} value={value.slug}>{value.label} ({value.count})</option>)}
+          </select>
           <label className="sr-only" htmlFor="pool-domain">Topic</label>
           <select
             id="pool-domain"
@@ -141,6 +162,9 @@ export function RecentPublicSkills({ limit = 8 }: { limit?: number }) {
               <span className="flex shrink-0 items-center gap-2 text-[11px] text-muted">
                 {s.repo && (
                   <span className="max-w-24 truncate">{s.repo}</span>
+                )}
+                {s.genres?.[0] && (
+                  <span className="max-w-28 truncate text-ink/70">{s.genres[0].label}</span>
                 )}
                 {s.evidenceSummary && s.evidenceSummary.evidenceScore > 0 && (
                   <span title="Transparent evidence summary; not causal impact">

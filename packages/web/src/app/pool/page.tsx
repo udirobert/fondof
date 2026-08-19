@@ -33,6 +33,32 @@ export default function PoolPage() {
           <RecentPublicSkills limit={8} />
         </section>
 
+        <section className="border-t border-ink/8 pt-5" aria-label="Explore skill genres">
+          <p className="text-center text-[11px] uppercase tracking-wider text-muted">
+            Explore by genre
+          </p>
+          <div className="mt-3 flex flex-wrap justify-center gap-2">
+            {[
+              ["reliability", "Reliability"],
+              ["performance", "Performance"],
+              ["architecture", "Architecture"],
+              ["security", "Security"],
+              ["developer-tools", "Developer tools"],
+              ["product-and-ux", "Product & UX"],
+              ["data-and-state", "Data & state"],
+              ["team-practice", "Team practice"],
+            ].map(([slug, label]) => (
+              <Link
+                key={slug}
+                href={`/discover/${slug}`}
+                className="rounded-full border border-ink/10 bg-paper px-3 py-1.5 text-[11px] text-muted hover:border-ember/35 hover:text-ink"
+              >
+                {label}
+              </Link>
+            ))}
+          </div>
+        </section>
+
         <div className="border-t border-ink/8 pt-4">
           <EconomicsHonesty variant="line" />
         </div>

@@ -188,7 +188,9 @@ Need or source → Extract → Fit / Forge → Copy / Use → Outcome → Share 
 #### Phase B — Make public artifacts controllable and attributable
 - [x] Add optional ownership and post-hoc unlist/hide for public skills; preserve immutable attestation history honestly
 - [x] Persist canonical source identity, idea domains, pattern type, stack tags, and parent-skill lineage; author/title metadata remains a later enrichment
-- [ ] Replace domain-only creator grouping with source identity while retaining domains as navigation
+- [x] Add conservative self-claimed source identity while retaining domains as navigation; claims are explicitly not verified authorship
+- [x] Add nonce-based domain-control verification; it proves control of a public page, not authorship or influence
+- [ ] Replace domain-only creator grouping with independently verified source identity
 - [x] Move public artifact and evidence storage to non-expiring KV records with migration from the old TTL/cache paths
 
 #### Phase C — Measure real value, not vanity activity
@@ -196,7 +198,7 @@ Need or source → Extract → Fit / Forge → Copy / Use → Outcome → Share 
 - [x] Add deduplicated, privacy-preserving receipts for authenticated users and explicitly consented browser keys; repo-fingerprint attribution remains deferred
 - [x] Keep rankings and impact calculations offchain; publish the evidence behind each score (transparent evidence signal, not causal impact)
 - [x] Build initial creator/source impact surfaces: `/from/[domain]`, `/u/[login]`, and source/creator aggregation APIs
-- [ ] Add genre/stack discovery only after enough outcome data exists
+- [x] Add initial explainable genre/stack discovery from persisted domains, pattern types, and repo metadata; broader taxonomy refinement remains iterative
 
 #### Phase D — Use the chain only where it earns its place
 - [ ] Keep onchain data minimal: skill identity, source commitments, public forger, backing, and challenge/use history
@@ -208,7 +210,11 @@ Need or source → Extract → Fit / Forge → Copy / Use → Outcome → Share 
 #### Phase E — Turn evidence into distribution
 - [ ] Add shareable source-impact cards: adaptations, unique stacks, outcome-backed uses, and challenge history
 - [x] Add transparent evidence sorting to `/pool` and lineage/source cues to impact surfaces
-- [ ] Add lineage-aware “re-forge/remix” pages linking source → original skill → derived skills
+- [x] Add initial genre landing pages at `/discover/[genre]`
+- [x] Add a browsable lineage page at `/remix/[hash]` linking parent → current skill → public remixes
+- [x] Add dynamic OG cards for skills, sources, creators, and lineage pages
+- [x] Extend lineage pages with ancestor → current → derived skill graph, source provenance, and one-click re-forge action
+- [ ] Add source nodes and cross-source graph aggregation to lineage pages
 - [ ] Add multiple leaderboards such as most adapted, most outcome-backed, and rising—not one popularity score
 - [x] Keep `/pool` downstream: evidence desk and discovery surface, never the homepage or generic marketplace
 
