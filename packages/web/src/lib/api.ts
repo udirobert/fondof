@@ -356,11 +356,16 @@ export async function publishSkillMeta(
   meta?: unknown;
   evidence?: SkillEvidence;
 }> {
+  const token = getToken();
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  if (token) headers.Authorization = `Bearer ${token}`;
   const res = await fetch(
     `${API_URL}/api/skills/${encodeURIComponent(skillHash)}/meta`,
     {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify(meta),
     },
   );

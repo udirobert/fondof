@@ -21,7 +21,7 @@ import { SkillPoolPulse } from "@/components/skill-pool-pulse";
 import { SourceTextDrawer } from "@/components/source-text-drawer";
 import { Tip } from "@/components/tip";
 import { QuickPad, type QuickComposeInput } from "@/components/quick-pad";
-import { LandingExperience } from "@/components/experience/landing-experience";
+import dynamic from "next/dynamic";
 import { useAppStore } from "@/lib/store";
 import { fondofPhrase } from "@/lib/fondof-phrase";
 import { track } from "@/lib/track";
@@ -46,6 +46,19 @@ import {
   type LiveExample,
 } from "@/lib/demo-data";
 import type { IdeaFromAPI, IngestValue } from "@/lib/api";
+
+/**
+ * The WebGL landing experience pulls in three.js / R3F (~1MB). Split it into
+ * its own client-only chunk so it never ships in the main bundle; Next loads
+ * it as a separate async chunk rather than blocking the pad and tool.
+ */
+const LandingExperience = dynamic(
+  () =>
+    import("@/components/experience/landing-experience").then(
+      (mod) => mod.LandingExperience,
+    ),
+  { ssr: false, loading: () => null },
+);
 
 type FloorMode = "pad" | "ingest" | "work";
 

@@ -111,6 +111,18 @@ skillsRoute.post("/skills/:hash/meta", rateLimit("publish"), async (c) => {
 
   const hasOutcomePatch = body.outcome !== undefined;
   const hasAgentUrlPatch = body.agentUrl !== undefined;
+  // Artifact fields other than title are always an artifact edit. A bare title
+  // sent alongside an outcome/agentUrl patch is a display hint from the UI
+  // panels, not an edit — only count it when it is the primary operation.
+  const hasBodyArtifactPatch =
+    body.blurb !== undefined ||
+    body.repo !== undefined ||
+    body.markdown !== undefined ||
+    body.landings !== undefined ||
+    body.frameworks !== undefined;
+  const hasArtifactPatch =
+    hasBodyArtifactPatch ||
+    (body.title !== undefined && !hasOutcomePatch && !hasAgentUrlPatch);
   const title = body.title?.trim();
   if (!title && !hasOutcomePatch && !hasAgentUrlPatch) {
     return c.json({ error: "title is required" }, 400);
@@ -122,8 +134,36 @@ skillsRoute.post("/skills/:hash/meta", rateLimit("publish"), async (c) => {
     }
   }
 
+  // Authorization: the agent link and artifact identity (title/body/fit) are
+  // protected once a skill has an owner; outcome evidence stays open because
+  // it is the visitor "I used this" loop. The agent link is never anonymous —
+  // it renders as a prominent external link for every visitor, so it must be
+  // attributable and owner-controlled.
+  const session = await resolveSession(
+    c.req.header("Authorization"),
+    c.env.SESSIONS,
+  );
+  const existingRecord = await getSkillRecord(c.env, hash);
+  const recordOwnerId = existingRecord?.ownerId;
+  const hasOwner = recordOwnerId !== undefined && recordOwnerId !== null;
+  const isOwner = hasOwner && session?.userId === recordOwnerId;
+
+  if (hasAgentUrlPatch) {
+    if (!session) {
+      return c.json({ error: "Sign in to attach an agent link" }, 401);
+    }
+    if (hasOwner && !isOwner) {
+      return c.json({ error: "Only the owner can change the agent link" }, 403);
+    }
+  }
+  if (hasArtifactPatch && hasOwner && !isOwner) {
+    return c.json({ error: "Only the owner can edit this skill's artifact" }, 403);
+  }
+
   const record = await putSkillMeta(hash, {
-    title,
+    // A title sent with an outcome/agentUrl patch is a display hint — never let
+    // it overwrite the stored artifact title; only real artifact edits set it.
+    title: hasArtifactPatch ? title : undefined,
     blurb: body.blurb,
     repo: body.repo,
     markdown: body.markdown,
@@ -143,7 +183,7 @@ skillsRoute.post("/skills/:hash/meta", rateLimit("publish"), async (c) => {
   });
 
   await patchPublicSkill(c.env, hash, {
-    title,
+    title: hasArtifactPatch ? title : undefined,
     blurb: body.blurb,
     repo: body.repo,
     markdown: body.markdown,
