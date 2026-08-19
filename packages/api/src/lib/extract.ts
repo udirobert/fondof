@@ -1,4 +1,5 @@
 import type { Env } from "../index.js";
+import { unsafeFetchReason } from "./ssrf.js";
 
 export type ExtractProvider = "firecrawl" | "html";
 
@@ -69,6 +70,7 @@ async function firecrawlExtract(
 
 async function basicExtract(url: string): Promise<{ text: string; title: string } | null> {
   try {
+    if (unsafeFetchReason(url)) return null;
     const response = await fetch(url, {
       headers: { "User-Agent": "fondof/0.1 (skill forge)" },
     });

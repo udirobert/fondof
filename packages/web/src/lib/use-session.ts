@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import {
+  exchangeAuthCode,
   fetchSession,
   loginWithGitHub,
   logout as logoutApi,
@@ -38,16 +39,22 @@ export function useSession(): UseSessionReturn {
     setLoading(false);
   }, []);
 
-  // Capture token or auth_error from OAuth callback redirect
+  // Capture the one-time OAuth code (or auth_error) from the callback
+  // redirect, exchange the code for a token, then clean the URL.
   useEffect(() => {
     if (typeof window === "undefined") return;
     const url = new URL(window.location.href);
-    const tokenParam = url.searchParams.get("token");
+    const codeParam = url.searchParams.get("code");
     const errorParam = url.searchParams.get("auth_error");
-    if (tokenParam) {
-      setToken(tokenParam);
-      url.searchParams.delete("token");
+    if (codeParam) {
+      url.searchParams.delete("code");
       window.history.replaceState({}, "", url.toString());
+      void exchangeAuthCode(codeParam).then((token) => {
+        if (token) {
+          setToken(token);
+          void load();
+        }
+      });
     }
     if (errorParam) {
       setAuthError(errorParam);
@@ -56,7 +63,7 @@ export function useSession(): UseSessionReturn {
       // Auto-dismiss after 8 seconds
       window.setTimeout(() => setAuthError(null), 8000);
     }
-  }, []);
+  }, [load]);
 
   // Load session on mount
   useEffect(() => {

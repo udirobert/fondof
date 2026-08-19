@@ -25,6 +25,8 @@ export const RATE_BUDGETS = {
   storm: { limit: 8, windowSec: 3600 },
   search: { limit: 30, windowSec: 3600 },
   compose: { limit: 10, windowSec: 3600 },
+  /** Analytics events — cheap, but keep the KV append log from being spammed. */
+  events: { limit: 120, windowSec: 3600 },
 } as const satisfies Record<string, RateBucket>;
 
 export type RateRoute = keyof typeof RATE_BUDGETS;

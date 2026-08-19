@@ -49,6 +49,28 @@ export function loginWithGitHub(redirect?: string): void {
   window.location.href = `${API_BASE}/api/auth/github?${params}`;
 }
 
+/**
+ * Exchange a one-time OAuth code (from the callback redirect) for the session
+ * token. The code is single-use and short-lived; the token itself never
+ * appears in a URL.
+ */
+export async function exchangeAuthCode(
+  code: string,
+): Promise<string | null> {
+  try {
+    const res = await fetch(`${API_BASE}/api/auth/exchange`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code }),
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { token?: string };
+    return data.token ?? null;
+  } catch {
+    return null;
+  }
+}
+
 /** Fetch current session from the API. Returns null if not authenticated. */
 export async function fetchSession(): Promise<AuthSession | null> {
   const token = getToken();

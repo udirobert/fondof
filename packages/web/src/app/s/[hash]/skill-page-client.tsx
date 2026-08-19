@@ -326,7 +326,12 @@ export default function SkillPublicPage() {
         setPeers(list);
       })
       .catch(() => setPeers([]));
-    const id = window.setInterval(() => void refresh(), 12_000);
+    const id = window.setInterval(() => {
+      // Skip polling while the tab is hidden — no point refreshing data
+      // nobody is looking at.
+      if (document.visibilityState === "hidden") return;
+      void refresh();
+    }, 12_000);
     return () => window.clearInterval(id);
   }, [hash, refresh]);
 

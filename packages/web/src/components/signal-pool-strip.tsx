@@ -59,7 +59,10 @@ export function SignalPoolStrip({ desk = true }: SignalPoolStripProps) {
         });
     };
     load();
-    const id = window.setInterval(load, 20_000);
+    const id = window.setInterval(() => {
+      if (document.visibilityState === "hidden") return;
+      load();
+    }, 20_000);
     return () => {
       cancelled = true;
       window.clearInterval(id);

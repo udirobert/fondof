@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import type { Env } from "../index.js";
 import { resolveSession } from "./auth.js";
+import { rateLimit } from "../lib/rate-limit-mw.js";
 
 export const eventsRoute = new Hono<{ Bindings: Env }>();
 
@@ -38,7 +39,7 @@ interface EventPayload {
  * Stores in KV as a lightweight append log keyed by day.
  * Optional auth: if a session token is present, attaches userId.
  */
-eventsRoute.post("/events", async (c) => {
+eventsRoute.post("/events", rateLimit("events"), async (c) => {
   const body = await c.req.json<EventPayload>().catch(() => null);
 
   if (!body?.event || !VALID_EVENTS.includes(body.event)) {

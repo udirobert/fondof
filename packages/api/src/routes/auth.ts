@@ -14,6 +14,8 @@ export interface Session {
 }
 
 const SESSION_TTL = 60 * 60 * 24 * 30; // 30 days
+const STATE_TTL = 60 * 10; // OAuth state nonce: 10 minutes
+const EXCHANGE_TTL = 60; // One-time token exchange code: 60 seconds
 
 function generateToken(): string {
   const buf = new Uint8Array(32);
@@ -26,10 +28,18 @@ function generateToken(): string {
 /**
  * GET /auth/github — redirect user to GitHub OAuth consent screen.
  * Query params: ?redirect= (optional post-login redirect for the frontend)
+ *
+ * The state param is a random nonce stored server-side (one-time, 10 min TTL)
+ * so the callback can verify the flow was initiated by this app — CSRF-safe.
  */
-authRoute.get("/auth/github", (c) => {
+authRoute.get("/auth/github", async (c) => {
   const redirect = c.req.query("redirect") || "/";
-  const state = btoa(JSON.stringify({ redirect }));
+  const state = generateToken();
+  await c.env.SESSIONS.put(
+    `oauth-state:${state}`,
+    JSON.stringify({ redirect }),
+    { expirationTtl: STATE_TTL },
+  );
   const params = new URLSearchParams({
     client_id: c.env.GITHUB_CLIENT_ID,
     redirect_uri: `${c.req.url.split("/api/auth/github")[0]}/api/auth/callback`,
@@ -57,12 +67,24 @@ authRoute.get("/auth/callback", async (c) => {
   }
 
   const stateRaw = c.req.query("state") || "";
+  // Verify the one-time state nonce; reject the flow if it is missing,
+  // already consumed, or expired (CSRF protection).
+  const stateRawStored = await c.env.SESSIONS.get(`oauth-state:${stateRaw}`);
+  if (!stateRawStored) {
+    const url = new URL("/", frontendUrl);
+    url.searchParams.set(
+      "auth_error",
+      "Sign-in session expired or was not started here. Please try again.",
+    );
+    return c.redirect(url.toString());
+  }
+  await c.env.SESSIONS.delete(`oauth-state:${stateRaw}`);
   let redirect = "/";
   try {
-    const parsed = JSON.parse(atob(stateRaw));
+    const parsed = JSON.parse(stateRawStored) as { redirect?: string };
     if (parsed.redirect) redirect = parsed.redirect;
   } catch {
-    // ignore bad state
+    // ignore bad state payload
   }
 
   // Exchange code for access token
@@ -133,10 +155,34 @@ authRoute.get("/auth/callback", async (c) => {
     expirationTtl: SESSION_TTL,
   });
 
-  // Redirect back to frontend with token as query param (frontend stores it)
+  // Redirect back with a short-lived one-time exchange code instead of the
+  // session token itself — the token never appears in a URL (no history,
+  // referrer, or log leakage). The frontend swaps the code for the token.
+  const exchangeCode = generateToken();
+  await c.env.SESSIONS.put(`oauth-exchange:${exchangeCode}`, token, {
+    expirationTtl: EXCHANGE_TTL,
+  });
   const url = new URL(redirect, frontendUrl);
-  url.searchParams.set("token", token);
+  url.searchParams.set("code", exchangeCode);
   return c.redirect(url.toString());
+});
+
+/**
+ * POST /auth/exchange — swap a one-time OAuth code for the session token.
+ * The code is single-use and expires in 60 seconds.
+ */
+authRoute.post("/auth/exchange", async (c) => {
+  const body = (await c.req.json<{ code?: string }>().catch(() => ({}))) as {
+    code?: string;
+  };
+  const code = body.code?.trim();
+  if (!code) return c.json({ error: "code is required" }, 400);
+
+  const key = `oauth-exchange:${code}`;
+  const token = await c.env.SESSIONS.get(key);
+  if (!token) return c.json({ error: "Code expired or already used" }, 401);
+  await c.env.SESSIONS.delete(key);
+  return c.json({ token });
 });
 
 /**

@@ -1,4 +1,5 @@
 import type { Env } from "../index.js";
+import { unsafeFetchReason } from "./ssrf.js";
 
 export interface TranscriptionResult {
   text: string;
@@ -109,6 +110,7 @@ export function isAudioUrl(url: string): boolean {
  */
 export async function resolveAudioUrl(url: string): Promise<string | null> {
   try {
+    if (unsafeFetchReason(url)) return null;
     const response = await fetch(url, {
       headers: { "User-Agent": "fondof/0.1" },
     });

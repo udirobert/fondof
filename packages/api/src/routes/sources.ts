@@ -6,6 +6,7 @@ import {
   type EvidenceSummary,
 } from "../lib/skill-evidence.js";
 import { getSkillRecord } from "../lib/skill-registry.js";
+import { unsafeFetchReason } from "../lib/ssrf.js";
 import { resolveSession } from "./auth.js";
 
 export const sourcesRoute = new Hono<{ Bindings: Env }>();
@@ -264,6 +265,10 @@ sourcesRoute.post("/sources/:domain/claim/verify", async (c) => {
     normalizeDomain(parsed.hostname) !== domain
   ) {
     return c.json({ error: "Proof URL must be hosted on the claimed domain" }, 422);
+  }
+  const ssrfReason = unsafeFetchReason(parsed.toString());
+  if (ssrfReason) {
+    return c.json({ error: "Proof URL is not fetchable" }, 422);
   }
 
   let response: Response;
