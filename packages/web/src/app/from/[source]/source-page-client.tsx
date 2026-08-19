@@ -1,5 +1,8 @@
 "use client";
 
+/* The badge is an externally hosted SVG intended for README/show-note embedding. */
+/* eslint-disable @next/next/no-img-element */
+
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";

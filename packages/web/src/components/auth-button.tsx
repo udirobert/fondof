@@ -1,5 +1,8 @@
 "use client";
 
+/* GitHub returns external avatar URLs; user accounts are not a fixed image domain. */
+/* eslint-disable @next/next/no-img-element */
+
 import { useSession } from "@/lib/use-session";
 import { LogOut } from "lucide-react";
 

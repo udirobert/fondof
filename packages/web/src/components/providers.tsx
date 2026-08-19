@@ -1,7 +1,6 @@
 "use client";
 
-import { lazy, Suspense, useState, type ReactNode } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { lazy, Suspense, type ReactNode } from "react";
 
 /**
  * Lazy-load WagmiProvider — wagmi + viem are heavy (~100KB+) and only needed
@@ -11,20 +10,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 const WagmiWrapper = lazy(() => import("@/components/wagmi-wrapper"));
 
 export function Providers({ children }: { children: ReactNode }) {
-  const [queryClient] = useState(
-    () =>
-      new QueryClient({
-        defaultOptions: {
-          queries: { staleTime: 30_000, refetchOnWindowFocus: false },
-        },
-      }),
-  );
-
   return (
-    <QueryClientProvider client={queryClient}>
-      <Suspense fallback={children}>
-        <WagmiWrapper>{children}</WagmiWrapper>
-      </Suspense>
-    </QueryClientProvider>
+    <Suspense fallback={children}>
+      <WagmiWrapper>{children}</WagmiWrapper>
+    </Suspense>
   );
 }

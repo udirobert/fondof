@@ -44,6 +44,8 @@ export function clearToken(): void {
 export function loginWithGitHub(redirect?: string): void {
   const params = new URLSearchParams();
   if (redirect) params.set("redirect", redirect);
+  // OAuth must leave the app and may target a separately hosted API.
+  // eslint-disable-next-line @next/next/no-location-assign-relative-destination
   window.location.href = `${API_BASE}/api/auth/github?${params}`;
 }
 

@@ -34,7 +34,6 @@ import {
   monadTestnet,
   shortAddress,
   toBytes32,
-  txExplorer,
 } from "@/lib/monad-chain";
 import { OrigamiRitualCanvas } from "@/components/experience/origami-ritual-canvas";
 import { AttestationBurst } from "@/components/experience/attestation-burst";
@@ -53,7 +52,6 @@ import {
   skillPreviewFromMarkdown,
 } from "@/lib/skill-meta";
 import { skillFitCheck } from "@/lib/skill-fit-check";
-import { parseSkillSections } from "@/lib/skill-sections";
 import { whereItLands } from "@/lib/where-it-lands";
 import { track } from "@/lib/track";
 import { publicSkillHashFromUrl } from "@/lib/skill-share";
@@ -98,21 +96,15 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
   const [sharing, setSharing] = useState(false);
   const [composing, setComposing] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [_explorer, setExplorer] = useState<string | null>(null);
   const [liveSignal, setLiveSignal] = useState<string | null>(null);
   const [usageCount, setUsageCount] = useState<number | null>(null);
-  const [_challenging, _setChallenging] = useState(false);
-  const [_challengeNote, setChallengeNote] = useState<string | null>(null);
   const [publishNote, setPublishNote] = useState<string | null>(null);
-  const [_linkCopied, setLinkCopied] = useState(false);
   const [celebrate, setCelebrate] = useState(false);
   const [attestKey, setAttestKey] = useState(0);
   const [showFullDraft, setShowFullDraft] = useState(true);
   const [forgeTitle, setForgeTitle] = useState<string | null>(null);
-  const [_showPoolMore, setShowPoolMore] = useState(false);
   const [forgeBlocked, setForgeBlocked] = useState<ForgeCheck | null>(null);
   const [forgePrivate, setForgePrivate] = useState(true);
-  const setPublished = useAppStore((s) => s.setPublished);
   const { address, isConnected, chainId } = useConnection();
   const { switchChainAsync } = useSwitchChain();
   const { writeContractAsync } = useWriteContract();
@@ -220,19 +212,15 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
         setSourceHashes([]);
         setComposing(false);
         setDraftNote(null);
-        setExplorer(null);
         setLiveSignal(null);
         setUsageCount(null);
-        setChallengeNote(null);
         setPublishNote(null);
         setSharing(false);
-        setLinkCopied(false);
         setCelebrate(false);
         setWalletTxHash(undefined);
         setShowFullDraft(false);
         setForgeTitle(null);
         setForgePrivate(true);
-        setShowPoolMore(false);
         pendingMarkdown.current = null;
         streamCancel.current?.();
         streamCancel.current = null;
@@ -266,6 +254,9 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
       window.clearTimeout(t);
     };
     // ideas locked at open; repo changes handled below without replaying ritual
+  // The forge is intentionally locked to the ideas/repo captured on open;
+  // repo changes are handled by the quiet re-fit effect below.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, ideas, clearGaps]);
 
   // Quiet re-fit only when the user changes repo (not on open).
@@ -290,6 +281,8 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
     return () => {
       signal.cancelled = true;
     };
+  // Re-run only after the user changes repo outside the ritual phase.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [repo, open, phase]);
 
   // When compose phase starts, reveal pending markdown (stream if motion ok).
@@ -350,7 +343,6 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
       if (!onChain.error && onChain.signal != null) {
         setLiveSignal(onChain.signal);
         setUsageCount(onChain.usageCount ?? 0);
-        setPublished(hashToRead, onChain.signal);
         return;
       }
     } catch {
@@ -358,7 +350,6 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
     }
     setLiveSignal("1.0");
     setUsageCount(0);
-    setPublished(hashToRead, "1.0");
   };
 
   const ensureMonadChain = async () => {
@@ -498,7 +489,6 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
           chainId: monadTestnet.id,
         });
         setWalletTxHash(txHash);
-        setExplorer(txExplorer(txHash));
         setPublishNote(
           address
             ? `Forged as ${shortAddress(address)} — confirm in wallet if prompted.`
@@ -534,7 +524,6 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
           }),
         ]);
         if (!res.error && res.txHash) {
-          setExplorer(res.explorer ?? txExplorer(res.txHash));
           setPublishNote(
             isConnected
               ? "Attested via fondof relayer (wallet forge unavailable)."
@@ -607,7 +596,6 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
     languages: repoMeta?.languages?.map((l) => l.language),
     ideaText: ideas.map((i) => `${i.title} ${i.description}`).join(" "),
   });
-  const _sectionCount = draft ? parseSkillSections(draft).length : 0;
 
   const copyDraft = async () => {
     if (!draft) return;
@@ -722,7 +710,7 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
                       Free forges used this month
                     </p>
                     <p className="mt-2 text-[12px] text-foreground-secondary">
-                      You've used all 3 free forges. Share a skill publicly to
+                      You&apos;ve used all 3 free forges. Share a skill publicly to
                       unlock unlimited forges — build your brand while you build
                       skills.
                     </p>

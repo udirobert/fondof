@@ -19,7 +19,7 @@ const STEPS = [
   {
     label: "04 Outcomes",
     title: "Show results",
-    body: "Next: attach what improved — PR, UI, repo delta — so quality means it helped.",
+    body: "Attach what it improved — PR, UI, repo delta — so quality means it helped.",
   },
 ];
 

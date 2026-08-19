@@ -1,5 +1,8 @@
 "use client";
 
+/* Identity providers return arbitrary external avatar URLs. */
+/* eslint-disable @next/next/no-img-element */
+
 import { useEffect, useState } from "react";
 import { shortAddress } from "@/lib/monad-chain";
 import { identityLabel, resolveIdentity } from "@/lib/identity";

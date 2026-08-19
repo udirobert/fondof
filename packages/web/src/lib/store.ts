@@ -1,7 +1,6 @@
 import { create } from "zustand";
 import type {
   IdeaFromAPI,
-  ForgeResponse,
   ExistingSkillHit,
   IngestValue,
 } from "./api";
@@ -69,22 +68,9 @@ export interface AppState {
     selectIds?: string[],
   ) => void;
 
-  // Forge
-  forgedSkill: ForgeResponse | null;
-  setForgedSkill: (skill: ForgeResponse | null) => void;
-
-  // Publish
-  publishedTxHash: string | null;
-  publishedSignal: string | null;
-  setPublished: (txHash: string, signal: string) => void;
-
   // UI State
   isIngesting: boolean;
   setIngesting: (v: boolean) => void;
-  isForging: boolean;
-  setForging: (v: boolean) => void;
-  isPublishing: boolean;
-  setPublishing: (v: boolean) => void;
   forgeOpen: boolean;
   setForgeOpen: (v: boolean) => void;
 }
@@ -173,27 +159,11 @@ export const useAppStore = create<AppState>((set) => ({
         deferred: ["exa", "forge", "publish"],
       },
       compareNote: null,
-      forgedSkill: null,
-      publishedTxHash: null,
-      publishedSignal: null,
     }),
-
-  // Forge
-  forgedSkill: null,
-  setForgedSkill: (skill) => set({ forgedSkill: skill }),
-
-  // Publish
-  publishedTxHash: null,
-  publishedSignal: null,
-  setPublished: (txHash, signal) => set({ publishedTxHash: txHash, publishedSignal: signal }),
 
   // UI State
   isIngesting: false,
   setIngesting: (v) => set({ isIngesting: v }),
-  isForging: false,
-  setForging: (v) => set({ isForging: v }),
-  isPublishing: false,
-  setPublishing: (v) => set({ isPublishing: v }),
   forgeOpen: false,
   setForgeOpen: (v) => set({ forgeOpen: v }),
 }));

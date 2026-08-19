@@ -6,7 +6,7 @@ export default function NotFound() {
     <div className="flex min-h-[calc(100dvh-3.5rem)] flex-col items-center justify-center px-4 pt-14 text-center">
       <p className="font-serif text-4xl text-ink">404</p>
       <p className="mt-2 text-sm text-foreground-secondary">
-        This page doesn't exist — or the skill hasn't been forged yet.
+        This page doesn&apos;t exist — or the skill hasn&apos;t been forged yet.
       </p>
       <Link
         href="/"

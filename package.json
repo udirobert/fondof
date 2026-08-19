@@ -9,7 +9,7 @@
     "clean": "pnpm -r clean",
     "typecheck": "pnpm -r typecheck",
     "test": "vitest run",
-    "lint": "eslint 'packages/*/src/**/*.ts'",
+    "lint": "pnpm --filter @fondof/web lint",
     "prepare": "husky"
   },
   "engines": {
@@ -17,8 +17,8 @@
     "pnpm": ">=9.0.0"
   },
   "devDependencies": {
-    "@eslint/js": "9.20.0",
-    "eslint": "9.20.0",
+    "@eslint/js": "^9.21.0",
+    "eslint": "^9.21.0",
     "husky": "9.1.7",
     "lint-staged": "15.4.3",
     "typescript-eslint": "8.24.1",
@@ -26,7 +26,7 @@
   },
   "lint-staged": {
     "*.{ts,tsx}": [
-      "eslint --fix"
+      "eslint --fix --config packages/web/eslint.config.mjs"
     ]
   }
 }

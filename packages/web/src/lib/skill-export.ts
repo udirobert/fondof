@@ -60,10 +60,10 @@ export function formatForHarness(
   title: string,
   targetId: string,
 ): { content: string; filename: string; fullPath: string } {
-  const _target = EXPORT_TARGETS.find((t) => t.id === targetId) ?? EXPORT_TARGETS[4];
+  const target = EXPORT_TARGETS.find((t) => t.id === targetId) ?? EXPORT_TARGETS[4];
   const filename = toFilename(title);
 
-  switch (targetId) {
+  switch (target.id) {
     case "kiro": {
       // Kiro steering: add front-matter
       const frontMatter = `---\ninclusion: manual\n---\n\n`;
