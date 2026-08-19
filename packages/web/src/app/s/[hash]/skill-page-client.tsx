@@ -775,40 +775,47 @@ export default function SkillPublicPage() {
               className="flex min-h-11 items-center justify-center gap-2 rounded-full bg-ember px-4 text-sm font-medium text-paper hover:bg-ember-hot"
             >
               {copiedMd ? <Check size={14} /> : <Copy size={14} />}
-              {copiedMd
-                ? "Copied for your agent"
-                : "Copy for your agent"}
+              {copiedMd ? "Copied for your agent" : "Copy for your agent"}
             </button>
-          ) : null}
-          <button
-            type="button"
-            onClick={() => void onCopy()}
-            className={`flex min-h-11 items-center justify-center gap-2 rounded-full px-4 text-sm font-medium ${
-              skillMarkdown
-                ? "border border-ink/12 bg-paper text-ink hover:border-ember/35"
-                : "bg-ember text-paper hover:bg-ember-hot"
-            }`}
-          >
-            {copied ? <Check size={14} /> : <Copy size={14} />}
-            {copied ? "Link copied" : "Copy share link"}
-          </button>
-          <button
-            type="button"
-            onClick={() => void onUse()}
-            disabled={using || !skill}
-            className="flex min-h-11 items-center justify-center gap-2 rounded-full border border-ink/12 bg-paper px-4 text-sm text-ink hover:border-ember/35 disabled:opacity-40"
-          >
-            <Zap size={14} />
-            {using ? "Recording…" : "I used this — record a claimed use"}
-          </button>
-          <a
-            href={skillTweetIntent({ hash, title: metaTitle ?? undefined })}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex min-h-10 items-center justify-center gap-2 text-xs text-muted hover:text-ink"
-          >
-            Post to X
-          </a>
+          ) : (
+            <button
+              type="button"
+              onClick={() => void onCopy()}
+              className="flex min-h-11 items-center justify-center gap-2 rounded-full bg-ember px-4 text-sm font-medium text-paper hover:bg-ember-hot"
+            >
+              {copied ? <Check size={14} /> : <Copy size={14} />}
+              {copied ? "Link copied" : "Copy share link"}
+            </button>
+          )}
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+            <button
+              type="button"
+              onClick={() => void onUse()}
+              disabled={using || !skill}
+              className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-ink/12 bg-paper px-3 text-[11px] text-ink hover:border-ember/35 disabled:opacity-40"
+            >
+              <Zap size={12} />
+              {using ? "Recording…" : "I used this"}
+            </button>
+            {skillMarkdown && (
+              <button
+                type="button"
+                onClick={() => void onCopy()}
+                className="inline-flex items-center gap-1 text-[11px] text-muted hover:text-ink"
+              >
+                {copied ? <Check size={11} /> : <Copy size={11} />}
+                {copied ? "Link copied" : "Copy share link"}
+              </button>
+            )}
+            <a
+              href={skillTweetIntent({ hash, title: metaTitle ?? undefined })}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-[11px] text-muted hover:text-ink"
+            >
+              Post to X
+            </a>
+          </div>
         </div>
 
         {/* Provenance & Proof — collapsible on-chain detail */}

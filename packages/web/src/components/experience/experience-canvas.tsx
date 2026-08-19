@@ -38,11 +38,19 @@ export function ExperienceCanvas({
     const state = sync.current;
     let raf = 0;
 
+    // Document-space top of the canvas root — non-zero when the landing sits
+    // below the tool pad rather than at the top of the page.
+    const rootOffset = () =>
+      rootRef.current
+        ? rootRef.current.getBoundingClientRect().top + window.scrollY
+        : 0;
+
     const resize = () => {
       state.viewportWidth = window.innerWidth;
       state.viewportHeight = window.innerHeight;
       state.scrollX = window.scrollX;
       state.scrollY = window.scrollY;
+      state.rootOffsetY = rootOffset();
 
       const canvasH = state.viewportHeight * (1 + state.padding * 2);
       if (wrapRef.current) {
@@ -55,10 +63,12 @@ export function ExperienceCanvas({
     const tick = () => {
       state.scrollX = window.scrollX;
       state.scrollY = window.scrollY;
+      state.rootOffsetY = rootOffset();
       sampleAnchors(state, rootRef.current ?? document);
 
       // Canvas rides with the document — Lusion "no-fix" alternative with padding
-      const y = state.scrollY - state.viewportHeight * state.padding;
+      const y =
+        state.scrollY - state.rootOffsetY - state.viewportHeight * state.padding;
       if (wrapRef.current) {
         wrapRef.current.style.transform = `translate3d(${state.scrollX}px, ${y}px, 0)`;
       }

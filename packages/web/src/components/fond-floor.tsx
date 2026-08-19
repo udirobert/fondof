@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Flame } from "lucide-react";
 import { SourceCard } from "@/components/source-card";
 import { IdeaShard } from "@/components/idea-shard";
 import { DiscoveryPanel } from "@/components/discovery-panel";
@@ -21,6 +21,7 @@ import { SkillPoolPulse } from "@/components/skill-pool-pulse";
 import { SourceTextDrawer } from "@/components/source-text-drawer";
 import { Tip } from "@/components/tip";
 import { QuickPad, type QuickComposeInput } from "@/components/quick-pad";
+import { LandingExperience } from "@/components/experience/landing-experience";
 import { useAppStore } from "@/lib/store";
 import { fondofPhrase } from "@/lib/fondof-phrase";
 import { track } from "@/lib/track";
@@ -48,6 +49,8 @@ import type { IdeaFromAPI, IngestValue } from "@/lib/api";
 
 type FloorMode = "pad" | "ingest" | "work";
 
+const FLOOR_MODE_KEY = "fondof_floor_mode";
+
 function sampleIdeas(): IdeaFromAPI[] {
   return demoIdeas.map((idea) =>
     toApiIdea(idea, demoSources[0].url, "demo"),
@@ -69,6 +72,7 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
   const abortRef = useRef<AbortController | null>(null);
   const deepLinkRef = useRef<string | null>(null);
   const [sourcesOpen, setSourcesOpen] = useState(false);
+  const [discoveryOpen, setDiscoveryOpen] = useState(false);
   const [mode, setMode] = useState<FloorMode>("pad");
   const [phases, setPhases] = useState<IngestPhase[]>([]);
   const [activePhase, setActivePhase] = useState<string | undefined>();
@@ -87,6 +91,11 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
 
   const persistMode = useCallback(
     (quick: boolean) => {
+      try {
+        localStorage.setItem(FLOOR_MODE_KEY, quick ? "quick" : "studio");
+      } catch {
+        // ignore
+      }
       const params = new URLSearchParams(searchParams.toString());
       params.delete("quick");
       params.delete("studio");
@@ -96,10 +105,20 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
     [searchParams, router],
   );
 
-  // Sync the pad mode from the URL (shared links, back/forward).
+  // Sync the pad mode from the URL (shared links, back/forward); otherwise
+  // remember the user's choice so returning visitors land on their depth.
   useEffect(() => {
     if (searchParams.get("studio") === "1") setQuickMode(false);
     else if (searchParams.get("quick") === "1") setQuickMode(true);
+    else {
+      try {
+        const saved = localStorage.getItem(FLOOR_MODE_KEY);
+        if (saved === "studio") setQuickMode(false);
+        else if (saved === "quick") setQuickMode(true);
+      } catch {
+        // ignore
+      }
+    }
   }, [searchParams]);
 
   const {
@@ -487,18 +506,58 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
     [],
   );
 
-  // Escalate from Quick to the full studio with the same source pre-loaded.
+  // Escalate from Quick to the full studio. When the compose returned ideas,
+  // seed the studio with them (continuous) instead of re-ingesting the source.
   const handleGoDeeper = useCallback(
     (source: string, isNeed: boolean) => {
       const src = source.trim();
       if (!src || quickBusy) return;
       setQuickMode(false);
-      setQuickResult(null);
       persistMode(false);
+      const res = quickResult;
+      setQuickResult(null);
+      if (res && !res.error && res.ideas && res.ideas.length > 0) {
+        const sourceUrl =
+          res.sourceUrl ||
+          (isNeed
+            ? `need://${encodeURIComponent(src.slice(0, 48))}`
+            : src.startsWith("http")
+              ? src
+              : `https://${src}`);
+        const contentType =
+          res.contentType === "youtube"
+            ? "youtube"
+            : res.contentType === "podcast" || res.contentType === "audio"
+              ? "podcast"
+              : res.contentType === "text"
+                ? "text"
+                : "blog";
+        addSource({
+          url: sourceUrl,
+          title: res.title || src.slice(0, 48),
+          contentType,
+          ideasCount: res.ideas.length,
+          sourceHash: res.sourceHash || "compose",
+          isProcessing: false,
+        });
+        setIdeas(res.ideas);
+        selectIdeas(res.ideas.map((i) => i.id));
+        setMode("work");
+        return;
+      }
       if (isNeed) void runIngest({ need: src });
       else void runIngest({ url: src.startsWith("http") ? src : `https://${src}` });
     },
-    [quickBusy, runIngest, persistMode],
+    [
+      quickBusy,
+      quickResult,
+      runIngest,
+      persistMode,
+      addSource,
+      setIdeas,
+      selectIdeas,
+      setMode,
+    ],
   );
 
   // Viral deep link: /?url=https://… → start ingest once
@@ -696,7 +755,7 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
             transition={{ duration: 0.28 }}
             className="flex min-h-[calc(100dvh-3.5rem)] flex-col"
           >
-            <div className="flex flex-1 flex-col items-center justify-center px-4 pb-[max(2rem,env(safe-area-inset-bottom))] pt-6">
+            <div className="flex min-h-[calc(100dvh-3.5rem)] flex-col items-center justify-center px-4 pb-[max(2rem,env(safe-area-inset-bottom))] pt-6">
               {showFrame && (
                 <div className="mb-6 text-center">
                   <FondofWordmark size="hero" />
@@ -735,6 +794,10 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
                   </button>
                 ))}
               </div>
+              <p className="mb-3 max-w-sm text-center text-[11px] leading-snug text-muted">
+                Quick: one-shot skill in seconds · Studio: see every idea, pick
+                the best
+              </p>
 
               {quickMode ? (
                 <QuickPad
@@ -760,6 +823,7 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
                 </p>
               )}
             </div>
+            {showFrame && <LandingExperience />}
           </motion.div>
         )}
 
@@ -971,15 +1035,28 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
                       ) : null}
                     </p>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    {activeFitCount > 0 && !fitFilterActive && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    {activeFitCount >= 2 && !fitFilterActive && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          selectFitShards();
+                          setForgeOpen(true);
+                        }}
+                        className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-full bg-ember px-3.5 text-[12px] font-medium text-paper transition-colors hover:bg-ember-hot"
+                      >
+                        <Flame size={13} />
+                        Forge top {activeFitCount} fits
+                      </button>
+                    )}
+                    {activeFitCount === 1 && !fitFilterActive && (
                       <Tip tip="fit">
                         <button
                           type="button"
                           onClick={selectFitShards}
                           className="inline-flex min-h-9 items-center justify-center rounded-full border border-ink/12 bg-mist px-3.5 text-[12px] font-medium text-ink hover:border-ember/35"
                         >
-                          Select {activeFitCount} fits
+                          Select 1 fit
                         </button>
                       </Tip>
                     )}
@@ -1067,15 +1144,36 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
                   )}
                 </div>
 
-                <DiscoveryPanel
-                  existingSkills={discoverySkills}
-                  repoMatchSummary={repoMatchSummary}
-                  forgeWorthyCount={forgeWorthyCount}
-                  totalIdeas={ideas.length}
-                  ideas={ideas}
-                  onSkillsUpdate={setDiscoverySkills}
-                  onCompareNote={setCompareNote}
-                />
+                <div className="mb-4">
+                  <button
+                    type="button"
+                    onClick={() => setDiscoveryOpen((v) => !v)}
+                    className="flex w-full items-center justify-between gap-2 rounded-xl border border-ink/8 bg-paper/60 px-3 py-2 text-left transition-colors hover:border-ink/15"
+                    aria-expanded={discoveryOpen}
+                  >
+                    <span className="text-[11px] uppercase tracking-wider text-muted">
+                      Compare with existing skills
+                    </span>
+                    <ChevronDown
+                      size={14}
+                      className={`text-muted transition-transform ${discoveryOpen ? "rotate-180" : ""}`}
+                    />
+                  </button>
+                  {discoveryOpen && (
+                    <div className="mt-2">
+                      <DiscoveryPanel
+                        existingSkills={discoverySkills}
+                        repoMatchSummary={repoMatchSummary}
+                        forgeWorthyCount={forgeWorthyCount}
+                        totalIdeas={ideas.length}
+                        ideas={ideas}
+                        onSkillsUpdate={setDiscoverySkills}
+                        onCompareNote={setCompareNote}
+                        embedded
+                      />
+                    </div>
+                  )}
+                </div>
 
                 <WorkStages>
                   <AgentExportBar

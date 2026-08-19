@@ -22,6 +22,8 @@ export interface ScrollSyncState {
   viewportHeight: number;
   /** Extra canvas padding as fraction of viewport height (Lusion default ~0.25) */
   padding: number;
+  /** Document-space top of the canvas root (0 when it starts at page top) */
+  rootOffsetY: number;
   anchors: Record<string, DomAnchor>;
 }
 
@@ -32,6 +34,7 @@ export function createScrollSyncState(padding = 0.25): ScrollSyncState {
     viewportWidth: typeof window !== "undefined" ? window.innerWidth : 1,
     viewportHeight: typeof window !== "undefined" ? window.innerHeight : 1,
     padding,
+    rootOffsetY: 0,
     anchors: {},
   };
 }
@@ -83,7 +86,8 @@ export function documentToWorld(
   planeZ = 0,
 ): { x: number; y: number } {
   // Position relative to current viewport center (canvas is translated with scroll)
-  const canvasTop = state.scrollY - state.viewportHeight * state.padding;
+  const canvasTop =
+    state.scrollY - state.rootOffsetY - state.viewportHeight * state.padding;
   const screenX = docX - state.scrollX;
   const screenY = docY - canvasTop;
 
