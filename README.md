@@ -22,7 +22,7 @@ fondof was specified and steered in [Kiro](https://kiro.dev), then shipped as a 
 
 ## ElevenLabs MCP challenge: Talk to a Skill
 
-The reusable [Talk to a Skill pipeline](skills/talk-to-a-skill.md) turns a public fondof skill into a grounded ElevenAgent: source → extracted ideas → fitted skill → spoken exploration. A public skill page includes **Copy Talk to a Skill prompt** (Copy tab) so an MCP-capable agent can reproduce the handoff, and owners can attach the resulting agent link so visitors get a **Talk to this skill** button. See the [challenge demo plan](docs/talk-to-a-skill.md) for the grounding checks and Hosted MCP/local MCP disclosure.
+The reusable [Talk to a Skill pipeline](skills/talk-to-a-skill.md) turns a public fondof skill into a grounded ElevenAgent: source → extracted ideas → fitted skill → spoken exploration. A public skill page includes **Copy Talk to a Skill prompt** (Copy tab) so an MCP-capable agent can reproduce the handoff, and owners can attach the resulting agent link so visitors get a **Talk to this skill** button. Skills with an attached agent show a small mic indicator on the pool cards and shelf — it only appears where the capability actually exists. See the [challenge demo plan](docs/talk-to-a-skill.md) for the grounding checks and Hosted MCP/local MCP disclosure.
 
 **How Kiro shaped the build** (concrete, verifiable in the diff + specs):
 

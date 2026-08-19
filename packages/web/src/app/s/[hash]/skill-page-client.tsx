@@ -995,8 +995,15 @@ export default function SkillPublicPage() {
                       href={skillPublicPath(p.skillHash)}
                       className="flex items-center justify-between gap-2 rounded-lg border border-ink/8 bg-paper/60 px-3 py-2 text-sm hover:border-ember/30"
                     >
-                      <span className="min-w-0 truncate font-medium text-ink">
-                        {peerTitle || `Score ${formatSignal(p.signal)}`}
+                      <span className="flex min-w-0 items-center gap-1.5">
+                        <span className="min-w-0 truncate font-medium text-ink">
+                          {peerTitle || `Score ${formatSignal(p.signal)}`}
+                        </span>
+                        {p.agentUrl && (
+                          <Tip tip="talk">
+                            <Mic size={12} className="shrink-0 text-ember" />
+                          </Tip>
+                        )}
                       </span>
                       <span className="shrink-0 text-[11px] text-muted">
                         {peerTitle ? `Score ${formatSignal(p.signal)} · ` : ""}

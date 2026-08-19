@@ -46,6 +46,7 @@ Public pages follow one rule: **one active mode at a time, and only the audience
 - **Owner-only controls are gated by session.** Portfolio share buttons render only for the profile owner; source claims only prompt the viewer who can act on them.
 - **Power knobs collapse.** QuickPad keeps source + fit repo + Forge visible; shards and privacy live behind an Options disclosure. Secondary metadata (genres, lineage, canonical source IDs) collapses behind a "more" toggle.
 - **Provenance stays collapsible.** On-chain detail (signal story, challenges, receipts, explorer links) lives in the collapsed "Provenance & Proof" disclosure with a one-line summary when closed.
+- **Capability signals ride on existing surfaces.** The ElevenLabs "Talk to a Skill" voice agent is not a destination section; it appears as a small mic indicator on skill cards (pool paper cards, the public shelf, and skill-page peer cards) — and only when that skill actually has an `agentUrl` attached. No agent, no indicator. Clicking through lands on the skill page's Talk tab.
 
 When adding a surface, place it by audience (visitor vs owner) and intent (consume vs act), then collapse everything that is not the primary action for that audience.
 

@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
+import { Mic } from "lucide-react";
 import { Tip } from "@/components/tip";
 import { formatSignal } from "@/lib/idea-insights";
 import { getSkillMeta } from "@/lib/skill-meta";
@@ -62,6 +63,14 @@ export function PoolSkillCard({
                 >
                   Evidence {skill.evidenceSummary.evidenceScore}
                 </span>
+              )}
+              {skill.agentUrl && (
+                <Tip tip="talk">
+                  <span className="idea-shard__worth idea-shard__worth--forge inline-flex items-center gap-1">
+                    <Mic size={10} />
+                    Talk
+                  </span>
+                </Tip>
               )}
               {skill.challengeLosses > 0 && (
                 <span className="idea-shard__overlap idea-shard__overlap--partial">

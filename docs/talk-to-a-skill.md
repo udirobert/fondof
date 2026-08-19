@@ -30,6 +30,10 @@ This is deliberately more specific than "chat with a document." The ElevenAgent 
    - What should a developer avoid?
 7. Share the agent link alongside the fondof skill URL. The owner can attach the link to the skill page (Talk tab → Attach agent link), which surfaces a **Talk to this skill** button for every visitor.
 
+## Discovery
+
+Talk is surfaced proportionally to capability, not as a destination section. Skills with an attached agent show a small mic indicator on the pool paper cards, the public shelf, and skill-page peer cards; skills without one show nothing. Clicking through lands on the skill page's Talk tab. This keeps the integration honest — it only appears where it actually works.
+
 The reusable workflow is [`skills/talk-to-a-skill.md`](../skills/talk-to-a-skill.md).
 
 ## Connection path

@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ShieldCheck, FileText } from "lucide-react";
+import { ShieldCheck, FileText, Mic } from "lucide-react";
 import { API_BASE } from "@/lib/api-base";
 import { skillPublicPath } from "@/lib/skill-share";
+import { Tip } from "@/components/tip";
 import type { EvidenceSummary, GenreFacet, SkillGenre } from "@/lib/api";
 
 type DiscoverySort = "recent" | "impact" | "outcomes" | "adapted";
@@ -17,6 +18,7 @@ interface PoolSkill {
   sourceUrls?: string[];
   evidenceSummary?: EvidenceSummary;
   genres?: SkillGenre[];
+  agentUrl?: string;
 }
 
 /**
@@ -170,6 +172,14 @@ export function RecentPublicSkills({
                   <span title="Transparent evidence summary; not causal impact">
                     evidence {s.evidenceSummary.evidenceScore}
                   </span>
+                )}
+                {s.agentUrl && (
+                  <Tip tip="talk">
+                    <span className="inline-flex items-center gap-1 text-ember">
+                      <Mic size={12} />
+                      talk
+                    </span>
+                  </Tip>
                 )}
                 {s.onChain ? (
                   <span className="inline-flex items-center gap-1 text-ember">

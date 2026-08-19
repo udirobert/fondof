@@ -25,6 +25,8 @@ export const GLOSSARY = {
     "Where a skill’s thinking came from — source links and hashes recorded for verification.",
   delta:
     "A skill forged as the gap against an existing skill — just what was missing.",
+  talk:
+    "This skill has a voice agent attached — open the skill page and talk it through with an ElevenAgent grounded in it.",
 } as const;
 
 export type GlossaryKey = keyof typeof GLOSSARY;
