@@ -1,7 +1,7 @@
 /** Short plain-language tips for fondof jargon. */
 export const GLOSSARY = {
   forge:
-    "Compose ideas into a skill, then put ≥0.001 MON as skin so it can be scored — escrow stays in the contract (no withdraw).",
+    "Turn selected ideas into one agent skill fitted to your repo. Staking is optional — your MON stays in the contract (no withdrawal) and others can dispute the skill's quality.",
   apply:
     "This idea already exists as a skill pattern — copy an apply pack instead of reforging.",
   skip: "One-off or anti-pattern — useful to note, but leave it out of the forge tray.",
@@ -20,7 +20,11 @@ export const GLOSSARY = {
   skillpool:
     "On-chain quality registry — forge, use, challenge, draw. Signaling, not a marketplace.",
   challenge:
-    "Stake ≥0.001 MON to dispute quality. Win → take skin from the skill (capped at your stake). Lose → your stake funds the skill’s reputation.",
+    "Dispute a skill’s quality by staking MON. Win → you take up to your stake from the skill. Lose → your stake funds the skill’s reputation.",
+  provenance:
+    "Where a skill’s thinking came from — source links and hashes recorded for verification.",
+  delta:
+    "A skill forged as the gap against an existing skill — just what was missing.",
 } as const;
 
 export type GlossaryKey = keyof typeof GLOSSARY;

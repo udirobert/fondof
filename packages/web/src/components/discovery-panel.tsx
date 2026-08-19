@@ -113,7 +113,10 @@ export function DiscoveryPanel({
 
       <p className="text-sm text-ink">
         <span className="font-medium text-ember">{forgeWorthyCount}</span>
-        <span className="text-muted">/{totalIdeas}</span> worth forging
+        <span className="text-muted">/{totalIdeas}</span>{" "}
+        <Tip tip="forge">
+          <span className="text-muted">worth forging</span>
+        </Tip>
         {hasSkills && (
           <>
             {" "}

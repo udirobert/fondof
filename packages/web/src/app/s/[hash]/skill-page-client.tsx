@@ -118,10 +118,12 @@ function ProvenanceDisclosure({
         className="flex w-full items-center justify-between gap-2 text-left"
         aria-expanded={open}
       >
-        <span className="flex items-center gap-1.5 text-[12px] font-medium text-muted">
-          <Shield size={13} />
-          Provenance & Proof · on-chain
-        </span>
+        <Tip tip="provenance">
+          <span className="flex items-center gap-1.5 text-[12px] font-medium text-muted">
+            <Shield size={13} />
+            Provenance & Proof · on-chain
+          </span>
+        </Tip>
         <ChevronDown
           size={14}
           className={`text-muted transition-transform ${open ? "rotate-180" : ""}`}
@@ -572,20 +574,38 @@ export default function SkillPublicPage() {
                   {metaBlurb}
                 </p>
               )}
-              <p className="mt-2 text-[11px] text-muted">
+              <Tip
+                tip={
+                  skill?.onChain === false
+                    ? "Public off-chain skill — shareable and copyable; the on-chain stamp is optional extra proof."
+                    : "Live skill — its quality signal updates as agents use it."
+                }
+                className="mt-2"
+              >
+                <span className="text-[11px] text-muted">
+                  {skill?.onChain === false
+                    ? "Public skill · off-chain (not yet stamped on-chain)"
+                    : "Live skill · agents prove what works"}
+                  {tick > 0 ? " · updating" : ""}
+                </span>
+              </Tip>
+            </>
+          ) : (
+            <Tip
+              tip={
+                skill?.onChain === false
+                  ? "Public off-chain skill — shareable and copyable; the on-chain stamp is optional extra proof."
+                  : "Live skill — its quality signal updates as agents use it."
+              }
+              className="mt-2"
+            >
+              <span className="text-[11px] text-muted">
                 {skill?.onChain === false
                   ? "Public skill · off-chain (not yet stamped on-chain)"
                   : "Live skill · agents prove what works"}
                 {tick > 0 ? " · updating" : ""}
-              </p>
-            </>
-          ) : (
-            <p className="mt-2 text-[11px] text-muted">
-              {skill?.onChain === false
-                ? "Public skill · off-chain (not yet stamped on-chain)"
-                : "Live skill · agents prove what works"}
-              {tick > 0 ? " · updating" : ""}
-            </p>
+              </span>
+            </Tip>
           )}
         </div>
 
@@ -629,7 +649,9 @@ export default function SkillPublicPage() {
 
         {skill?.derivedFromSkillHash && (
           <p className="text-center text-[11px] text-muted">
-            Delta forged from{" "}
+            <Tip tip="delta">
+              <span>Delta forged from</span>
+            </Tip>{" "}
             <Link
               href={skillPublicPath(skill.derivedFromSkillHash)}
               className="text-ember hover:underline"

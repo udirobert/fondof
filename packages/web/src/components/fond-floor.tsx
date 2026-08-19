@@ -760,7 +760,7 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
                 <div className="mb-6 text-center">
                   <FondofWordmark size="hero" />
                   <p className="mx-auto mt-3 max-w-sm font-serif text-lg text-ink sm:text-xl">
-                    You just learned something. Your agent still hasn't.
+                    You just learned something. Your agent still hasn&apos;t.
                   </p>
                   <p className="mx-auto mt-2 max-w-sm text-sm text-foreground-secondary">
                     Paste it — get a skill fitted to your repo.
@@ -1012,8 +1012,10 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
                       <span className="font-medium text-ember">
                         {forgeWorthyCount}
                       </span>
-                      <span className="text-muted">/{ideas.length}</span> worth
-                      forging
+                      <span className="text-muted">/{ideas.length}</span>{" "}
+                      <Tip tip="forge">
+                        <span className="text-muted">worth forging</span>
+                      </Tip>
                       {activeFitCount > 0 && activeRepoObj ? (
                         <>
                           {" "}

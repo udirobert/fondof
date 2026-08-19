@@ -13,6 +13,7 @@ import {
   Unlock,
 } from "lucide-react";
 import { SkillSectionAccordion } from "@/components/skill-section-accordion";
+import { Tip } from "@/components/tip";
 import type { ComposeResponse } from "@/lib/api";
 
 export type QuickComposeInput =
@@ -148,9 +149,11 @@ export function QuickPad({
           <div className="flex flex-wrap items-center gap-2 border-t border-ink/5 pt-3">
             <div className="min-w-0 flex-1">
               <div className="flex min-w-0 items-center gap-2">
-                <label htmlFor="quick-repo" className="shrink-0 text-[11px] text-muted">
-                  Repo
-                </label>
+                <Tip tip="Your connected GitHub repos — or type any owner/name." className="shrink-0">
+                  <label htmlFor="quick-repo" className="text-[11px] text-muted">
+                    Repo
+                  </label>
+                </Tip>
                 {repos.length > 0 ? (
                   <select
                     id="quick-repo"
@@ -203,38 +206,41 @@ export function QuickPad({
               )}
             </div>
 
-            <div className="flex items-center gap-1.5">
-              <label htmlFor="quick-shards" className="text-[11px] text-muted">
-                Shards
-              </label>
-              <select
-                id="quick-shards"
-                value={shards}
-                onChange={(e) => setShards(Number(e.target.value))}
-                disabled={busy}
-                className="rounded-lg border border-ink/8 bg-mist px-2 py-1.5 text-xs text-ink focus:outline-none disabled:opacity-50"
-              >
-                {[1, 2, 3, 4, 5, 6].map((n) => (
-                  <option key={n} value={n}>
-                    {n}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <Tip tip="How many top ideas to forge into the skill">
+              <div className="flex items-center gap-1.5">
+                <label htmlFor="quick-shards" className="text-[11px] text-muted">
+                  Shards
+                </label>                <select
+                  id="quick-shards"
+                  value={shards}
+                  onChange={(e) => setShards(Number(e.target.value))}
+                  disabled={busy}
+                  className="rounded-lg border border-ink/8 bg-mist px-2 py-1.5 text-xs text-ink focus:outline-none disabled:opacity-50"
+                >
+                  {[1, 2, 3, 4, 5, 6].map((n) => (
+                    <option key={n} value={n}>
+                      {n}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </Tip>
 
-            <button
-              type="button"
-              onClick={() => setIsPrivate((p) => !p)}
-              disabled={busy}
-              className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1.5 text-[11px] transition-colors disabled:opacity-50 ${
-                isPrivate
-                  ? "border-ink/20 bg-mist text-ink"
-                  : "border-ember/30 bg-ember/5 text-ember"
-              }`}
-            >
-              {isPrivate ? <Lock size={11} /> : <Unlock size={11} />}
-              {isPrivate ? "Private draft" : "Share publicly"}
-            </button>
+            <Tip tip="Private drafts stay local to this flow. Share publicly only when you want attribution and re-forging.">
+              <button
+                type="button"
+                onClick={() => setIsPrivate((p) => !p)}
+                disabled={busy}
+                className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1.5 text-[11px] transition-colors disabled:opacity-50 ${
+                  isPrivate
+                    ? "border-ink/20 bg-mist text-ink"
+                    : "border-ember/30 bg-ember/5 text-ember"
+                }`}
+              >
+                {isPrivate ? <Lock size={11} /> : <Unlock size={11} />}
+                {isPrivate ? "Private draft" : "Share publicly"}
+              </button>
+            </Tip>
           </div>
 
           <button
@@ -280,13 +286,19 @@ export function QuickPad({
               <div>
                 <h2 className="font-serif text-lg text-ink">{result.title}</h2>
                 {result.fittedTo && (
-                  <p className="text-[11px] text-muted">fitted for {result.fittedTo}</p>
+                  <Tip tip="Written for this repo’s stack, conventions, and paths.">
+                    <span className="text-[11px] text-muted">
+                      fitted for {result.fittedTo}
+                    </span>
+                  </Tip>
                 )}
               </div>
               {result.onChain === false && (
-                <span className="shrink-0 rounded-full border border-ink/10 px-2 py-0.5 text-[10px] text-muted">
-                  off-chain
-                </span>
+                <Tip tip="Public off-chain share — no on-chain stamp, fully copyable either way.">
+                  <span className="shrink-0 rounded-full border border-ink/10 px-2 py-0.5 text-[10px] text-muted">
+                    off-chain
+                  </span>
+                </Tip>
               )}
             </div>
 
