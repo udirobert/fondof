@@ -22,6 +22,7 @@ const VALID_EVENTS = [
   "pool_draw",
   "source_impact_shared",
   "creator_impact_shared",
+  "agent_url_attached",
 ] as const;
 
 type EventName = (typeof VALID_EVENTS)[number];

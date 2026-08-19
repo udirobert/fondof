@@ -179,6 +179,8 @@ export interface SkillOnChainResponse {
   ownerLogin?: string;
   attestedTxHash?: string;
   attestedAt?: string;
+  /** ElevenAgent share URL — set after agent creation via Hosted MCP */
+  agentUrl?: string;
   error?: string;
 }
 
@@ -346,6 +348,7 @@ export async function publishSkillMeta(
     landings?: Array<{ path: string; why: string }>;
     frameworks?: string[];
     outcome?: SkillOutcome | null;
+    agentUrl?: string | null;
   },
 ): Promise<{
   success?: boolean;

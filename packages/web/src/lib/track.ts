@@ -20,7 +20,8 @@ type EventName =
   | "share_link_copied"
   | "pool_draw"
   | "source_impact_shared"
-  | "creator_impact_shared";
+  | "creator_impact_shared"
+  | "agent_url_attached";
 
 /**
  * Track a product event. Non-blocking, fire-and-forget.

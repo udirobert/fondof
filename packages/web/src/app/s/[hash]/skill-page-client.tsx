@@ -12,6 +12,7 @@ import {
   Loader2,
   Shield,
   Swords,
+  Volume2,
   Zap,
 } from "lucide-react";
 import {
@@ -61,6 +62,8 @@ import { getSkillMeta } from "@/lib/skill-meta";
 import { whereItLands } from "@/lib/where-it-lands";
 import { track } from "@/lib/track";
 import { fetchSession, getToken } from "@/lib/auth";
+import { formatTalkToSkillPrompt } from "@/lib/agent-export";
+import { SkillAgentPanel } from "@/components/skill-agent-panel";
 
 const RECEIPT_CONSENT_KEY = "fondof_receipt_consent";
 const RECEIPT_KEY = "fondof_receipt_key";
@@ -254,6 +257,7 @@ export default function SkillPublicPage() {
   const [note, setNote] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [copiedMd, setCopiedMd] = useState(false);
+  const [copiedTalkPrompt, setCopiedTalkPrompt] = useState(false);
   const [shareUrl, setShareUrl] = useState("");
   const [tick, setTick] = useState(0);
   const [peers, setPeers] = useState<SkillOnChainResponse[]>([]);
@@ -264,6 +268,7 @@ export default function SkillPublicPage() {
   const [metaTitle, setMetaTitle] = useState<string | null>(null);
   const [metaBlurb, setMetaBlurb] = useState<string | null>(null);
   const [metaRepo, setMetaRepo] = useState<string | null>(null);
+  const [agentUrl, setAgentUrl] = useState<string | null>(null);
 
   const refreshChallenges = useCallback(async () => {
     if (!hash) return;
@@ -323,7 +328,8 @@ export default function SkillPublicPage() {
     if (skill?.title) setMetaTitle(skill.title);
     if (skill?.blurb) setMetaBlurb(skill.blurb);
     if (skill?.repo) setMetaRepo(skill.repo);
-  }, [skill?.title, skill?.blurb, skill?.repo]);
+    if (skill?.agentUrl) setAgentUrl(skill.agentUrl);
+  }, [skill?.title, skill?.blurb, skill?.repo, skill?.agentUrl]);
 
   const landingHits =
     skill?.landings && skill.landings.length > 0
@@ -391,6 +397,24 @@ export default function SkillPublicPage() {
       setCopiedMd(true);
       track("skill_copied", { skillHash: hash });
       window.setTimeout(() => setCopiedMd(false), 1600);
+    } catch {
+      // ignore
+    }
+  };
+
+  const onCopyTalkPrompt = async () => {
+    const prompt = formatTalkToSkillPrompt({
+      title: metaTitle ?? skill?.title,
+      markdown: skillMarkdown,
+      skillUrl: shareUrl || skillShareUrl(hash),
+      repo: metaRepo ?? skill?.repo,
+      sourceUrls,
+    });
+    try {
+      await navigator.clipboard.writeText(prompt);
+      setCopiedTalkPrompt(true);
+      track("skill_copied", { skillHash: hash, kind: "talk-to-skill" });
+      window.setTimeout(() => setCopiedTalkPrompt(false), 1800);
     } catch {
       // ignore
     }
@@ -740,6 +764,18 @@ export default function SkillPublicPage() {
           />
         )}
 
+        {!loading && skill && (
+          <SkillAgentPanel
+            skillHash={hash}
+            titleHint={metaTitle ?? skill.title}
+            agentUrl={agentUrl}
+            onSaved={(url) => {
+              setAgentUrl(url);
+              setSkill((s) => (s ? { ...s, agentUrl: url } : s));
+            }}
+          />
+        )}
+
         {skill?.visibility === "public" &&
           skill.ownerLogin &&
           viewerLogin === skill.ownerLogin && (
@@ -829,6 +865,14 @@ export default function SkillPublicPage() {
                 {copied ? "Link copied" : "Copy share link"}
               </button>
             )}
+            <button
+              type="button"
+              onClick={() => void onCopyTalkPrompt()}
+              className="inline-flex items-center gap-1 text-[11px] text-muted hover:text-ember"
+            >
+              {copiedTalkPrompt ? <Check size={11} /> : <Volume2 size={11} />}
+              {copiedTalkPrompt ? "Prompt copied" : "Copy Talk to a Skill prompt"}
+            </button>
             <a
               href={skillTweetIntent({ hash, title: metaTitle ?? undefined })}
               target="_blank"

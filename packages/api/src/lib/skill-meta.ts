@@ -23,6 +23,8 @@ export type SkillMetaRecord = {
   landings?: LandingHitRecord[];
   frameworks?: string[];
   outcome?: SkillOutcomeRecord;
+  /** ElevenAgent share URL created via Hosted MCP — optional, set after agent creation */
+  agentUrl?: string;
   at: number;
 };
 
@@ -49,6 +51,8 @@ export type SkillMetaInput = {
   frameworks?: string[];
   /** Pass to set/replace; omit to keep existing */
   outcome?: SkillOutcomeRecord | null;
+  /** ElevenAgent share URL; pass empty string to clear */
+  agentUrl?: string | null;
 };
 
 function sanitizeHttpUrl(raw: string | undefined, max = 500): string | undefined {
@@ -119,6 +123,15 @@ export async function putSkillMeta(
     outcome = existing?.outcome;
   }
 
+  let agentUrl: string | undefined;
+  if (meta.agentUrl === null || meta.agentUrl === "") {
+    agentUrl = undefined;
+  } else if (meta.agentUrl !== undefined) {
+    agentUrl = sanitizeHttpUrl(meta.agentUrl, 600);
+  } else {
+    agentUrl = existing?.agentUrl;
+  }
+
   const record: SkillMetaRecord = {
     title,
     blurb:
@@ -133,6 +146,7 @@ export async function putSkillMeta(
     landings,
     frameworks,
     outcome,
+    agentUrl,
     at: Date.now(),
   };
   await cachePutJson(metaKey(hash), record, META_TTL);
@@ -151,6 +165,7 @@ export async function mergeSkillMeta<T extends { skillHash?: string }>(
     landings?: LandingHitRecord[];
     frameworks?: string[];
     outcome?: SkillOutcomeRecord;
+    agentUrl?: string;
   }
 > {
   const hash = skill.skillHash;
@@ -165,6 +180,7 @@ export async function mergeSkillMeta<T extends { skillHash?: string }>(
     landings: meta.landings,
     frameworks: meta.frameworks,
     outcome: meta.outcome,
+    agentUrl: meta.agentUrl,
     ...(opts?.includeBody && meta.markdown
       ? { markdown: meta.markdown }
       : {}),

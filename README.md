@@ -20,6 +20,10 @@ fondof was specified and steered in [Kiro](https://kiro.dev), then shipped as a 
 
 **Spec → ship:** the live product is the web floor (extract → fit/forge → hand-off → outcome) backed by a Cloudflare Worker API. SkillPool on Monad is the optional downstream proof/discovery layer — built under that Kiro spec, not a separate rewrite.
 
+## ElevenLabs MCP challenge: Talk to a Skill
+
+The reusable [Talk to a Skill pipeline](skills/talk-to-a-skill.md) turns a public fondof skill into a grounded ElevenAgent: source → extracted ideas → fitted skill → spoken exploration. A public skill page includes **Copy Talk to a Skill prompt** so an MCP-capable agent can reproduce the handoff. See the [challenge demo plan](docs/talk-to-a-skill.md) for the grounding checks and Hosted MCP/local MCP disclosure.
+
 **How Kiro shaped the build** (concrete, verifiable in the diff + specs):
 
 - **Spec first, code second.** `requirements.md` (FR1–FR8) → `design.md` (3-layer architecture, component schemas) → `tasks.md` (phased checklist). The phases in `tasks.md` map 1:1 onto the commit history (Phase 1 scaffold → … → Phase 9 web UI), and the git log dates all fall inside the competition period.

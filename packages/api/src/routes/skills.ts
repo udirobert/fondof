@@ -86,6 +86,7 @@ skillsRoute.post("/skills/:hash/meta", rateLimit("publish"), async (c) => {
         prUrl?: string;
         screenshotUrl?: string;
       } | null;
+      agentUrl?: string | null;
     }>()
     .catch(() => ({ title: undefined }))) as {
     title?: string;
@@ -99,11 +100,13 @@ skillsRoute.post("/skills/:hash/meta", rateLimit("publish"), async (c) => {
       prUrl?: string;
       screenshotUrl?: string;
     } | null;
+    agentUrl?: string | null;
   };
 
   const hasOutcomePatch = body.outcome !== undefined;
+  const hasAgentUrlPatch = body.agentUrl !== undefined;
   const title = body.title?.trim();
-  if (!title && !hasOutcomePatch) {
+  if (!title && !hasOutcomePatch && !hasAgentUrlPatch) {
     return c.json({ error: "title is required" }, 400);
   }
   if (body.outcome && body.outcome !== null) {
@@ -130,6 +133,7 @@ skillsRoute.post("/skills/:hash/meta", rateLimit("publish"), async (c) => {
               screenshotUrl: body.outcome.screenshotUrl,
             }
           : undefined,
+    agentUrl: body.agentUrl,
   });
 
   await patchPublicSkill(c.env, hash, {
