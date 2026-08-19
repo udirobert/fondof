@@ -2,7 +2,7 @@
 
 import { useRef } from "react";
 import { useFrame } from "@react-three/fiber";
-import { ContactShadows, Environment, SoftShadows } from "@react-three/drei";
+import { ContactShadows, Environment } from "@react-three/drei";
 import * as THREE from "three";
 import { experienceColors } from "@/lib/experience/materials";
 
@@ -30,8 +30,6 @@ export function DojoEnvironment({ progress }: DojoEnvironmentProps) {
     <>
       <color attach="background" args={[experienceColors.parchment]} />
       <fog attach="fog" args={[experienceColors.parchment, 10, 28]} />
-      <SoftShadows size={16} samples={8} focus={0.55} />
-
       <ambientLight intensity={0.72} color="#fff6ea" />
       <directionalLight
         castShadow

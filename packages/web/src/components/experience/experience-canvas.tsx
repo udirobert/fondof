@@ -102,7 +102,7 @@ export function ExperienceCanvas({
     >
       <Canvas
         dpr={[1, 1.5]}
-        shadows
+        shadows="percentage"
         camera={{ position: [0, 0.35, 8.2], fov: 42, near: 0.1, far: 40 }}
         gl={{
           antialias: true,
