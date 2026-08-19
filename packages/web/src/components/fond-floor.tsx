@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 import { SourceCard } from "@/components/source-card";
@@ -20,9 +20,11 @@ import { WorkStages } from "@/components/work-stages";
 import { SkillPoolPulse } from "@/components/skill-pool-pulse";
 import { SourceTextDrawer } from "@/components/source-text-drawer";
 import { Tip } from "@/components/tip";
+import { QuickPad, type QuickComposeInput } from "@/components/quick-pad";
 import { useAppStore } from "@/lib/store";
 import { fondofPhrase } from "@/lib/fondof-phrase";
 import { track } from "@/lib/track";
+import { composeSkill, type ComposeResponse } from "@/lib/api";
 import {
   resolveIngestStream,
   toApiIdea,
@@ -63,6 +65,7 @@ interface FondFloorProps {
  */
 export function FondFloor({ showFrame = false }: FondFloorProps) {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const abortRef = useRef<AbortController | null>(null);
   const deepLinkRef = useRef<string | null>(null);
   const [sourcesOpen, setSourcesOpen] = useState(false);
@@ -76,6 +79,28 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
   const [focusShardId, setFocusShardId] = useState<string | null>(null);
   const focusClearRef = useRef<number | null>(null);
   const [textDrawerUrl, setTextDrawerUrl] = useState<string | null>(null);
+  // Quick mode = one-shot compose inline; Studio mode = full theater.
+  // Mode lives in the URL (?quick=1 / ?studio=1) so it's shareable.
+  const [quickMode, setQuickMode] = useState(true);
+  const [quickBusy, setQuickBusy] = useState(false);
+  const [quickResult, setQuickResult] = useState<ComposeResponse | null>(null);
+
+  const persistMode = useCallback(
+    (quick: boolean) => {
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("quick");
+      params.delete("studio");
+      params.set(quick ? "quick" : "studio", "1");
+      router.replace(`?${params.toString()}`, { scroll: false });
+    },
+    [searchParams, router],
+  );
+
+  // Sync the pad mode from the URL (shared links, back/forward).
+  useEffect(() => {
+    if (searchParams.get("studio") === "1") setQuickMode(false);
+    else if (searchParams.get("quick") === "1") setQuickMode(true);
+  }, [searchParams]);
 
   const {
     sources,
@@ -97,6 +122,7 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
     setIngestValue,
     setCompareNote,
     activeRepo,
+    setActiveRepo,
     userRepos,
     selectIdeas,
   } = useAppStore();
@@ -432,6 +458,49 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
     ],
   );
 
+  // Quick mode: one-shot compose (ingest → top shards → forge) in a single call.
+  const handleQuickCompose = useCallback(
+    async (input: QuickComposeInput) => {
+      setQuickBusy(true);
+      setQuickResult(null);
+      try {
+        const body: Parameters<typeof composeSkill>[0] = {
+          topShards: input.shards,
+          private: input.isPrivate,
+        };
+        if ("need" in input) body.need = input.need;
+        else body.url = input.url.startsWith("http") ? input.url : `https://${input.url}`;
+        if (input.repo) body.repo = input.repo;
+        const res = await composeSkill(body);
+        setQuickResult(res);
+        if (!res.error) {
+          track("forge_completed", { mode: "quick", topShards: input.shards });
+        }
+      } catch (e) {
+        setQuickResult({
+          error: e instanceof Error ? e.message : "Request failed",
+        });
+      } finally {
+        setQuickBusy(false);
+      }
+    },
+    [],
+  );
+
+  // Escalate from Quick to the full studio with the same source pre-loaded.
+  const handleGoDeeper = useCallback(
+    (source: string, isNeed: boolean) => {
+      const src = source.trim();
+      if (!src || quickBusy) return;
+      setQuickMode(false);
+      setQuickResult(null);
+      persistMode(false);
+      if (isNeed) void runIngest({ need: src });
+      else void runIngest({ url: src.startsWith("http") ? src : `https://${src}` });
+    },
+    [quickBusy, runIngest, persistMode],
+  );
+
   // Viral deep link: /?url=https://… → start ingest once
   useEffect(() => {
     const raw = searchParams.get("url");
@@ -639,12 +708,52 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
                   </p>
                 </div>
               )}
-              <StartPad
-                busy={isIngesting}
-                onSubmitUrl={(url) => void runIngest({ url })}
-                onSubmitNeed={(need) => void runIngest({ need })}
-                onTrySample={loadInstantSample}
-              />
+              {/* Quick / Studio — depth, not destination */}
+              <div className="mb-3 flex justify-center gap-1">
+                {(
+                  [
+                    ["quick", "Quick"],
+                    ["studio", "Studio"],
+                  ] as const
+                ).map(([id, label]) => (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => {
+                      if (quickBusy) return;
+                      persistMode(id === "quick");
+                      setQuickMode(id === "quick");
+                    }}
+                    disabled={quickBusy}
+                    className={`min-h-10 rounded-full px-3.5 py-1.5 text-xs transition-colors ${
+                      (id === "quick") === quickMode
+                        ? "bg-ink text-paper"
+                        : "text-muted hover:bg-mist hover:text-ink"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              {quickMode ? (
+                <QuickPad
+                  busy={quickBusy}
+                  result={quickResult}
+                  repos={userRepos.map((r) => r.fullName)}
+                  activeRepo={activeRepo}
+                  onSelectRepo={setActiveRepo}
+                  onCompose={(input) => void handleQuickCompose(input)}
+                  onGoDeeper={handleGoDeeper}
+                />
+              ) : (
+                <StartPad
+                  busy={isIngesting}
+                  onSubmitUrl={(url) => void runIngest({ url })}
+                  onSubmitNeed={(need) => void runIngest({ need })}
+                  onTrySample={loadInstantSample}
+                />
+              )}
               {showFrame && (
                 <p className="mt-6 text-center text-xs text-muted">
                   Works with any coding agent

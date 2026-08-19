@@ -124,7 +124,13 @@ We don’t claim prompt-injection detection, sandboxing, or audited skill binari
 
 ### Judges: 5-minute click path (live, no install)
 
-Open [https://fondof.netlify.app](https://fondof.netlify.app). Every step below is live — the shards you see are extracted by an LLM from **your** input at click time, not pre-baked:
+Open [https://fondof.netlify.app](https://fondof.netlify.app). Every step below is live — the shards you see are extracted by an LLM from **your** input at click time, not pre-baked.
+
+The nav is **Fond | Pool**, and the floor has two depths on one page via a **Quick / Studio** toggle:
+- **Quick** — paste a URL or state a need, pick a repo (or type any `owner/name`), hit **Compose skill** and get a fitted skill in one shot, right under the pad. This is the former separate `/compose` flow, now inline at `/` (which redirects `/compose` → `/?quick=1`).
+- **Studio** — the guided theater below: extract → pick shards → forge.
+
+The numbered path below walks the **Studio** depth:
 
 1. **Extract from a need (no account, no GitHub).** **Need** tab → type `retry budgets for async TypeScript fetch` → click **Extract**. The API extracts discrete ideas from your exact text (~5–15 s). Type something else (e.g. `structured logging for worker services`) and you'll get different ideas — it's a live call, not a canned list.
 2. **Or extract from a URL.** **URL** tab → click a sample (talk / docs / blog) or paste any public article URL → **Extract**. YouTube pulls real captions; articles are read + LLM-extracted.
