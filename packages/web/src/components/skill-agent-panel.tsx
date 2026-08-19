@@ -141,15 +141,14 @@ export function SkillAgentPanel({
 
   if (!open) {
     return (
-      <div className="rounded-xl border border-dashed border-ink/15 bg-mist/30 px-3 py-3">
-        <p className="text-[12px] leading-snug text-foreground-secondary">
-          Created an ElevenAgent from this skill? Paste the share link to add a{" "}
-          <span className="font-medium text-ink">Talk to this skill</span> button.
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+        <p className="text-[12px] leading-snug text-muted">
+          Created an ElevenAgent from this skill?
         </p>
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="mt-2 inline-flex min-h-9 items-center gap-1.5 text-[12px] text-ember hover:underline"
+          className="inline-flex min-h-9 items-center gap-1.5 text-[12px] text-ember hover:underline"
         >
           <Mic size={13} />
           Attach agent link

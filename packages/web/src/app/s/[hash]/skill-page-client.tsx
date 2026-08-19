@@ -10,6 +10,8 @@ import {
   Dices,
   Flame,
   Loader2,
+  Mic,
+  MoreHorizontal,
   Shield,
   Swords,
   Volume2,
@@ -269,6 +271,10 @@ export default function SkillPublicPage() {
   const [metaBlurb, setMetaBlurb] = useState<string | null>(null);
   const [metaRepo, setMetaRepo] = useState<string | null>(null);
   const [agentUrl, setAgentUrl] = useState<string | null>(null);
+  // progressive disclosure
+  const [metaOpen, setMetaOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<"talk" | "copy" | "prove" | null>(null);
+  const [ownerToolsOpen, setOwnerToolsOpen] = useState(false);
 
   const refreshChallenges = useCallback(async () => {
     if (!hash) return;
@@ -583,9 +589,20 @@ export default function SkillPublicPage() {
 
   const sourceHashes = skill?.sourceHashes ?? [];
 
+  const isOwner =
+    Boolean(viewerLogin) &&
+    (skill?.ownerLogin ? viewerLogin === skill.ownerLogin : true);
+
+  const onSaveAgentUrl = (url: string) => {
+    setAgentUrl(url);
+    setSkill((s) => (s ? { ...s, agentUrl: url } : s));
+  };
+
   return (
     <div className="atmosphere relative min-h-[calc(100dvh-3.5rem)] pt-14">
-      <div className="mx-auto flex w-full max-w-lg flex-col gap-8 px-4 py-10 pb-20">
+      <div className="mx-auto flex w-full max-w-lg flex-col gap-6 px-4 py-10 pb-20">
+
+        {/* ── Header ── */}
         <div className="text-center">
           <FondofWordmark size="inline" />
           {metaTitle ? (
@@ -594,117 +611,105 @@ export default function SkillPublicPage() {
                 {metaTitle}
               </h1>
               {metaBlurb && (
-                <p className="mt-2 text-sm text-foreground-secondary">
-                  {metaBlurb}
-                </p>
+                <p className="mt-2 text-sm text-foreground-secondary">{metaBlurb}</p>
               )}
-              <Tip
-                tip={
-                  skill?.onChain === false
-                    ? "Public off-chain skill — shareable and copyable; the on-chain stamp is optional extra proof."
-                    : "Live skill — its quality signal updates as agents use it."
-                }
-                className="mt-2"
-              >
-                <span className="text-[11px] text-muted">
-                  {skill?.onChain === false
-                    ? "Public skill · off-chain (not yet stamped on-chain)"
-                    : "Live skill · agents prove what works"}
-                  {tick > 0 ? " · updating" : ""}
-                </span>
-              </Tip>
             </>
-          ) : (
-            <Tip
-              tip={
-                skill?.onChain === false
-                  ? "Public off-chain skill — shareable and copyable; the on-chain stamp is optional extra proof."
-                  : "Live skill — its quality signal updates as agents use it."
-              }
-              className="mt-2"
-            >
-              <span className="text-[11px] text-muted">
-                {skill?.onChain === false
-                  ? "Public skill · off-chain (not yet stamped on-chain)"
-                  : "Live skill · agents prove what works"}
-                {tick > 0 ? " · updating" : ""}
-              </span>
-            </Tip>
+          ) : null}
+          <Tip
+            tip={
+              skill?.onChain === false
+                ? "Public off-chain skill — shareable and copyable; the on-chain stamp is optional extra proof."
+                : "Live skill — its quality signal updates as agents use it."
+            }
+            className="mt-2"
+          >
+            <span className="text-[11px] text-muted">
+              {skill?.onChain === false
+                ? "Public skill · off-chain"
+                : "Live skill · agents prove what works"}
+              {tick > 0 ? " · updating" : ""}
+            </span>
+          </Tip>
+        </div>
+
+        {/* ── Collapsed meta strip ── */}
+        <div className="text-center">
+          {/* Always-visible: source domains */}
+          {sourceDomains.length > 0 && (
+            <p className="text-[11px] text-muted">
+              Forged from{" "}
+              {sourceDomains.map((d, i) => (
+                <span key={d}>
+                  {i > 0 && " · "}
+                  <Link href={`/from/${encodeURIComponent(d)}`} className="text-ember hover:underline">
+                    {d}
+                  </Link>
+                </span>
+              ))}
+            </p>
+          )}
+
+          {/* Expandable detail: forger, genres, lineage, canonical */}
+          {(skill?.forger || (skill?.genres && skill.genres.length > 0) || skill?.derivedFromSkillHash || canonicalSources.length > 0) && (
+            <>
+              {metaOpen && (
+                <div className="mt-2 space-y-2">
+                  {skill?.forger && (
+                    <p className="text-[12px] text-muted">
+                      Forged by <IdentityLabel address={skill.forger} avatar className="inline" />
+                    </p>
+                  )}
+                  {skill?.genres && skill.genres.length > 0 && (
+                    <p className="flex flex-wrap items-center justify-center gap-2">
+                      {skill.genres.map((genre) => (
+                        <Link
+                          key={genre.slug}
+                          href={`/discover/${genre.slug}`}
+                          className="rounded-full border border-ink/10 bg-paper px-2.5 py-1 text-[11px] text-ember hover:border-ember/35"
+                        >
+                          {genre.label}
+                        </Link>
+                      ))}
+                    </p>
+                  )}
+                  {skill?.derivedFromSkillHash && (
+                    <p className="text-[11px] text-muted">
+                      <Tip tip="delta"><span>Delta forged from </span></Tip>
+                      <Link href={skillPublicPath(skill.derivedFromSkillHash)} className="text-ember hover:underline">
+                        parent skill
+                      </Link>
+                    </p>
+                  )}
+                  {skill && (
+                    <p className="text-[11px] text-muted">
+                      <Link href={`/remix/${encodeURIComponent(hash)}`} className="text-ember hover:underline">
+                        Explore parent and remix lineage
+                      </Link>
+                    </p>
+                  )}
+                  {canonicalSources.length > 0 && (
+                    <p className="text-[10px] text-muted">
+                      Canonical ·{" "}
+                      <span className="font-mono" title={canonicalSources.map((s) => s.url).join("\n")}>
+                        {canonicalSources[0]!.id}
+                      </span>
+                    </p>
+                  )}
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={() => setMetaOpen((o) => !o)}
+                className="mt-1.5 inline-flex items-center gap-1 text-[11px] text-muted hover:text-ink"
+              >
+                <MoreHorizontal size={13} />
+                {metaOpen ? "less" : "more"}
+              </button>
+            </>
           )}
         </div>
 
-        {/* Forger attribution + Fork */}
-        {skill?.forger && (
-          <p className="text-center text-[12px] text-muted">
-            Forged by <IdentityLabel address={skill.forger} avatar className="inline" />
-          </p>
-        )}
-
-        {sourceDomains.length > 0 && (
-          <p className="text-center text-[11px] text-muted">
-            Forged from{" "}
-            {sourceDomains.map((d, i) => (
-              <span key={d}>
-                {i > 0 && " · "}
-                <Link
-                  href={`/from/${encodeURIComponent(d)}`}
-                  className="text-ember hover:underline"
-                >
-                  {d}
-                </Link>
-              </span>
-            ))}
-          </p>
-        )}
-
-        {skill?.genres && skill.genres.length > 0 && (
-          <p className="flex flex-wrap items-center justify-center gap-2 text-center text-[11px] text-muted">
-            {skill.genres.map((genre) => (
-              <Link
-                key={genre.slug}
-                href={`/discover/${genre.slug}`}
-                className="rounded-full border border-ink/10 bg-paper px-2.5 py-1 text-ember hover:border-ember/35"
-              >
-                {genre.label}
-              </Link>
-            ))}
-          </p>
-        )}
-
-        {skill?.derivedFromSkillHash && (
-          <p className="text-center text-[11px] text-muted">
-            <Tip tip="delta">
-              <span>Delta forged from</span>
-            </Tip>{" "}
-            <Link
-              href={skillPublicPath(skill.derivedFromSkillHash)}
-              className="text-ember hover:underline"
-            >
-              parent skill
-            </Link>
-          </p>
-        )}
-
-        {skill && (
-          <p className="text-center text-[11px] text-muted">
-            <Link
-              href={`/remix/${encodeURIComponent(hash)}`}
-              className="text-ember hover:underline"
-            >
-              Explore parent and remix lineage
-            </Link>
-          </p>
-        )}
-
-        {canonicalSources.length > 0 && (
-          <p className="text-center text-[10px] text-muted">
-            Canonical source identity ·{" "}
-            <span className="font-mono" title={canonicalSources.map((s) => s.url).join("\n")}>
-              {canonicalSources[0]!.id}
-            </span>
-          </p>
-        )}
-
+        {/* ── Where it lands ── */}
         {showLanding && (
           <WhereItLandsList
             hits={landingHits}
@@ -713,16 +718,14 @@ export default function SkillPublicPage() {
           />
         )}
 
+        {/* ── Skill body ── */}
         {skillMarkdown ? (
           <section className="space-y-2" aria-label="Skill body">
-            <p className="text-[11px] uppercase tracking-wider text-muted">
-              Skill for your agent
-            </p>
+            <p className="text-[11px] uppercase tracking-wider text-muted">Skill for your agent</p>
             <SkillSectionAccordion markdown={skillMarkdown} />
           </section>
         ) : (
-          !loading &&
-          skill && (
+          !loading && skill && (
             <ReattachDraft
               skillHash={hash}
               repo={metaRepo ?? skill.repo}
@@ -732,16 +735,7 @@ export default function SkillPublicPage() {
                 setMetaBlurb(meta.blurb ?? null);
                 if (meta.repo) setMetaRepo(meta.repo);
                 setSkill((s) =>
-                  s
-                    ? {
-                        ...s,
-                        title: meta.title,
-                        blurb: meta.blurb,
-                        repo: meta.repo ?? s.repo,
-                        markdown: meta.markdown,
-                        landings: meta.landings,
-                      }
-                    : s,
+                  s ? { ...s, title: meta.title, blurb: meta.blurb, repo: meta.repo ?? s.repo, markdown: meta.markdown, landings: meta.landings } : s,
                 );
                 setNote("Skill artifact attached — copy ready for agents.");
               }}
@@ -749,166 +743,214 @@ export default function SkillPublicPage() {
           )
         )}
 
+        {/* ── Action tabs ── */}
         {!loading && skill && (
-          <SkillOutcomePanel
-            skillHash={hash}
-            titleHint={metaTitle ?? skill.title}
-            outcome={skill.outcome}
-            evidence={skill.evidence}
-            onSaved={(outcome, evidence) => {
-              setSkill((s) =>
-                s ? { ...s, outcome, evidence: evidence ?? s.evidence } : s,
-              );
-              setNote("Outcome attached — quality means it helped.");
-            }}
-          />
-        )}
-
-        {!loading && skill && !agentUrl && (
-          <SkillAgentPanel
-            skillHash={hash}
-            titleHint={metaTitle ?? skill.title}
-            agentUrl={null}
-            isOwner={
-              Boolean(viewerLogin) &&
-              (skill.ownerLogin
-                ? viewerLogin === skill.ownerLogin
-                : true)
-            }
-            onSaved={(url) => {
-              setAgentUrl(url);
-              setSkill((s) => (s ? { ...s, agentUrl: url } : s));
-            }}
-          />
-        )}
-
-        {skill?.visibility === "public" &&
-          skill.ownerLogin &&
-          viewerLogin === skill.ownerLogin && (
-            <section className="rounded-xl border border-ink/8 bg-mist/30 p-3">
-              <p className="text-[11px] leading-snug text-muted">
-                You own this public share. Hiding it removes it from the pool and source pages; any attestation history remains immutable.
-              </p>
-              <button
-                type="button"
-                onClick={() => void onUnlist()}
-                disabled={unlisting}
-                className="mt-2 min-h-9 rounded-full border border-ink/12 px-3 text-xs text-muted hover:border-ember/35 hover:text-ink disabled:opacity-40"
-              >
-                {unlisting ? "Hiding…" : "Hide public skill"}
-              </button>
-            </section>
-          )}
-
-        {/* Primary actions — skill usage */}
-        {receiptPrompt && !getToken() && (
-          <section className="rounded-xl border border-ink/10 bg-mist/40 p-3">
-            <p className="text-[11px] leading-snug text-foreground-secondary">
-              To avoid counting the same anonymous browser repeatedly, fondof can
-              store a random receipt key in this browser. It never stores your IP
-              address or repository contents.
-            </p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  localStorage.setItem(RECEIPT_CONSENT_KEY, "yes");
-                  setReceiptConsent(true);
-                  void onUse(true);
-                }}
-                className="min-h-9 rounded-full bg-ember px-3 text-[11px] font-medium text-paper hover:bg-ember-hot"
-              >
-                Allow browser receipt
-              </button>
-              <button
-                type="button"
-                onClick={() => setReceiptPrompt(false)}
-                className="min-h-9 px-2 text-[11px] text-muted hover:text-ink"
-              >
-                Not now
-              </button>
+          <div className="space-y-3">
+            {/* Tab row — Talk only appears when it has something to do */}
+            <div className="flex rounded-full border border-ink/10 bg-paper p-0.5">
+              {([
+                { id: "talk" as const, label: "Talk", icon: <Mic size={13} />, show: Boolean(agentUrl) || isOwner },
+                { id: "copy" as const, label: "Copy", icon: <Copy size={13} />, show: true },
+                { id: "prove" as const, label: "Prove", icon: <Zap size={13} />, show: true },
+              ])
+                .filter(({ show }) => show)
+                .map(({ id, label, icon }) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setActiveTab((t) => (t === id ? null : id))}
+                  className={`flex flex-1 items-center justify-center gap-1.5 rounded-full py-2 text-[12px] font-medium transition-colors ${
+                    activeTab === id
+                      ? "bg-ember text-paper"
+                      : "text-muted hover:text-ink"
+                  }`}
+                >
+                  {icon}
+                  {label}
+                </button>
+              ))}
             </div>
-          </section>
+
+            {/* Talk panel — only reachable when an agent exists or the owner can attach one */}
+            {activeTab === "talk" && (
+              <div className="space-y-3 rounded-xl border border-ink/8 bg-paper/70 px-4 py-4">
+                <SkillAgentPanel
+                  skillHash={hash}
+                  titleHint={metaTitle ?? skill.title}
+                  agentUrl={agentUrl}
+                  isOwner={isOwner}
+                  onSaved={onSaveAgentUrl}
+                />
+                <div className="border-t border-ink/6 pt-3">
+                  <p className="mb-2 text-[11px] text-muted">Create your own ElevenAgent from this skill</p>
+                  <button
+                    type="button"
+                    onClick={() => void onCopyTalkPrompt()}
+                    className="inline-flex items-center gap-1.5 text-[12px] text-ember hover:underline"
+                  >
+                    {copiedTalkPrompt ? <Check size={13} /> : <Volume2 size={13} />}
+                    {copiedTalkPrompt ? "Prompt copied" : "Copy Talk to a Skill prompt"}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Copy panel */}
+            {activeTab === "copy" && (
+              <div className="space-y-2 rounded-xl border border-ink/8 bg-paper/70 px-4 py-4">
+                {skillMarkdown ? (
+                  <button
+                    type="button"
+                    onClick={() => void onCopyMarkdown()}
+                    className="flex w-full min-h-11 items-center justify-center gap-2 rounded-full bg-ember px-4 text-sm font-medium text-paper hover:bg-ember-hot"
+                  >
+                    {copiedMd ? <Check size={14} /> : <Copy size={14} />}
+                    {copiedMd ? "Copied for your agent" : "Copy for your agent"}
+                  </button>
+                ) : null}
+                <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => void onCopy()}
+                    className="inline-flex items-center gap-1 text-[11px] text-muted hover:text-ink"
+                  >
+                    {copied ? <Check size={11} /> : <Copy size={11} />}
+                    {copied ? "Link copied" : "Copy share link"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void onCopyTalkPrompt()}
+                    className="inline-flex items-center gap-1 text-[11px] text-muted hover:text-ink"
+                  >
+                    {copiedTalkPrompt ? <Check size={11} /> : <Volume2 size={11} />}
+                    {copiedTalkPrompt ? "Talk prompt copied" : "Copy Talk to a Skill prompt"}
+                  </button>
+                  <a
+                    href={skillTweetIntent({ hash, title: metaTitle ?? undefined })}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-[11px] text-muted hover:text-ink"
+                  >
+                    Post to X
+                  </a>
+                </div>
+              </div>
+            )}
+
+            {/* Prove panel */}
+            {activeTab === "prove" && (
+              <div className="space-y-3 rounded-xl border border-ink/8 bg-paper/70 px-4 py-4">
+                {/* Receipt consent */}
+                {receiptPrompt && !getToken() ? (
+                  <div className="space-y-2">
+                    <p className="text-[11px] leading-snug text-foreground-secondary">
+                      To avoid counting the same browser twice, fondof can store a random receipt key here. No IP or repo contents stored.
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          localStorage.setItem(RECEIPT_CONSENT_KEY, "yes");
+                          setReceiptConsent(true);
+                          void onUse(true);
+                        }}
+                        className="min-h-9 rounded-full bg-ember px-3 text-[11px] font-medium text-paper hover:bg-ember-hot"
+                      >
+                        Allow browser receipt
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setReceiptPrompt(false)}
+                        className="min-h-9 px-2 text-[11px] text-muted hover:text-ink"
+                      >
+                        Not now
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => void onUse()}
+                    disabled={using}
+                    className="inline-flex min-h-9 w-full items-center justify-center gap-1.5 rounded-full border border-ink/12 bg-paper px-3 text-[12px] text-ink hover:border-ember/35 disabled:opacity-40"
+                  >
+                    <Zap size={13} />
+                    {using ? "Recording…" : "I used this skill"}
+                  </button>
+                )}
+
+                {/* Outcome */}
+                <SkillOutcomePanel
+                  skillHash={hash}
+                  titleHint={metaTitle ?? skill.title}
+                  outcome={skill.outcome}
+                  evidence={skill.evidence}
+                  onSaved={(outcome, evidence) => {
+                    setSkill((s) => s ? { ...s, outcome, evidence: evidence ?? s.evidence } : s);
+                    setNote("Outcome attached — quality means it helped.");
+                  }}
+                />
+
+                {/* Owner tools — collapsed, owner-only */}
+                {isOwner && (skill.onChain === false || (skill.visibility === "public" && skill.ownerLogin)) && (
+                  <div className="border-t border-ink/6 pt-3">
+                    <button
+                      type="button"
+                      onClick={() => setOwnerToolsOpen((o) => !o)}
+                      className="inline-flex items-center gap-1 text-[11px] text-muted hover:text-ink"
+                      aria-expanded={ownerToolsOpen}
+                    >
+                      <ChevronDown
+                        size={12}
+                        className={`transition-transform ${ownerToolsOpen ? "rotate-180" : ""}`}
+                      />
+                      Owner tools
+                    </button>
+                    {ownerToolsOpen && (
+                      <div className="mt-3 space-y-3">
+                        {skill.onChain === false && (
+                          <div className="space-y-1">
+                            <p className="text-[11px] leading-snug text-muted">
+                              Stamp on-chain to add a contestable quality signal via SkillPool.
+                            </p>
+                            <button
+                              type="button"
+                              onClick={() => void onAttest()}
+                              disabled={attesting}
+                              className="flex min-h-10 w-full items-center justify-center gap-2 rounded-full border border-ink/12 bg-paper px-4 text-sm text-ink hover:border-ember/35 disabled:opacity-40"
+                            >
+                              <Shield size={14} />
+                              {attesting ? "Stamping…" : "Stamp on-chain (attest)"}
+                            </button>
+                          </div>
+                        )}
+                        {skill.visibility === "public" && skill.ownerLogin && (
+                          <button
+                            type="button"
+                            onClick={() => void onUnlist()}
+                            disabled={unlisting}
+                            className="text-[11px] text-muted hover:text-ink disabled:opacity-40"
+                          >
+                            {unlisting ? "Hiding…" : "Hide public skill"}
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         )}
 
-        <div className="flex flex-col gap-2">
-          {/* Talk to this skill — primary when agent exists */}
-          {!loading && skill && agentUrl && (
-            <SkillAgentPanel
-              skillHash={hash}
-              titleHint={metaTitle ?? skill.title}
-              agentUrl={agentUrl}
-              isOwner={
-                Boolean(viewerLogin) &&
-                (skill.ownerLogin
-                  ? viewerLogin === skill.ownerLogin
-                  : true)
-              }
-              onSaved={(url) => {
-                setAgentUrl(url);
-                setSkill((s) => (s ? { ...s, agentUrl: url } : s));
-              }}
-            />
-          )}
-          {skillMarkdown ? (
-            <button
-              type="button"
-              onClick={() => void onCopyMarkdown()}
-              className="flex min-h-11 items-center justify-center gap-2 rounded-full bg-ember px-4 text-sm font-medium text-paper hover:bg-ember-hot"
-            >
-              {copiedMd ? <Check size={14} /> : <Copy size={14} />}
-              {copiedMd ? "Copied for your agent" : "Copy for your agent"}
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() => void onCopy()}
-              className="flex min-h-11 items-center justify-center gap-2 rounded-full bg-ember px-4 text-sm font-medium text-paper hover:bg-ember-hot"
-            >
-              {copied ? <Check size={14} /> : <Copy size={14} />}
-              {copied ? "Link copied" : "Copy share link"}
-            </button>
-          )}
-          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
-            <button
-              type="button"
-              onClick={() => void onUse()}
-              disabled={using || !skill}
-              className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-ink/12 bg-paper px-3 text-[11px] text-ink hover:border-ember/35 disabled:opacity-40"
-            >
-              <Zap size={12} />
-              {using ? "Recording…" : "I used this"}
-            </button>
-            {skillMarkdown && (
-              <button
-                type="button"
-                onClick={() => void onCopy()}
-                className="inline-flex items-center gap-1 text-[11px] text-muted hover:text-ink"
-              >
-                {copied ? <Check size={11} /> : <Copy size={11} />}
-                {copied ? "Link copied" : "Copy share link"}
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={() => void onCopyTalkPrompt()}
-              className="inline-flex items-center gap-1 text-[11px] text-muted hover:text-ember"
-            >
-              {copiedTalkPrompt ? <Check size={11} /> : <Volume2 size={11} />}
-              {copiedTalkPrompt ? "Prompt copied" : "Copy Talk to a Skill prompt"}
-            </button>
-            <a
-              href={skillTweetIntent({ hash, title: metaTitle ?? undefined })}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-[11px] text-muted hover:text-ink"
-            >
-              Post to X
-            </a>
-          </div>
-        </div>
+        {/* ── Status note ── */}
+        {note && (
+          <p className="rounded-lg bg-mist/60 px-3 py-2 text-center text-[12px] leading-snug text-ink" role="status">
+            {note}
+          </p>
+        )}
 
-        {/* Provenance & Proof — collapsible on-chain detail */}
+        {/* ── Provenance & Proof ── */}
         {!loading && skill && skill.onChain !== false && (
           <ProvenanceDisclosure
             skill={skill}
@@ -924,34 +966,12 @@ export default function SkillPublicPage() {
             onResolve={onResolve}
             onAcquire={onAcquire}
             onReceiptComplete={() => {
-              setNote(
-                "Burst of agent uses landed — watch the proven score climb.",
-              );
+              setNote("Burst of agent uses landed — watch the proven score climb.");
               setPulseBeat((b) => b + 1);
               setSignalPlayKey((k) => k + 1);
               void refresh();
             }}
           />
-        )}
-
-        {/* Off-chain public skill — the thing is the markdown; attestation is a second click */}
-        {!loading && skill && skill.onChain === false && (
-          <section className="flex flex-col gap-2" aria-label="On-chain attestation">
-            <p className="text-[11px] leading-snug text-muted">
-              This is a public off-chain skill — already shareable and copyable
-              above. Stamping it on-chain is optional and adds a contestable
-              quality signal.
-            </p>
-            <button
-              type="button"
-              onClick={() => void onAttest()}
-              disabled={attesting}
-              className="flex min-h-11 w-full items-center justify-center gap-2 rounded-full border border-ink/12 bg-paper px-4 text-sm text-ink hover:border-ember/35 disabled:opacity-40"
-            >
-              <Shield size={14} />
-              {attesting ? "Stamping…" : "Stamp on-chain (attest)"}
-            </button>
-          </section>
         )}
 
         {!loading && !skill && (
@@ -960,15 +980,7 @@ export default function SkillPublicPage() {
           </p>
         )}
 
-        {note && (
-          <p
-            className="rounded-lg bg-mist/60 px-3 py-2 text-center text-[12px] leading-snug text-ink"
-            role="status"
-          >
-            {note}
-          </p>
-        )}
-
+        {/* ── Peers ── */}
         {peers.length > 0 && (
           <section className="border-t border-ink/8 pt-6">
             <p className="text-center text-[11px] uppercase tracking-wider text-muted">
@@ -976,8 +988,7 @@ export default function SkillPublicPage() {
             </p>
             <ul className="mt-3 space-y-2">
               {peers.map((p) => {
-                const peerTitle =
-                  p.title || getSkillMeta(p.skillHash)?.title;
+                const peerTitle = p.title || getSkillMeta(p.skillHash)?.title;
                 return (
                   <li key={p.skillHash}>
                     <Link
@@ -988,13 +999,9 @@ export default function SkillPublicPage() {
                         {peerTitle || `Score ${formatSignal(p.signal)}`}
                       </span>
                       <span className="shrink-0 text-[11px] text-muted">
-                        {peerTitle
-                          ? `Score ${formatSignal(p.signal)} · `
-                          : ""}
+                        {peerTitle ? `Score ${formatSignal(p.signal)} · ` : ""}
                         {p.usageCount} uses
-                        {p.challengeLosses > 0
-                          ? ` · ${p.challengeLosses} losses`
-                          : ""}
+                        {p.challengeLosses > 0 ? ` · ${p.challengeLosses} losses` : ""}
                       </span>
                     </Link>
                   </li>
@@ -1004,27 +1011,22 @@ export default function SkillPublicPage() {
           </section>
         )}
 
+        {/* ── Footer ── */}
         <div className="flex flex-col items-center gap-2 border-t border-ink/8 pt-6">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-sm text-ember hover:text-ember-hot"
-          >
+          <Link href="/" className="inline-flex items-center gap-2 text-sm text-ember hover:text-ember-hot">
             <Flame size={14} />
             Forge your own · extract → select → publish
           </Link>
           {reforgePath && (
-            <Link
-              href={reforgePath}
-              className="inline-flex items-center gap-2 text-xs text-muted hover:text-ink"
-            >
+            <Link href={reforgePath} className="inline-flex items-center gap-2 text-xs text-muted hover:text-ink">
               Re-forge from {sourceDomains[0] ?? "source"} · fit to your repo
             </Link>
           )}
           <p className="text-center text-[10px] text-muted">
-            Viral ingest:{" "}
-            <span className="font-mono">fondof.netlify.app/?url=…</span>
+            Viral ingest: <span className="font-mono">fondof.netlify.app/?url=…</span>
           </p>
         </div>
+
       </div>
     </div>
   );

@@ -37,6 +37,18 @@ Public forges store source URL → skill hash mappings in KV (currently keyed by
 
 **Identity boundary:** domains remain grouping/navigation keys, not proof of thought-leader identity. Canonical source IDs and skill lineage are stored with public artifacts; genres are deterministic labels derived from persisted metadata (not LLM judgements); rankings use explicit offchain evidence summaries and are not causal impact claims. Only compact public commitments need an onchain anchor.
 
+## Progressive disclosure conventions (web)
+
+Public pages follow one rule: **one active mode at a time, and only the audience that needs a control sees it.** Concretely:
+
+- **Boxes are for content; lines are for actions.** Dashed/boxed panels hold real content (outcome receipts, impact snapshots). Invitations to act ("Attach outcome", "Attach agent link", "Claim source") render as single-line affordances, not boxes.
+- **Tabs and sections only appear when they have something to do.** On `/s/[hash]` the Talk tab exists only when an agent link is attached or the viewer owns the skill; the Prove tab hides owner actions (stamp on-chain, hide skill) behind an "Owner tools" disclosure.
+- **Owner-only controls are gated by session.** Portfolio share buttons render only for the profile owner; source claims only prompt the viewer who can act on them.
+- **Power knobs collapse.** QuickPad keeps source + fit repo + Forge visible; shards and privacy live behind an Options disclosure. Secondary metadata (genres, lineage, canonical source IDs) collapses behind a "more" toggle.
+- **Provenance stays collapsible.** On-chain detail (signal story, challenges, receipts, explorer links) lives in the collapsed "Provenance & Proof" disclosure with a one-line summary when closed.
+
+When adding a surface, place it by audience (visitor vs owner) and intent (consume vs act), then collapse everything that is not the primary action for that audience.
+
 No creator onboarding needed — pages populate from forge data. Optional source claims are user-initiated and remain clearly labelled as self-claimed or domain-control verified, not verified thought-leader identity.
 
 ## Key contracts

@@ -7,6 +7,7 @@ import { Check, Copy, ExternalLink, Flame, Share2 } from "lucide-react";
 import { FondofWordmark } from "@/components/fondof-wordmark";
 import { fetchPortfolio, type PublishedSkill } from "@/lib/portfolio";
 import { getCreatorImpact, type ImpactSummary } from "@/lib/api";
+import { fetchSession } from "@/lib/auth";
 import {
   creatorImpactShareUrl,
   creatorImpactTweetIntent,
@@ -22,6 +23,7 @@ export default function PortfolioPage() {
   const [impact, setImpact] = useState<ImpactSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [copiedImpact, setCopiedImpact] = useState(false);
+  const [viewerLogin, setViewerLogin] = useState<string | null>(null);
 
   useEffect(() => {
     if (!login) return;
@@ -33,6 +35,14 @@ export default function PortfolioPage() {
       if (!res.error) setImpact(res.impact);
     }).catch(() => undefined);
   }, [login]);
+
+  useEffect(() => {
+    void fetchSession().then((session) => {
+      setViewerLogin(session?.user?.login ?? null);
+    });
+  }, []);
+
+  const isSelf = viewerLogin != null && viewerLogin === login;
 
   const impactUrl = creatorImpactShareUrl(login);
   const tweetUrl = creatorImpactTweetIntent({
@@ -101,26 +111,28 @@ export default function PortfolioPage() {
             <p className="mt-3 text-[10px] leading-snug text-muted">
               Evidence summary only — not a causal impact or quality verdict.
             </p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => void copyImpactLink()}
-                className="inline-flex min-h-8 items-center gap-1.5 rounded-full border border-ink/10 bg-paper px-3 text-[11px] text-ink hover:border-ember/35"
-              >
-                {copiedImpact ? <Check size={12} /> : <Copy size={12} />}
-                {copiedImpact ? "Impact link copied" : "Copy impact card"}
-              </button>
-              <a
-                href={tweetUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => track("creator_impact_shared", { login, kind: "x" })}
-                className="inline-flex min-h-8 items-center gap-1.5 rounded-full border border-ink/10 bg-paper px-3 text-[11px] text-ink hover:border-ember/35"
-              >
-                <Share2 size={12} />
-                Share on X
-              </a>
-            </div>
+            {isSelf && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => void copyImpactLink()}
+                  className="inline-flex min-h-8 items-center gap-1.5 rounded-full border border-ink/10 bg-paper px-3 text-[11px] text-ink hover:border-ember/35"
+                >
+                  {copiedImpact ? <Check size={12} /> : <Copy size={12} />}
+                  {copiedImpact ? "Impact link copied" : "Copy impact card"}
+                </button>
+                <a
+                  href={tweetUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => track("creator_impact_shared", { login, kind: "x" })}
+                  className="inline-flex min-h-8 items-center gap-1.5 rounded-full border border-ink/10 bg-paper px-3 text-[11px] text-ink hover:border-ember/35"
+                >
+                  <Share2 size={12} />
+                  Share on X
+                </a>
+              </div>
+            )}
           </section>
         )}
 

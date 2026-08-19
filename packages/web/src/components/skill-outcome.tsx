@@ -170,20 +170,19 @@ export function SkillOutcomePanel({
 
   if (!open) {
     return (
-      <div className="rounded-xl border border-dashed border-ink/15 bg-mist/30 px-3 py-3">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
         {evidenceLabel && (
-          <p className="mb-1 text-[10px] uppercase tracking-wide text-muted">
-            {evidenceLabel}
-          </p>
+          <span className="text-[10px] uppercase tracking-wide text-muted">
+            {evidenceLabel} ·
+          </span>
         )}
-        <p className="text-[12px] leading-snug text-foreground-secondary">
-          Used this skill on a real repo? Attach what improved — a short note,
-          optional PR or screenshot link. No fake metrics.
+        <p className="text-[12px] leading-snug text-muted">
+          Used this on a real repo?
         </p>
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="mt-2 inline-flex min-h-9 items-center gap-1.5 text-[12px] text-ember hover:underline"
+          className="inline-flex min-h-9 items-center gap-1.5 text-[12px] text-ember hover:underline"
         >
           <Sparkles size={13} />
           Attach outcome

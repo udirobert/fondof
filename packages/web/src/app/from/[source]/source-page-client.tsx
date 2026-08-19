@@ -6,7 +6,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { Check, Copy, ExternalLink, Flame, Share2 } from "lucide-react";
+import { Check, ChevronDown, Copy, ExternalLink, Flame, Share2 } from "lucide-react";
 import { FondofWordmark } from "@/components/fondof-wordmark";
 import {
   claimSource,
@@ -25,6 +25,75 @@ import {
 } from "@/lib/skill-share";
 import { track } from "@/lib/track";
 import { fetchSession, loginWithGitHub } from "@/lib/auth";
+
+/** One forged skill — title and fit visible, the rest behind a toggle. */
+function SourceSkillCard({ skill }: { skill: SourceSkillEntry }) {
+  const [open, setOpen] = useState(false);
+  const reforgePath = sourceReforgePath([skill.sourceUrl]);
+  const hasMore = Boolean(
+    skill.derivedFromSkillHash || reforgePath || skill.evidence?.evidenceScore,
+  );
+
+  return (
+    <li className="rounded-xl border border-ink/8 bg-paper/60 p-4">
+      <Link
+        href={skillPublicPath(skill.skillHash)}
+        className="font-serif text-lg leading-snug text-ink hover:text-ember"
+      >
+        {skill.title}
+      </Link>
+      <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] text-muted">
+        <span>Fitted for {skill.fittedTo}</span>
+        <span>{new Date(skill.forgedAt).toLocaleDateString()}</span>
+        {hasMore && (
+          <button
+            type="button"
+            onClick={() => setOpen((o) => !o)}
+            className="inline-flex items-center gap-1 text-muted hover:text-ink"
+            aria-expanded={open}
+          >
+            <ChevronDown
+              size={12}
+              className={`transition-transform ${open ? "rotate-180" : ""}`}
+            />
+            {open ? "less" : "more"}
+          </button>
+        )}
+      </div>
+      {open && (
+        <div className="mt-2 flex flex-wrap items-center gap-3 border-t border-ink/6 pt-2 text-[11px] text-muted">
+          {skill.evidence && skill.evidence.evidenceScore > 0 && (
+            <span className="text-ink/70">
+              Evidence {skill.evidence.evidenceScore}
+            </span>
+          )}
+          {skill.derivedFromSkillHash && (
+            <Link
+              href={skillPublicPath(skill.derivedFromSkillHash)}
+              className="text-ember hover:underline"
+            >
+              Remix of parent skill
+            </Link>
+          )}
+          <a
+            href={skill.sourceUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-ember hover:underline"
+          >
+            <ExternalLink size={10} />
+            Source
+          </a>
+          {reforgePath && (
+            <Link href={reforgePath} className="text-ember hover:underline">
+              Re-forge this source
+            </Link>
+          )}
+        </div>
+      )}
+    </li>
+  );
+}
 
 /**
  * /from/[source] — shows all skills forged from a content source.
@@ -226,20 +295,20 @@ export default function SourcePage() {
             {claimNote && <p className="mt-2 text-[10px] text-ember">{claimNote}</p>}
           </section>
         ) : (
-          <section className="rounded-xl border border-dashed border-ink/15 bg-mist/30 px-3 py-3 text-center">
-            <p className="text-[11px] leading-snug text-muted">
-              Is this your source? Sign in to add a self-claim. fondof will not treat it as verified authorship.
+          <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center">
+            <p className="text-[11px] text-muted">
+              Is this your source? Self-claim it — not verified authorship.
             </p>
             <button
               type="button"
               onClick={() => void onClaim()}
               disabled={claiming}
-              className="mt-2 min-h-8 rounded-full border border-ink/12 px-3 text-[11px] text-ink hover:border-ember/35 disabled:opacity-40"
+              className="inline-flex min-h-8 items-center text-[11px] text-ember hover:underline disabled:opacity-40"
             >
               {claiming ? "Saving…" : viewerLogin ? "Claim source identity" : "Sign in to claim"}
             </button>
-            {claimNote && <p className="mt-2 text-[10px] text-ember">{claimNote}</p>}
-          </section>
+            {claimNote && <p className="w-full text-[10px] text-ember">{claimNote}</p>}
+          </div>
         )}
 
         {!loading && skills.length > 0 && (
@@ -299,67 +368,22 @@ export default function SourcePage() {
                 Skills forged · {skills.length}
               </p>
               <ul className="mt-3 space-y-3">
-                {skills.map((skill) => {
-                  const reforgePath = sourceReforgePath([skill.sourceUrl]);
-                  return (
-                    <li
-                      key={skill.skillHash}
-                      className="rounded-xl border border-ink/8 bg-paper/60 p-4"
-                    >
-                      <Link
-                        href={skillPublicPath(skill.skillHash)}
-                        className="font-serif text-lg leading-snug text-ink hover:text-ember"
-                      >
-                        {skill.title}
-                      </Link>
-                      <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] text-muted">
-                        <span>Fitted for {skill.fittedTo}</span>
-                        <span>
-                          {new Date(skill.forgedAt).toLocaleDateString()}
-                        </span>
-                        {skill.evidence && skill.evidence.evidenceScore > 0 && (
-                          <span className="text-ink/70">
-                            Evidence {skill.evidence.evidenceScore}
-                          </span>
-                        )}
-                        {skill.derivedFromSkillHash && (
-                          <Link
-                            href={skillPublicPath(skill.derivedFromSkillHash)}
-                            className="text-ember hover:underline"
-                          >
-                            Remix of parent skill
-                          </Link>
-                        )}
-                        <a
-                          href={skill.sourceUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-ember hover:underline"
-                        >
-                          <ExternalLink size={10} />
-                          Source
-                        </a>
-                        {reforgePath && (
-                          <Link
-                            href={reforgePath}
-                            className="text-ember hover:underline"
-                          >
-                            Re-forge this source
-                          </Link>
-                        )}
-                      </div>
-                    </li>
-                  );
-                })}
+                {skills.map((skill) => (
+                  <SourceSkillCard key={skill.skillHash} skill={skill} />
+                ))}
               </ul>
             </section>
 
-            {/* Embed badge for creators */}
-            <section className="rounded-xl border border-ink/8 bg-mist/40 p-4">
-              <p className="text-[12px] font-medium text-ink">
+            {/* Embed badge for creators — collapsed by default */}
+            <details className="group rounded-xl border border-ink/8 bg-mist/40 p-4">
+              <summary className="flex cursor-pointer items-center gap-2 text-[12px] font-medium text-ink">
+                <ChevronDown
+                  size={13}
+                  className="text-muted transition-transform group-open:rotate-180"
+                />
                 Embed this badge in your show notes or README
-              </p>
-              <div className="mt-2 flex items-center gap-3">
+              </summary>
+              <div className="mt-3 flex items-center gap-3">
                 <img
                   src={badgeUrl}
                   alt={`${skills.length} skills forged from ${domain}`}
@@ -373,7 +397,7 @@ export default function SourcePage() {
                 Badge updates automatically as more developers forge skills from
                 your content.
               </p>
-            </section>
+            </details>
           </>
         )}
 

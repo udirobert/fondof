@@ -20,7 +20,7 @@ This is deliberately more specific than "chat with a document." The ElevenAgent 
 ## Reproducible pipeline
 
 1. Open a public fondof skill page or copy the skill markdown.
-2. Copy the **Talk to a Skill** prompt from the skill page.
+2. Copy the **Talk to a Skill** prompt from the skill page (Copy tab → "Copy Talk to a Skill prompt").
 3. Give the prompt to an MCP-capable agent with ElevenLabs access.
 4. Review the proposed agent name, first message, voice, and system prompt.
 5. Approve creation through ElevenLabs MCP.
@@ -28,7 +28,7 @@ This is deliberately more specific than "chat with a document." The ElevenAgent 
    - What is the main idea of this skill?
    - How does it apply to the target repository?
    - What should a developer avoid?
-7. Share the agent link alongside the fondof skill URL.
+7. Share the agent link alongside the fondof skill URL. The owner can attach the link to the skill page (Talk tab → Attach agent link), which surfaces a **Talk to this skill** button for every visitor.
 
 The reusable workflow is [`skills/talk-to-a-skill.md`](../skills/talk-to-a-skill.md).
 

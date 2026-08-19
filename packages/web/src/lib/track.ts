@@ -21,7 +21,8 @@ type EventName =
   | "pool_draw"
   | "source_impact_shared"
   | "creator_impact_shared"
-  | "agent_url_attached";
+  | "agent_url_attached"
+  | "agent_link_clicked";
 
 /**
  * Track a product event. Non-blocking, fire-and-forget.

@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import {
   ArrowRight,
   Check,
+  ChevronDown,
   Copy,
   ExternalLink,
   Loader2,
@@ -65,6 +66,7 @@ export function QuickPad({
   const [copied, setCopied] = useState(false);
   const [labelIdx, setLabelIdx] = useState(0);
   const [submitted, setSubmitted] = useState<{ source: string; isNeed: boolean } | null>(null);
+  const [optionsOpen, setOptionsOpen] = useState(false);
 
   // Live from props: connected repo selection, or manual text when none picked.
   const composedRepo =
@@ -155,102 +157,118 @@ export function QuickPad({
             className="w-full resize-none bg-transparent text-sm text-ink placeholder:text-muted/60 focus:outline-none disabled:opacity-50"
           />
 
-          {/* Repo, shards, privacy */}
-          <div className="flex flex-wrap items-center gap-2 border-t border-ink/5 pt-3">
-            <div className="min-w-0 flex-1">
-              <div className="flex min-w-0 items-center gap-2">
-                <Tip tip="Your connected GitHub repos — or type any owner/name." className="shrink-0">
-                  <label htmlFor="quick-repo" className="text-[11px] text-muted">
-                    Fit repo
-                  </label>
-                </Tip>
-                {repos.length > 0 ? (
-                  <select
-                    id="quick-repo"
-                    value={
-                      manual
-                        ? "manual"
-                        : repos.includes(activeRepo)
-                          ? activeRepo
-                          : repos[0]
+          {/* Fit repo — always visible; power knobs behind Options */}
+          <div className="border-t border-ink/5 pt-3">
+            <div className="flex min-w-0 items-center gap-2">
+              <Tip tip="Your connected GitHub repos — or type any owner/name." className="shrink-0">
+                <label htmlFor="quick-repo" className="text-[11px] text-muted">
+                  Fit repo
+                </label>
+              </Tip>
+              {repos.length > 0 ? (
+                <select
+                  id="quick-repo"
+                  value={
+                    manual
+                      ? "manual"
+                      : repos.includes(activeRepo)
+                        ? activeRepo
+                        : repos[0]
+                  }
+                  onChange={(e) => {
+                    if (e.target.value === "manual") {
+                      setManual(true);
+                    } else {
+                      setManual(false);
+                      onSelectRepo?.(e.target.value);
                     }
-                    onChange={(e) => {
-                      if (e.target.value === "manual") {
-                        setManual(true);
-                      } else {
-                        setManual(false);
-                        onSelectRepo?.(e.target.value);
-                      }
-                    }}
-                    disabled={busy}
-                    className="min-w-0 flex-1 rounded-lg border border-ink/8 bg-mist px-2 py-1.5 text-xs text-ink focus:outline-none disabled:opacity-50"
-                  >
-                    {repos.map((r) => (
-                      <option key={r} value={r}>
-                        {r}
-                      </option>
-                    ))}
-                    <option value="manual">Type a repo name…</option>
-                  </select>
-                ) : (
-                  <input
-                    id="quick-repo"
-                    value={manualRepo}
-                    onChange={(e) => setManualRepo(e.target.value)}
-                    disabled={busy}
-                    placeholder="owner/name or repo name"
-                    className="min-w-0 flex-1 rounded-lg border border-ink/8 bg-mist px-2.5 py-1.5 text-xs text-ink placeholder:text-muted/50 focus:border-ember/40 focus:outline-none disabled:opacity-50"
-                  />
-                )}
-              </div>
-              {repos.length > 0 && manual && (
+                  }}
+                  disabled={busy}
+                  className="min-w-0 flex-1 rounded-lg border border-ink/8 bg-mist px-2 py-1.5 text-xs text-ink focus:outline-none disabled:opacity-50"
+                >
+                  {repos.map((r) => (
+                    <option key={r} value={r}>
+                      {r}
+                    </option>
+                  ))}
+                  <option value="manual">Type a repo name…</option>
+                </select>
+              ) : (
                 <input
-                  id="quick-repo-manual"
+                  id="quick-repo"
                   value={manualRepo}
                   onChange={(e) => setManualRepo(e.target.value)}
                   disabled={busy}
                   placeholder="owner/name or repo name"
-                  autoFocus
-                  className="mt-1.5 w-full rounded-lg border border-ink/8 bg-mist px-2.5 py-1.5 text-xs text-ink placeholder:text-muted/50 focus:border-ember/40 focus:outline-none disabled:opacity-50"
+                  className="min-w-0 flex-1 rounded-lg border border-ink/8 bg-mist px-2.5 py-1.5 text-xs text-ink placeholder:text-muted/50 focus:border-ember/40 focus:outline-none disabled:opacity-50"
                 />
               )}
             </div>
-
-            <Tip tip="How many top ideas to forge into the skill">
-              <div className="flex items-center gap-1.5">
-                <label htmlFor="quick-shards" className="text-[11px] text-muted">
-                  Shards
-                </label>                <select
-                  id="quick-shards"
-                  value={shards}
-                  onChange={(e) => setShards(Number(e.target.value))}
-                  disabled={busy}
-                  className="rounded-lg border border-ink/8 bg-mist px-2 py-1.5 text-xs text-ink focus:outline-none disabled:opacity-50"
-                >
-                  {[1, 2, 3, 4, 5, 6].map((n) => (
-                    <option key={n} value={n}>
-                      {n}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </Tip>
-
-            <Tip tip="Private drafts stay local to this flow. Share publicly only when you want attribution and re-forging.">
-              <button
-                type="button"
-                onClick={() => setIsPrivate((p) => !p)}
+            {repos.length > 0 && manual && (
+              <input
+                id="quick-repo-manual"
+                value={manualRepo}
+                onChange={(e) => setManualRepo(e.target.value)}
                 disabled={busy}
-                className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1.5 text-[11px] transition-colors disabled:opacity-50 ${
-                  isPrivate
-                    ? "border-ink/20 bg-mist text-ink"
-                    : "border-ember/30 bg-ember/5 text-ember"
-                }`}
-              >
-                {isPrivate ? <Lock size={11} /> : <Unlock size={11} />}
-                {isPrivate ? "Private draft" : "Share publicly"}
-              </button>
-            </Tip>
+                placeholder="owner/name or repo name"
+                autoFocus
+                className="mt-1.5 w-full rounded-lg border border-ink/8 bg-mist px-2.5 py-1.5 text-xs text-ink placeholder:text-muted/50 focus:border-ember/40 focus:outline-none disabled:opacity-50"
+              />
+            )}
+
+            <button
+              type="button"
+              onClick={() => setOptionsOpen((o) => !o)}
+              disabled={busy}
+              aria-expanded={optionsOpen}
+              className="mt-2 inline-flex items-center gap-1 text-[11px] text-muted hover:text-ink disabled:opacity-50"
+            >
+              <ChevronDown
+                size={12}
+                className={`transition-transform ${optionsOpen ? "rotate-180" : ""}`}
+              />
+              Options
+            </button>
+            {optionsOpen && (
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <Tip tip="How many top ideas to forge into the skill">
+                  <div className="flex items-center gap-1.5">
+                    <label htmlFor="quick-shards" className="text-[11px] text-muted">
+                      Shards
+                    </label>
+                    <select
+                      id="quick-shards"
+                      value={shards}
+                      onChange={(e) => setShards(Number(e.target.value))}
+                      disabled={busy}
+                      className="rounded-lg border border-ink/8 bg-mist px-2 py-1.5 text-xs text-ink focus:outline-none disabled:opacity-50"
+                    >
+                      {[1, 2, 3, 4, 5, 6].map((n) => (
+                        <option key={n} value={n}>
+                          {n}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </Tip>
+
+                <Tip tip="Private drafts stay local to this flow. Share publicly only when you want attribution and re-forging.">
+                  <button
+                    type="button"
+                    onClick={() => setIsPrivate((p) => !p)}
+                    disabled={busy}
+                    className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1.5 text-[11px] transition-colors disabled:opacity-50 ${
+                      isPrivate
+                        ? "border-ink/20 bg-mist text-ink"
+                        : "border-ember/30 bg-ember/5 text-ember"
+                    }`}
+                  >
+                    {isPrivate ? <Lock size={11} /> : <Unlock size={11} />}
+                    {isPrivate ? "Private draft" : "Share publicly"}
+                  </button>
+                </Tip>
+              </div>
+            )}
           </div>
           {repos.length === 0 && (
             <p className="text-[10px] leading-snug text-muted">
@@ -348,36 +366,36 @@ export function QuickPad({
                 {copied ? "Copied" : "Copy skill markdown"}
               </button>
 
-              {result.skillUrl && (
-                <a
-                  href={result.skillUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex min-h-9 items-center justify-center gap-2 rounded-full border border-ink/12 px-4 text-xs text-ink hover:border-ember/40 hover:text-ember"
+              <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+                {result.skillUrl && (
+                  <a
+                    href={result.skillUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-[11px] text-muted hover:text-ink"
+                  >
+                    <ExternalLink size={11} />
+                    Open shared skill page
+                  </a>
+                )}
+                <button
+                  type="button"
+                  onClick={() =>
+                    submitted && onGoDeeper(submitted.source, submitted.isNeed)
+                  }
+                  className="inline-flex items-center gap-1 text-[11px] text-ember hover:underline"
                 >
-                  <ExternalLink size={13} />
-                  Open shared skill page
-                </a>
-              )}
-
-              <button
-                type="button"
-                onClick={() =>
-                  submitted && onGoDeeper(submitted.source, submitted.isNeed)
-                }
-                className="flex min-h-9 items-center justify-center gap-2 rounded-full border border-ember/35 bg-ember/8 px-4 text-xs font-medium text-ember hover:border-ember/55 hover:bg-ember/12"
-              >
-                <Sparkles size={13} />
-                Review ideas in Studio
-              </button>
-
-              <button
-                type="button"
-                onClick={handleNewSource}
-                className="min-h-9 rounded-full border border-ink/10 px-4 text-xs text-muted hover:border-ink/20 hover:text-ink"
-              >
-                New source
-              </button>
+                  <Sparkles size={11} />
+                  Review ideas in Studio
+                </button>
+                <button
+                  type="button"
+                  onClick={handleNewSource}
+                  className="inline-flex items-center gap-1 text-[11px] text-muted hover:text-ink"
+                >
+                  New source
+                </button>
+              </div>
             </div>
           </div>
 
