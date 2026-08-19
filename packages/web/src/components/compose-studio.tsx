@@ -77,7 +77,7 @@ export function ComposeStudio() {
   };
 
   return (
-    <div className="mx-auto flex w-full max-w-xl flex-col gap-8 px-4 py-10">
+    <div className="atmosphere relative mx-auto flex min-h-[calc(100dvh-3.5rem)] w-full max-w-xl flex-col gap-8 px-4 pb-24 pt-14">
       {/* Input */}
       <div className="space-y-4">
         <div className="flex justify-center gap-1">
