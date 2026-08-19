@@ -32,6 +32,7 @@ interface QuickPadProps {
   onSelectRepo?: (fullName: string) => void;
   onCompose: (input: QuickComposeInput) => void;
   onGoDeeper: (source: string, isNeed: boolean) => void;
+  onNewSource: () => void;
 }
 
 const WORKING_LABELS = [
@@ -53,6 +54,7 @@ export function QuickPad({
   onSelectRepo,
   onCompose,
   onGoDeeper,
+  onNewSource,
 }: QuickPadProps) {
   const [isNeed, setIsNeed] = useState(false);
   const [source, setSource] = useState("");
@@ -103,6 +105,13 @@ export function QuickPad({
     } catch {
       /* ignore */
     }
+  };
+
+  const handleNewSource = () => {
+    setSource("");
+    setSubmitted(null);
+    setCopied(false);
+    onNewSource();
   };
 
   return (
@@ -296,6 +305,17 @@ export function QuickPad({
           className="mt-4 space-y-4"
         >
           <div className="rounded-2xl border border-ink/10 bg-paper p-4 shadow-[var(--shadow-lg)]">
+            <div className="mb-4 flex items-start gap-3 rounded-xl border border-novel/15 bg-novel/5 px-3 py-2.5">
+              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-novel/15 text-novel">
+                <Check size={12} />
+              </span>
+              <div>
+                <p className="text-sm font-medium text-ink">Skill ready</p>
+                <p className="mt-0.5 text-xs leading-snug text-foreground-secondary">
+                  Copy it now, or review the ideas behind it in Studio.
+                </p>
+              </div>
+            </div>
             <div className="mb-3 flex items-start justify-between gap-3">
               <div>
                 <h2 className="font-serif text-lg text-ink">{result.title}</h2>
@@ -349,6 +369,14 @@ export function QuickPad({
               >
                 <Sparkles size={13} />
                 Review ideas in Studio
+              </button>
+
+              <button
+                type="button"
+                onClick={handleNewSource}
+                className="min-h-9 rounded-full border border-ink/10 px-4 text-xs text-muted hover:border-ink/20 hover:text-ink"
+              >
+                New source
               </button>
             </div>
           </div>

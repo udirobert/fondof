@@ -25,6 +25,9 @@ export function SelectionBar({
   selectedTitles = [],
   composeHint,
 }: SelectionBarProps) {
+  const readyToForge = count >= 2;
+  const remaining = Math.max(0, 2 - count);
+
   return (
     <AnimatePresence>
       {count > 0 && (
@@ -54,10 +57,17 @@ export function SelectionBar({
               )}
             </div>
 
-            <p className="text-[12px] leading-snug text-ink/80">
-              {composeHint ??
-                "Turn selected ideas into one skill for your repo"}
-            </p>
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-[12px] leading-snug text-ink/80">
+                {composeHint ??
+                  "Turn selected ideas into one skill for your repo"}
+              </p>
+              <p className={`shrink-0 text-[10px] font-medium ${readyToForge ? "text-novel" : "text-muted"}`}>
+                {readyToForge
+                  ? "Ready to forge"
+                  : `Select ${remaining} more ${remaining === 1 ? "idea" : "ideas"}`}
+              </p>
+            </div>
 
             <div className="flex items-center gap-2">
               <p className="min-w-0 flex-1 text-sm text-ink">
@@ -84,10 +94,11 @@ export function SelectionBar({
                 <button
                   type="button"
                   onClick={onForge}
-                  className="flex min-h-10 w-full items-center justify-center gap-2 rounded-full bg-ember px-4 py-2 text-sm font-medium text-paper transition-colors hover:bg-ember-hot"
+                  disabled={!readyToForge}
+                  className="flex min-h-10 w-full items-center justify-center gap-2 rounded-full bg-ember px-4 py-2 text-sm font-medium text-paper transition-colors hover:bg-ember-hot disabled:cursor-not-allowed disabled:opacity-35"
                 >
                   <Flame size={14} />
-                  Forge skill
+                  {readyToForge ? "Forge skill" : "Select 2+ ideas"}
                 </button>
               </Tip>
             </div>

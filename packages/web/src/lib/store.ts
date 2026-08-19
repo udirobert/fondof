@@ -67,6 +67,8 @@ export interface AppState {
     ideas: IdeaFromAPI[],
     selectIds?: string[],
   ) => void;
+  /** Clear the current source/idea workspace while preserving repos and mode. */
+  resetWorkspace: () => void;
 
   // UI State
   isIngesting: boolean;
@@ -159,6 +161,18 @@ export const useAppStore = create<AppState>((set) => ({
         deferred: ["exa", "forge", "publish"],
       },
       compareNote: null,
+    }),
+  resetWorkspace: () =>
+    set({
+      sources: [],
+      ideas: [],
+      selectedIdeaIds: new Set(),
+      discoverySkills: [],
+      gapByIdeaId: {},
+      ingestValue: null,
+      compareNote: null,
+      isIngesting: false,
+      forgeOpen: false,
     }),
 
   // UI State

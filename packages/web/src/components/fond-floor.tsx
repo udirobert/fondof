@@ -129,6 +129,7 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
     forgeOpen,
     setForgeOpen,
     loadSample,
+    resetWorkspace,
     isIngesting,
     setIngesting,
     addSource,
@@ -245,6 +246,32 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
       setMode("pad");
     }
   }, [removeSource, setIdeas, setMode]);
+
+  const startNewSource = () => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    resetWorkspace();
+    setMode("pad");
+    setPhases([]);
+    setActivePhase(undefined);
+    setLiveFondObject("this source");
+    setLiveTitle(undefined);
+    setLiveIdeas([]);
+    setQuickBusy(false);
+    setQuickResult(null);
+    setFitFilterActive(false);
+    setFocusShardId(null);
+    setSourcesOpen(false);
+    setDiscoveryOpen(false);
+    setTextDrawerUrl(null);
+
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("url");
+    params.delete("sample");
+    params.delete("forge");
+    const query = params.toString();
+    router.replace(query ? `?${query}` : "/", { scroll: false });
+  };
 
   const runIngest = useCallback(
     async (input: { url: string } | { need: string }) => {
@@ -813,6 +840,7 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
                   onSelectRepo={setActiveRepo}
                   onCompose={(input) => void handleQuickCompose(input)}
                   onGoDeeper={handleGoDeeper}
+                  onNewSource={startNewSource}
                 />
               ) : (
                 <StartPad
@@ -952,7 +980,16 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
 
             <div className="relative min-w-0 flex-1 overflow-auto p-4 pb-36 sm:p-6 lg:p-8">
               <div className="mx-auto max-w-2xl">
-                <FondofWordmark object={phrase.object} size="inline" />
+                <div className="flex items-center justify-between gap-3">
+                  <FondofWordmark object={phrase.object} size="inline" />
+                  <button
+                    type="button"
+                    onClick={startNewSource}
+                    className="min-h-9 rounded-full border border-ink/10 bg-paper/70 px-3 py-1.5 text-xs text-muted transition-colors hover:border-ember/35 hover:text-ember"
+                  >
+                    New source
+                  </button>
+                </div>
 
                 {latestSource && (
                   <div className="mt-4">
