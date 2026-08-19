@@ -111,7 +111,7 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
   const [forgeTitle, setForgeTitle] = useState<string | null>(null);
   const [_showPoolMore, setShowPoolMore] = useState(false);
   const [forgeBlocked, setForgeBlocked] = useState<ForgeCheck | null>(null);
-  const [forgePrivate, setForgePrivate] = useState(false);
+  const [forgePrivate, setForgePrivate] = useState(true);
   const setPublished = useAppStore((s) => s.setPublished);
   const { address, isConnected, chainId } = useConnection();
   const { switchChainAsync } = useSwitchChain();

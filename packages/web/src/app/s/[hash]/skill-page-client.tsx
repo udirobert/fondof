@@ -925,7 +925,7 @@ export default function SkillPublicPage() {
           )}
           <p className="text-center text-[10px] text-muted">
             Viral ingest:{" "}
-            <span className="font-mono">fondof.app/?url=…</span>
+            <span className="font-mono">fondof.netlify.app/?url=…</span>
           </p>
         </div>
       </div>
