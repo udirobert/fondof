@@ -11,6 +11,7 @@ import { StaggerGrid } from "./stagger-grid";
 import { AmbientToggle } from "./ambient-toggle";
 import { PipelineStrip } from "./pipeline-strip";
 import { ProblemStrip } from "./problem-strip";
+import { demoRepos, demoSources, seededIngestIdeas } from "@/lib/demo-data";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -18,9 +19,9 @@ const chapters = [
   {
     id: "enter",
     anchor: "gl-enter",
-    eyebrow: "Personal skills for your repo",
-    title: "fondof",
-    body: "fondof the pod. fond of the blog. Paste what you learn — then forge a skill fitted to your codebase, not a directory clone.",
+    eyebrow: "After you paste",
+    title: "Ideas become skills",
+    body: "fondof turns what you learn into actionable material, then fits it to the codebase where it needs to work.",
   },
   {
     id: "arrival",
@@ -184,12 +185,12 @@ export function LandingExperience() {
                 Open the Studio
                 <ArrowRight size={14} />
               </Link>
-              <Link
-                href="/canvas?sample=1"
+              <a
+                href="#proof"
                 className="rounded-full border border-ink/12 bg-paper/80 px-4 py-2.5 text-sm text-ink hover:border-ember/40 transition-colors"
               >
-                Try sample in 10s
-              </Link>
+                See a real example
+              </a>
               <a
                 href="#problem"
                 className="text-sm text-muted hover:text-ink transition-colors"
@@ -208,6 +209,111 @@ export function LandingExperience() {
         <section id="problem" data-chapter className="relative px-6 py-16">
           <div data-chapter-copy>
             <ProblemStrip />
+          </div>
+        </section>
+
+        {/* Concrete proof */}
+        <section id="proof" data-chapter className="relative px-6 py-20 scroll-mt-20">
+          <div data-chapter-copy className="mx-auto max-w-5xl">
+            <div className="mx-auto mb-10 max-w-2xl text-center">
+              <p className="text-xs uppercase tracking-[0.2em] text-ember mb-3">
+                A concrete example
+              </p>
+              <SplitTitle
+                text="From a source to something your agent can use"
+                as="h2"
+                className="font-serif text-3xl sm:text-5xl text-ink leading-tight"
+              />
+              <p className="mt-4 text-foreground-secondary leading-relaxed">
+                The output is not a summary. It is a small set of ideas you can
+                inspect, combine, and fit to a real repository.
+              </p>
+            </div>
+
+            <div className="grid gap-3 lg:grid-cols-[0.82fr_1.18fr_0.92fr]">
+              <article className="copy-plate p-5 sm:p-6">
+                <p className="text-[10px] uppercase tracking-[0.18em] text-muted">
+                  01 · Source
+                </p>
+                <div className="mt-8">
+                  <p className="text-xs text-ember">{demoSources[0].type}</p>
+                  <h3 className="mt-2 font-serif text-2xl text-ink leading-tight">
+                    {demoSources[0].title}
+                  </h3>
+                  <p className="mt-2 text-sm text-foreground-secondary">
+                    {demoSources[0].author} · {demoSources[0].duration}
+                  </p>
+                </div>
+                <p className="mt-8 border-t border-ink/8 pt-3 text-xs text-muted">
+                  Paste a source. Keep the useful thinking.
+                </p>
+              </article>
+
+              <article className="copy-plate p-5 sm:p-6">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-muted">
+                    02 · Ideas
+                  </p>
+                  <span className="rounded-full border border-novel/20 bg-novel/5 px-2 py-1 text-[10px] text-novel">
+                    inspectable
+                  </span>
+                </div>
+                <div className="mt-5 space-y-3">
+                  {seededIngestIdeas.slice(0, 2).map((idea) => (
+                    <div key={idea.id} className="rounded-xl border border-ink/8 bg-paper/70 p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <h3 className="font-serif text-lg text-ink leading-tight">
+                          {idea.title}
+                        </h3>
+                        <span className="shrink-0 text-[10px] font-mono text-novel">
+                          fit
+                        </span>
+                      </div>
+                      <p className="mt-2 text-sm text-foreground-secondary leading-relaxed">
+                        {idea.description}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+                <p className="mt-4 text-xs text-muted">
+                  Select the ideas worth carrying forward — skip the rest.
+                </p>
+              </article>
+
+              <article className="copy-plate p-5 sm:p-6">
+                <p className="text-[10px] uppercase tracking-[0.18em] text-muted">
+                  03 · Fitted skill
+                </p>
+                <div className="mt-8">
+                  <p className="text-xs text-ember">Fit target</p>
+                  <h3 className="mt-2 font-serif text-2xl text-ink leading-tight">
+                    Reliability patterns for your app
+                  </h3>
+                  <p className="mt-3 text-sm text-foreground-secondary">
+                    {demoRepos[1].fullName} · {demoRepos[1].frameworks.join(" + ")}
+                  </p>
+                </div>
+                <div className="mt-8 border-t border-ink/8 pt-3">
+                  <p className="text-xs text-muted">Where it lands</p>
+                  <p className="mt-1 text-sm text-ink">
+                    Async boundaries · error handling · observability
+                  </p>
+                </div>
+              </article>
+            </div>
+
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-3 text-center">
+              <Link
+                href="/canvas?sample=1"
+                className="inline-flex items-center gap-2 rounded-full border border-ember/35 bg-ember/8 px-5 py-2.5 text-sm font-medium text-ember hover:border-ember/55 hover:bg-ember/12 transition-colors"
+              >
+                See this flow in Studio
+                <ArrowRight size={14} />
+              </Link>
+              <span className="text-xs text-muted">
+                Sample data · inspect before you forge
+              </span>
+            </div>
           </div>
         </section>
 
@@ -367,12 +473,6 @@ export function LandingExperience() {
               >
                 Open the Studio
                 <ArrowRight size={14} />
-              </Link>
-              <Link
-                href="/canvas?sample=1"
-                className="pointer-events-auto rounded-full border border-ink/12 bg-paper/80 px-5 py-3 text-sm text-ink hover:border-ember/40 transition-colors"
-              >
-                Try sample
               </Link>
             </div>
 
