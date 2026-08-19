@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMemo } from "react";
+import { ExternalLink } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { fondofPhrase } from "@/lib/fondof-phrase";
 import { FondofWordmark } from "@/components/fondof-wordmark";
@@ -67,6 +68,17 @@ export function Nav() {
         )}
 
         <div className="flex items-center gap-2">
+          <a
+            href="https://github.com/udirobert/fondof"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 rounded-full px-2.5 py-1.5 text-xs text-muted transition-colors hover:text-ink"
+            aria-label="Open fondof on GitHub"
+            title="View the fondof source on GitHub"
+          >
+            GitHub
+            <ExternalLink size={11} />
+          </a>
           <Link
             href="/"
             className={`rounded-full px-3 py-1.5 text-xs transition-colors ${
@@ -87,7 +99,7 @@ export function Nav() {
           >
             Pool
           </Link>
-          <AuthButton variant="nav" />
+          <AuthButton />
         </div>
       </div>
     </nav>

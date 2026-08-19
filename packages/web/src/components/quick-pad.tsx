@@ -13,6 +13,7 @@ import {
   Unlock,
 } from "lucide-react";
 import { SkillSectionAccordion } from "@/components/skill-section-accordion";
+import { loginWithGitHub } from "@/lib/auth";
 import { Tip } from "@/components/tip";
 import type { ComposeResponse } from "@/lib/api";
 
@@ -242,6 +243,19 @@ export function QuickPad({
               </button>
             </Tip>
           </div>
+          {repos.length === 0 && (
+            <p className="text-[10px] leading-snug text-muted">
+              Public repos work without sign-in. {" "}
+              <button
+                type="button"
+                onClick={() => loginWithGitHub(window.location.pathname)}
+                className="text-ember hover:underline"
+              >
+                Sign in with GitHub
+              </button>{" "}
+              to save ownership and share outcomes.
+            </p>
+          )}
 
           <button
             type="submit"

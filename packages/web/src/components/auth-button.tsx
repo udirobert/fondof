@@ -6,10 +6,6 @@
 import { useSession } from "@/lib/use-session";
 import { LogOut } from "lucide-react";
 
-interface AuthButtonProps {
-  variant?: "nav" | "inline";
-}
-
 /** Simple GitHub mark — avoids lucide's missing Github icon. */
 function GitHubMark({ size = 12 }: { size?: number }) {
   return (
@@ -26,10 +22,9 @@ function GitHubMark({ size = 12 }: { size?: number }) {
 }
 
 /**
- * Auth button — shows login or user avatar + logout.
- * Explicitly branded as GitHub to set user expectations.
+ * Auth button — explicit GitHub sign-in or visible account identity + logout.
  */
-export function AuthButton({ variant = "nav" }: AuthButtonProps) {
+export function AuthButton() {
   const { user, loading, login, logout, authError } = useSession();
 
   if (loading) return null;
@@ -42,14 +37,15 @@ export function AuthButton({ variant = "nav" }: AuthButtonProps) {
           alt={user.login}
           className="h-6 w-6 rounded-full"
         />
-        {variant === "inline" && (
-          <span className="text-xs font-medium text-ink">{user.login}</span>
-        )}
+        <span className="max-w-24 truncate text-xs font-medium text-ink">
+          {user.login}
+        </span>
         <button
           type="button"
           onClick={() => void logout()}
           className="inline-flex min-h-8 items-center gap-1 rounded-full px-2.5 py-1.5 text-[11px] text-muted hover:text-ink"
-          title="Log out"
+          aria-label="Sign out of GitHub"
+          title="Sign out of GitHub"
         >
           <LogOut size={12} />
         </button>
@@ -63,10 +59,11 @@ export function AuthButton({ variant = "nav" }: AuthButtonProps) {
         type="button"
         onClick={() => login()}
         className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-ink/10 bg-paper px-3 py-1.5 text-[11px] text-muted transition-colors hover:border-ember/35 hover:text-ink"
-        title="Sign in with your GitHub account"
+        aria-label="Sign in with GitHub"
+        title="Sign in and connect your GitHub account"
       >
         <GitHubMark size={13} />
-        GitHub
+        Sign in with GitHub
       </button>
       {authError && (
         <p className="absolute top-full right-0 z-50 mt-1 w-64 rounded-lg border border-ink/10 bg-paper px-3 py-2 text-[11px] leading-snug text-ember shadow-[var(--shadow-float)]">
