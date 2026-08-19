@@ -21,6 +21,19 @@ Short map so contributors don't conflate edges. Full product story: [README](../
 - **Freemium:** 3 free forges/month → share a skill publicly to unlock unlimited → Pro ($) for private unlimited.
 - **Privacy direction:** new forges begin as private drafts; explicit public sharing enables `/s/[hash]`, source attribution, and creator discovery. Optional SkillPool attestation is a separate proof choice. Legacy public-first records remain discoverable until lifecycle controls are applied.
 
+## Security model
+
+Hardening applied after the 2026-08 audit. Keep these invariants when touching auth, events, or URL fetching:
+
+- **OAuth is CSRF-safe.** `/auth/github` stores a random one-time `state` nonce in KV (10 min TTL); the callback verifies and consumes it before exchanging the GitHub code. A forged or replayed `state` is rejected.
+- **Session tokens never travel in URLs.** The callback redirects with a single-use 60-second exchange code; the frontend swaps it for the token via `POST /auth/exchange`. No token in history, logs, or referrers.
+- **Write endpoints are owner-gated.** `POST /skills/:hash/meta` requires a session for `agentUrl` changes (owner-only once a skill has an owner) and owner-only for artifact fields (title/body/fit). Outcome evidence stays open — it is the visitor "I used this" loop. A `title` sent alongside an outcome/agentUrl patch is a display hint and never overwrites the stored title.
+- **SSRF guard.** Every fetch of a user-supplied URL (article extract, RSS episode lookup, podcast audio resolution, source-claim proof verification) goes through `lib/ssrf.ts`, which rejects non-http(s) schemes and private/internal/metadata hosts (RFC1918, link-local, CGNAT, `169.254.169.254`, IPv6 ULA/link-local, `localhost`, `*.local`, `*.internal`). Covered by unit tests — extend them when adding new fetch paths.
+- **Rate limits protect paid upstreams and append logs.** Fixed-window per-IP budgets in `lib/rate-limit.ts` (compose 10/h, ingest 10/h, forge 20/h, events 120/h, etc.). Fail-open by design so demos keep working; do not tighten without checking the judge path.
+- **CORS is `*` by design** — the API is a public read surface; mutations are bearer-token gated, not origin-gated.
+
+**⚠️ Standing caveat — session token storage.** The web client stores the session token in `localStorage`, which is readable by any XSS. This is currently acceptable because React escapes all rendered content and the codebase contains no `dangerouslySetInnerHTML` or raw HTML injection points. **If you ever add rich/HTML rendering (markdown-to-HTML, embedded content, user-generated HTML), move the session to an httpOnly cookie before shipping it.** Do not treat the current setup as permission to render untrusted HTML.
+
 ## Supply-side (creator) attribution
 
 Public forges store source URL → skill hash mappings in KV (currently keyed by `source:{domain}`). This powers:
