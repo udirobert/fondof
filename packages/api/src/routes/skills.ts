@@ -38,6 +38,12 @@ export const skillsRoute = new Hono<{ Bindings: Env }>();
 const SKILL_TTL = 60; // KV/Cache min practical TTL
 const TOP_TTL = 60;
 
+/**
+ * List limits the UI actually requests (peer cards: 4, pool shelf: 8,
+ * strips: 5/10/20). Bust all of them so discovery surfaces update instantly.
+ */
+const POOL_BUST_LIMITS = [4, 5, 8, 10, 20];
+
 const clampLimit = (n: number) =>
   Math.min(Math.max(Number.isFinite(n) ? n : 10, 1), 50);
 
@@ -168,7 +174,7 @@ skillsRoute.post("/skills/:hash/meta", rateLimit("publish"), async (c) => {
     )
     .catch(() => undefined);
   // Best-effort list cache bust (current evidence pool + legacy keys)
-  for (const lim of [5, 10, 20]) {
+  for (const lim of POOL_BUST_LIMITS) {
     for (const sort of ["recent", "impact", "outcomes", "adapted"]) {
       await caches.default
         .delete(
@@ -263,7 +269,7 @@ skillsRoute.post("/skills/:hash/share", rateLimit("publish"), async (c) => {
   });
 
   // A newly shared artifact should appear in both discovery modes immediately.
-  for (const lim of [5, 10, 20]) {
+  for (const lim of POOL_BUST_LIMITS) {
     for (const sort of ["recent", "impact", "outcomes", "adapted"]) {
       await caches.default
         .delete(
@@ -310,7 +316,7 @@ skillsRoute.delete(
         ),
       )
       .catch(() => undefined);
-    for (const lim of [5, 10, 20]) {
+    for (const lim of POOL_BUST_LIMITS) {
       for (const sort of ["recent", "impact", "outcomes", "adapted"]) {
         await caches.default
           .delete(
