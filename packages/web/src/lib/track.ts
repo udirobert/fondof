@@ -18,7 +18,9 @@ type EventName =
   | "skill_unlisted"
   | "challenge_issued"
   | "share_link_copied"
-  | "pool_draw";
+  | "pool_draw"
+  | "source_impact_shared"
+  | "creator_impact_shared";
 
 /**
  * Track a product event. Non-blocking, fire-and-forget.

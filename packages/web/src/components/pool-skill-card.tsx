@@ -55,6 +55,14 @@ export function PoolSkillCard({
                   Score {formatSignal(skill.signal)}
                 </span>
               </Tip>
+              {skill.evidenceSummary && skill.evidenceSummary.evidenceScore > 0 && (
+                <span
+                  className="idea-shard__worth idea-shard__worth--forge"
+                  title="Transparent evidence summary; not causal impact"
+                >
+                  Evidence {skill.evidenceSummary.evidenceScore}
+                </span>
+              )}
               {skill.challengeLosses > 0 && (
                 <span className="idea-shard__overlap idea-shard__overlap--partial">
                   {skill.challengeLosses} dispute

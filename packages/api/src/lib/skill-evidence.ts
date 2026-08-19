@@ -31,6 +31,49 @@ export interface SkillEvidenceRecord {
   updatedAt: string;
 }
 
+/**
+ * A deliberately small, transparent summary for discovery surfaces.
+ * It describes evidence attached to an artifact; it does not claim causality
+ * or independently verified project impact.
+ */
+export interface EvidenceSummary {
+  claimedUseCount: number;
+  outcomeCount: number;
+  linkedPrCount: number;
+  githubConfirmedPrCount: number;
+  mergedPrCount: number;
+  evidenceScore: number;
+}
+
+export function summarizeEvidence(
+  evidence: SkillEvidenceRecord | null | undefined,
+): EvidenceSummary {
+  const outcome = evidence?.outcome;
+  const outcomeCount = outcome ? 1 : 0;
+  const linkedPrCount = outcome?.prUrl ? 1 : 0;
+  const githubConfirmedPrCount =
+    outcome?.prStatus === "github-confirmed" ? 1 : 0;
+  const mergedPrCount = outcome?.githubMerged ? 1 : 0;
+  const claimedUseCount = evidence?.claimedUseCount ?? 0;
+
+  // Ranking aid only: explicit evidence gets more weight than a bare claim.
+  // Keep the formula in code so the UI can explain what it means.
+  const evidenceScore =
+    claimedUseCount +
+    outcomeCount * 3 +
+    githubConfirmedPrCount * 5 +
+    mergedPrCount * 2;
+
+  return {
+    claimedUseCount,
+    outcomeCount,
+    linkedPrCount,
+    githubConfirmedPrCount,
+    mergedPrCount,
+    evidenceScore,
+  };
+}
+
 export interface ClaimedUseResult {
   evidence: SkillEvidenceRecord;
   deduplicated: boolean;

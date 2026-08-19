@@ -33,8 +33,10 @@ fondof turns what developers learn — or need — into personalised coding skil
 - POST /api/publish — optionally attest a public skill on SkillPool
 - POST /api/skills/{hash}/share — explicitly share a private draft publicly
 - DELETE /api/skills/{hash}/visibility — owner-only hide/unlist
-- GET /api/skills — public skill discovery (currently recent-first)
-- GET /api/sources/:domain — list skills forged from a source
+- GET /api/skills — public skill discovery; `sort=impact|outcomes|adapted|recent` gives focused evidence views (not causal impact). Optional `domain`, `framework`, and `language` filters expose topic/stack discovery.
+- GET /api/skills/creator/:login — evidence summary for public skills owned by a GitHub login
+- GET /api/sources/:domain — list skills forged from a source plus an evidence-backed impact snapshot
+- GET /api/sources/:domain/impact — compact source evidence summary for cards/embeds
 - GET /api/sources/:domain/badge.svg — embeddable badge
 - POST /api/skills/{hash}/use — record a claimed use; signed-in users deduplicate by account, anonymous users can opt into a random browser receipt key; this is not verified impact
 - POST /api/skills/{hash}/meta — attach an outcome and optional PR/screenshot; linked PRs remain unverified evidence

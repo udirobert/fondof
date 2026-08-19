@@ -3,17 +3,25 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ExternalLink, Flame } from "lucide-react";
+import { Check, Copy, ExternalLink, Flame, Share2 } from "lucide-react";
 import { FondofWordmark } from "@/components/fondof-wordmark";
 import { fetchPortfolio, type PublishedSkill } from "@/lib/portfolio";
-import { skillPublicPath } from "@/lib/skill-share";
+import { getCreatorImpact, type ImpactSummary } from "@/lib/api";
+import {
+  creatorImpactShareUrl,
+  creatorImpactTweetIntent,
+  skillPublicPath,
+} from "@/lib/skill-share";
+import { track } from "@/lib/track";
 
 /** User portfolio — shows their publicly published skills with attribution. */
 export default function PortfolioPage() {
   const params = useParams<{ login: string }>();
   const login = decodeURIComponent(params.login ?? "");
   const [skills, setSkills] = useState<PublishedSkill[]>([]);
+  const [impact, setImpact] = useState<ImpactSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [copiedImpact, setCopiedImpact] = useState(false);
 
   useEffect(() => {
     if (!login) return;
@@ -21,7 +29,28 @@ export default function PortfolioPage() {
       setSkills(res.skills);
       setLoading(false);
     });
+    void getCreatorImpact(login).then((res) => {
+      if (!res.error) setImpact(res.impact);
+    }).catch(() => undefined);
   }, [login]);
+
+  const impactUrl = creatorImpactShareUrl(login);
+  const tweetUrl = creatorImpactTweetIntent({
+    login,
+    skillCount: impact?.skillCount,
+    outcomeCount: impact?.outcomeCount,
+  });
+
+  const copyImpactLink = async () => {
+    try {
+      await navigator.clipboard.writeText(impactUrl);
+      setCopiedImpact(true);
+      track("creator_impact_shared", { login, kind: "copy" });
+      window.setTimeout(() => setCopiedImpact(false), 1600);
+    } catch {
+      // ignore clipboard failures
+    }
+  };
 
   return (
     <div className="atmosphere relative min-h-[calc(100dvh-3.5rem)] pt-14">
@@ -44,6 +73,56 @@ export default function PortfolioPage() {
             github.com/{login}
           </a>
         </div>
+
+        {impact && impact.skillCount > 0 && (
+          <section className="rounded-xl border border-ink/8 bg-mist/40 p-4">
+            <div className="flex items-baseline justify-between gap-3">
+              <p className="text-[11px] uppercase tracking-wider text-muted">
+                Public craft snapshot
+              </p>
+              <span className="font-mono text-[11px] text-ember">
+                signal {impact.evidenceScore}
+              </span>
+            </div>
+            <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+              <div>
+                <p className="font-serif text-xl text-ink">{impact.skillCount}</p>
+                <p className="text-[10px] text-muted">public skills</p>
+              </div>
+              <div>
+                <p className="font-serif text-xl text-ink">{impact.claimedUseCount}</p>
+                <p className="text-[10px] text-muted">claimed uses</p>
+              </div>
+              <div>
+                <p className="font-serif text-xl text-ink">{impact.outcomeCount}</p>
+                <p className="text-[10px] text-muted">outcomes</p>
+              </div>
+            </div>
+            <p className="mt-3 text-[10px] leading-snug text-muted">
+              Evidence summary only — not a causal impact or quality verdict.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => void copyImpactLink()}
+                className="inline-flex min-h-8 items-center gap-1.5 rounded-full border border-ink/10 bg-paper px-3 text-[11px] text-ink hover:border-ember/35"
+              >
+                {copiedImpact ? <Check size={12} /> : <Copy size={12} />}
+                {copiedImpact ? "Impact link copied" : "Copy impact card"}
+              </button>
+              <a
+                href={tweetUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => track("creator_impact_shared", { login, kind: "x" })}
+                className="inline-flex min-h-8 items-center gap-1.5 rounded-full border border-ink/10 bg-paper px-3 text-[11px] text-ink hover:border-ember/35"
+              >
+                <Share2 size={12} />
+                Share on X
+              </a>
+            </div>
+          </section>
+        )}
 
         {loading ? (
           <p className="text-center text-sm text-muted">Loading skills…</p>

@@ -18,11 +18,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       next: { revalidate: 300 },
     });
     if (res.ok) {
-      const data = (await res.json()) as { count?: number };
+      const data = (await res.json()) as {
+        count?: number;
+        impact?: { outcomeCount?: number; remixCount?: number };
+      };
       const count = data.count || 0;
+      const outcomeCount = data.impact?.outcomeCount || 0;
+      const remixCount = data.impact?.remixCount || 0;
       const description =
         count > 0
-          ? `${count} coding skill${count === 1 ? "" : "s"} forged by developers from ${domain}`
+          ? `${count} coding skill${count === 1 ? "" : "s"} forged from ${domain}${outcomeCount ? ` · ${outcomeCount} outcome receipt${outcomeCount === 1 ? "" : "s"}` : ""}${remixCount ? ` · ${remixCount} remix${remixCount === 1 ? "" : "es"}` : ""}`
           : `Skills forged from ${domain} — turn content into coding skills with fondof`;
       return {
         title: `Forged from ${domain} — fondof`,

@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   getSkillEvidence,
   recordClaimedUse,
+  summarizeEvidence,
   recordOutcome,
   verifyLinkedPr,
 } from "./skill-evidence.js";
@@ -37,6 +38,32 @@ describe("skill evidence", () => {
     expect(evidence.evidence.skillHash).toBe("abc");
     expect(evidence.evidence.claimedUseCount).toBe(2);
     expect(evidence.evidence.level).toBe("claimed-use");
+  });
+
+  it("summarizes evidence without calling it causal impact", () => {
+    const summary = summarizeEvidence({
+      skillHash: "skill",
+      claimedUseCount: 2,
+      claimAttemptCount: 3,
+      outcome: {
+        note: "A real outcome",
+        prUrl: "https://github.com/acme/app/pull/1",
+        prStatus: "github-confirmed",
+        githubMerged: true,
+        attachedAt: "2026-08-19T00:00:00.000Z",
+      },
+      level: "verified-pr",
+      updatedAt: "2026-08-19T00:00:00.000Z",
+    });
+
+    expect(summary).toEqual({
+      claimedUseCount: 2,
+      outcomeCount: 1,
+      linkedPrCount: 1,
+      githubConfirmedPrCount: 1,
+      mergedPrCount: 1,
+      evidenceScore: 12,
+    });
   });
 
   it("deduplicates repeated consented actor receipts", async () => {

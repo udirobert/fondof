@@ -25,6 +25,58 @@ export function skillTweetIntent(opts: {
   return `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
 }
 
+/** Canonical public source-impact page. */
+export function sourcePublicPath(domain: string): string {
+  return `/from/${encodeURIComponent(domain)}`;
+}
+
+export function sourceImpactShareUrl(domain: string, origin?: string): string {
+  const base =
+    origin ??
+    (typeof window !== "undefined"
+      ? window.location.origin
+      : "https://fondof.netlify.app");
+  return `${base}${sourcePublicPath(domain)}`;
+}
+
+export function creatorPublicPath(login: string): string {
+  return `/u/${encodeURIComponent(login)}`;
+}
+
+export function creatorImpactShareUrl(login: string, origin?: string): string {
+  const base =
+    origin ??
+    (typeof window !== "undefined"
+      ? window.location.origin
+      : "https://fondof.netlify.app");
+  return `${base}${creatorPublicPath(login)}`;
+}
+
+export function creatorImpactTweetIntent(opts: {
+  login: string;
+  skillCount?: number;
+  outcomeCount?: number;
+  origin?: string;
+}): string {
+  const url = creatorImpactShareUrl(opts.login, opts.origin);
+  const text = `@${opts.login} has forged ${opts.skillCount ?? 0} public skill${opts.skillCount === 1 ? "" : "s"}${opts.outcomeCount ? ` with ${opts.outcomeCount} outcome receipt${opts.outcomeCount === 1 ? "" : "s"}` : ""}. See the evidence trail on fondof — not a causal impact claim.\n${url}`;
+  return `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
+}
+
+export function sourceImpactTweetIntent(opts: {
+  domain: string;
+  skillCount?: number;
+  outcomeCount?: number;
+  origin?: string;
+}): string {
+  const url = sourceImpactShareUrl(opts.domain, opts.origin);
+  const evidence = opts.outcomeCount
+    ? ` · ${opts.outcomeCount} outcome receipt${opts.outcomeCount === 1 ? "" : "s"}`
+    : "";
+  const text = `${opts.skillCount ?? 0} coding skill${opts.skillCount === 1 ? "" : "s"} forged from ${opts.domain}${evidence}. See what developers adapted with fondof — evidence summary, not causal proof.\n${url}`;
+  return `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
+}
+
 /** Deep-link someone straight into ingest. */
 export function fondofThisUrl(sourceUrl: string, origin?: string): string {
   const base =

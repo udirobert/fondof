@@ -5,6 +5,9 @@ import Link from "next/link";
 import { ShieldCheck, FileText } from "lucide-react";
 import { API_BASE } from "@/lib/api-base";
 import { skillPublicPath } from "@/lib/skill-share";
+import type { EvidenceSummary } from "@/lib/api";
+
+type DiscoverySort = "recent" | "impact" | "outcomes" | "adapted";
 
 interface PoolSkill {
   skillHash: string;
@@ -12,6 +15,7 @@ interface PoolSkill {
   repo?: string;
   onChain?: boolean;
   sourceUrls?: string[];
+  evidenceSummary?: EvidenceSummary;
 }
 
 /**
@@ -20,13 +24,35 @@ interface PoolSkill {
  */
 export function RecentPublicSkills({ limit = 8 }: { limit?: number }) {
   const [skills, setSkills] = useState<PoolSkill[] | null>(null);
+  const [sort, setSort] = useState<DiscoverySort>("impact");
+  const [domain, setDomain] = useState("");
+  const [framework, setFramework] = useState("");
+  const [facets, setFacets] = useState<{
+    domains: string[];
+    frameworks: string[];
+    languages: string[];
+  }>({ domains: [], frameworks: [], languages: [] });
 
   useEffect(() => {
     let cancelled = false;
-    fetch(`${API_BASE}/api/skills?limit=${limit}`)
+    setSkills(null);
+    const query = new URLSearchParams({
+      limit: String(limit),
+      sort,
+      ...(domain ? { domain } : {}),
+      ...(framework ? { framework } : {}),
+    });
+    fetch(`${API_BASE}/api/skills?${query.toString()}`)
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
-        if (!cancelled && Array.isArray(data?.skills)) setSkills(data.skills);
+        if (!cancelled && Array.isArray(data?.skills)) {
+          setSkills(data.skills);
+          setFacets({
+            domains: Array.isArray(data?.facets?.domains) ? data.facets.domains : [],
+            frameworks: Array.isArray(data?.facets?.frameworks) ? data.facets.frameworks : [],
+            languages: Array.isArray(data?.facets?.languages) ? data.facets.languages : [],
+          });
+        }
       })
       .catch(() => {
         if (!cancelled) setSkills([]);
@@ -34,7 +60,7 @@ export function RecentPublicSkills({ limit = 8 }: { limit?: number }) {
     return () => {
       cancelled = true;
     };
-  }, [limit]);
+  }, [limit, sort, domain, framework]);
 
   if (skills === null) {
     return (
@@ -53,7 +79,51 @@ export function RecentPublicSkills({ limit = 8 }: { limit?: number }) {
   }
 
   return (
-    <ul className="space-y-2">
+    <>
+      <div className="mb-3 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-[11px]">
+        {([
+          ["impact", "Evidence signal"],
+          ["outcomes", "Outcome-backed"],
+          ["adapted", "Most adapted"],
+          ["recent", "Recent"],
+        ] as const).map(([value, label], index) => (
+          <span key={value} className="inline-flex items-center gap-2">
+            {index > 0 && <span className="text-ink/20">·</span>}
+            <button
+              type="button"
+              onClick={() => setSort(value)}
+              className={sort === value ? "text-ember" : "text-muted hover:text-ink"}
+            >
+              {label}
+            </button>
+          </span>
+        ))}
+      </div>
+      {(facets.domains.length > 0 || facets.frameworks.length > 0) && (
+        <div className="mb-3 flex flex-wrap justify-center gap-2">
+          <label className="sr-only" htmlFor="pool-domain">Topic</label>
+          <select
+            id="pool-domain"
+            value={domain}
+            onChange={(event) => setDomain(event.target.value)}
+            className="rounded-full border border-ink/10 bg-paper px-2.5 py-1 text-[11px] text-muted"
+          >
+            <option value="">All topics</option>
+            {facets.domains.map((value) => <option key={value} value={value}>{value}</option>)}
+          </select>
+          <label className="sr-only" htmlFor="pool-framework">Stack</label>
+          <select
+            id="pool-framework"
+            value={framework}
+            onChange={(event) => setFramework(event.target.value)}
+            className="rounded-full border border-ink/10 bg-paper px-2.5 py-1 text-[11px] text-muted"
+          >
+            <option value="">All stacks</option>
+            {facets.frameworks.map((value) => <option key={value} value={value}>{value}</option>)}
+          </select>
+        </div>
+      )}
+      <ul className="space-y-2">
       {skills.map((s) => {
         const source = s.sourceUrls?.[0];
         return (
@@ -71,6 +141,11 @@ export function RecentPublicSkills({ limit = 8 }: { limit?: number }) {
               <span className="flex shrink-0 items-center gap-2 text-[11px] text-muted">
                 {s.repo && (
                   <span className="max-w-24 truncate">{s.repo}</span>
+                )}
+                {s.evidenceSummary && s.evidenceSummary.evidenceScore > 0 && (
+                  <span title="Transparent evidence summary; not causal impact">
+                    evidence {s.evidenceSummary.evidenceScore}
+                  </span>
                 )}
                 {s.onChain ? (
                   <span className="inline-flex items-center gap-1 text-ember">
@@ -97,6 +172,10 @@ export function RecentPublicSkills({ limit = 8 }: { limit?: number }) {
           </li>
         );
       })}
-    </ul>
+      </ul>
+      <p className="mt-3 text-center text-[10px] text-muted">
+        Rankings are evidence views: claimed uses, outcomes, and lineage—not causal impact or a quality verdict.
+      </p>
+    </>
   );
 }

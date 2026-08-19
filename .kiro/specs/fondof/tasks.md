@@ -194,8 +194,9 @@ Need or source → Extract → Fit / Forge → Copy / Use → Outcome → Share 
 #### Phase C — Measure real value, not vanity activity
 - [x] Distinguish claimed use, outcome-attached, linked-PR, and GitHub-confirmed PR evidence states; confirmation still does not prove causality
 - [x] Add deduplicated, privacy-preserving receipts for authenticated users and explicitly consented browser keys; repo-fingerprint attribution remains deferred
-- [ ] Keep rankings and impact calculations offchain; publish the evidence behind each score
-- [ ] Build creator/source impact pages and genre/stack discovery only after enough outcome data exists
+- [x] Keep rankings and impact calculations offchain; publish the evidence behind each score (transparent evidence signal, not causal impact)
+- [x] Build initial creator/source impact surfaces: `/from/[domain]`, `/u/[login]`, and source/creator aggregation APIs
+- [ ] Add genre/stack discovery only after enough outcome data exists
 
 #### Phase D — Use the chain only where it earns its place
 - [ ] Keep onchain data minimal: skill identity, source commitments, public forger, backing, and challenge/use history
@@ -206,9 +207,10 @@ Need or source → Extract → Fit / Forge → Copy / Use → Outcome → Share 
 
 #### Phase E — Turn evidence into distribution
 - [ ] Add shareable source-impact cards: adaptations, unique stacks, outcome-backed uses, and challenge history
+- [x] Add transparent evidence sorting to `/pool` and lineage/source cues to impact surfaces
 - [ ] Add lineage-aware “re-forge/remix” pages linking source → original skill → derived skills
 - [ ] Add multiple leaderboards such as most adapted, most outcome-backed, and rising—not one popularity score
-- [ ] Keep `/pool` downstream: evidence desk and discovery surface, never the homepage or generic marketplace
+- [x] Keep `/pool` downstream: evidence desk and discovery surface, never the homepage or generic marketplace
 
 ### Task 10.1: Outcome attachments
 - [x] Optional outcome on skill page / meta: PR URL, short “what improved” note, optional screenshot URL

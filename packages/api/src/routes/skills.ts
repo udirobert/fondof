@@ -11,6 +11,7 @@ import { cacheGetJson, cachePutJson, sha256Hex } from "../lib/edge-cache.js";
 import { mergeSkillMeta, putSkillMeta, type LandingHitRecord } from "../lib/skill-meta.js";
 import {
   getSkillEvidence,
+  summarizeEvidence,
   recordClaimedUse,
   recordOutcome,
   verifyLinkedPr,
@@ -157,8 +158,17 @@ skillsRoute.post("/skills/:hash/meta", rateLimit("publish"), async (c) => {
       ),
     )
     .catch(() => undefined);
-  // Best-effort list cache bust (pool + legacy top)
+  // Best-effort list cache bust (current evidence pool + legacy keys)
   for (const lim of [5, 10, 20]) {
+    for (const sort of ["recent", "impact", "outcomes", "adapted"]) {
+      await caches.default
+        .delete(
+          new Request(
+            `https://fondof-cache.internal/skills:pool:v3:${sort}::::${lim}`,
+          ),
+        )
+        .catch(() => undefined);
+    }
     await caches.default
       .delete(new Request(`https://fondof-cache.internal/skills:pool:v1:${lim}`))
       .catch(() => undefined);
@@ -243,6 +253,19 @@ skillsRoute.post("/skills/:hash/share", rateLimit("publish"), async (c) => {
     forgedAt: composedAt,
   });
 
+  // A newly shared artifact should appear in both discovery modes immediately.
+  for (const lim of [5, 10, 20]) {
+    for (const sort of ["recent", "impact", "outcomes", "adapted"]) {
+      await caches.default
+        .delete(
+          new Request(
+            `https://fondof-cache.internal/skills:pool:v3:${sort}::::${lim}`,
+          ),
+        )
+        .catch(() => undefined);
+    }
+  }
+
   return c.json({
     success: true,
     skillHash: normalizedHash,
@@ -279,6 +302,15 @@ skillsRoute.delete(
       )
       .catch(() => undefined);
     for (const lim of [5, 10, 20]) {
+      for (const sort of ["recent", "impact", "outcomes", "adapted"]) {
+        await caches.default
+          .delete(
+            new Request(
+              `https://fondof-cache.internal/skills:pool:v3:${sort}::::${lim}`,
+            ),
+          )
+          .catch(() => undefined);
+      }
       await caches.default
         .delete(new Request(`https://fondof-cache.internal/skills:pool:v1:${lim}`))
         .catch(() => undefined);
@@ -287,6 +319,46 @@ skillsRoute.delete(
     return c.json({ success: true, visibility: "unlisted" });
   },
 );
+
+/**
+ * Public creator summary. This is keyed only by an explicit owner login and
+ * reports attached evidence, not reputation or causal project impact.
+ */
+skillsRoute.get("/skills/creator/:login", async (c) => {
+  const login = c.req.param("login")?.trim().toLowerCase();
+  if (!login) return c.json({ error: "login required" }, 400);
+
+  const records = (await listPublicSkills(c.env, 100)).filter(
+    (record) => record.ownerLogin?.toLowerCase() === login,
+  );
+  const evidences = await Promise.all(
+    records.map((record) => getSkillEvidence(c.env, record.hash)),
+  );
+  const impact = {
+    skillCount: records.length,
+    skillsWithEvidence: 0,
+    remixCount: records.filter((record) => Boolean(record.derivedFromSkillHash)).length,
+    fittedRepoCount: new Set(records.map((record) => record.repo).filter(Boolean)).size,
+    claimedUseCount: 0,
+    outcomeCount: 0,
+    linkedPrCount: 0,
+    githubConfirmedPrCount: 0,
+    mergedPrCount: 0,
+    evidenceScore: 0,
+  };
+  for (const evidence of evidences) {
+    const summary = summarizeEvidence(evidence);
+    impact.claimedUseCount += summary.claimedUseCount;
+    impact.outcomeCount += summary.outcomeCount;
+    impact.linkedPrCount += summary.linkedPrCount;
+    impact.githubConfirmedPrCount += summary.githubConfirmedPrCount;
+    impact.mergedPrCount += summary.mergedPrCount;
+    impact.evidenceScore += summary.evidenceScore;
+    if (summary.evidenceScore > 0) impact.skillsWithEvidence += 1;
+  }
+
+  return c.json({ login, impact });
+});
 
 // Get skill data + signal from chain (short edge cache — protects RPC)
 skillsRoute.get("/skills/:hash", async (c) => {
@@ -357,6 +429,7 @@ skillsRoute.get("/skills/:hash", async (c) => {
       ownerLogin: pub.ownerLogin,
       visibility: pub.visibility,
       evidence,
+      evidenceSummary: summarizeEvidence(evidence),
       outcome: evidence?.outcome ?? withMeta.outcome,
     };
     await cachePutJson(cacheKey, out, SKILL_TTL);
@@ -378,6 +451,7 @@ skillsRoute.get("/skills/:hash", async (c) => {
       ...withMeta,
       onChain: true,
       evidence,
+      evidenceSummary: summarizeEvidence(evidence),
       outcome: evidence?.outcome ?? withMeta.outcome,
     };
     await cachePutJson(cacheKey, out, SKILL_TTL);
@@ -392,7 +466,17 @@ skillsRoute.get("/skills/:hash", async (c) => {
 // Get top skills by signal
 skillsRoute.get("/skills", async (c) => {
   const limit = clampLimit(parseInt(c.req.query("limit") ?? "10"));
-  const cacheKey = `skills:pool:v1:${limit}`;
+  const requestedSort = c.req.query("sort");
+  const sort = (["recent", "impact", "outcomes", "adapted"] as const).includes(
+    requestedSort as "recent" | "impact" | "outcomes" | "adapted",
+  )
+    ? (requestedSort as "recent" | "impact" | "outcomes" | "adapted")
+    : "recent";
+  const domain = c.req.query("domain")?.trim().toLowerCase() || "";
+  const framework = c.req.query("framework")?.trim().toLowerCase() || "";
+  const language = c.req.query("language")?.trim().toLowerCase() || "";
+  const hasFilter = Boolean(domain || framework || language);
+  const cacheKey = `skills:pool:v3:${sort}:${domain}:${framework}:${language}:${limit}`;
 
   const hit = await cacheGetJson<{ skills: unknown[] }>(cacheKey);
   if (hit) {
@@ -400,11 +484,28 @@ skillsRoute.get("/skills", async (c) => {
     return c.json(hit);
   }
 
-  // Durable public pool first — a pool of skills, not txs.
-  const pub = await listPublicSkills(c.env, limit);
-  if (pub.length > 0) {
+  // Durable public pool first — a pool of skills, not txs. Discovery modes
+  // read a larger window so filters and lineage counts are meaningful.
+  const pub = await listPublicSkills(c.env, sort === "recent" && !hasFilter ? limit : 100);
+  const childCounts = new Map<string, number>();
+  for (const record of pub) {
+    if (record.derivedFromSkillHash) {
+      const parent = record.derivedFromSkillHash.toLowerCase();
+      childCounts.set(parent, (childCounts.get(parent) ?? 0) + 1);
+    }
+  }
+  const filteredPub = pub.filter((record) => {
+    const matches = (values: string[] | undefined, query: string) =>
+      !query || (values ?? []).some((value) => value.toLowerCase() === query);
+    return (
+      matches(record.domains, domain) &&
+      matches(record.frameworks, framework) &&
+      matches(record.languages, language)
+    );
+  });
+  if (pub.length > 0 || sort !== "recent" || hasFilter) {
     const skills = await Promise.all(
-      pub.map(async (rec) => {
+      filteredPub.map(async (rec) => {
         const offChainBase = {
           skillHash: rec.hash,
           forger: "",
@@ -440,11 +541,55 @@ skillsRoute.get("/skills", async (c) => {
           ownerLogin: rec.ownerLogin,
           visibility: rec.visibility,
           evidence,
+          evidenceSummary: summarizeEvidence(evidence),
           outcome: evidence?.outcome ?? withMeta.outcome,
+          composedAt: rec.composedAt,
+          lineageChildrenCount: childCounts.get(rec.hash) ?? 0,
         };
       }),
     );
-    const payload = { skills };
+    const ordered = [...skills].sort((a, b) => {
+      const aSummary = a.evidenceSummary;
+      const bSummary = b.evidenceSummary;
+      if (sort === "adapted") {
+        return (
+          (b.lineageChildrenCount ?? 0) - (a.lineageChildrenCount ?? 0) ||
+          bSummary.evidenceScore - aSummary.evidenceScore ||
+          String(b.composedAt ?? "").localeCompare(String(a.composedAt ?? ""))
+        );
+      }
+      if (sort === "outcomes") {
+        return (
+          bSummary.outcomeCount - aSummary.outcomeCount ||
+          bSummary.githubConfirmedPrCount - aSummary.githubConfirmedPrCount ||
+          bSummary.claimedUseCount - aSummary.claimedUseCount ||
+          String(b.composedAt ?? "").localeCompare(String(a.composedAt ?? ""))
+        );
+      }
+      if (sort === "impact") {
+        return (
+          bSummary.evidenceScore - aSummary.evidenceScore ||
+          bSummary.githubConfirmedPrCount - aSummary.githubConfirmedPrCount ||
+          bSummary.claimedUseCount - aSummary.claimedUseCount ||
+          String(b.composedAt ?? "").localeCompare(String(a.composedAt ?? ""))
+        );
+      }
+      return String(b.composedAt ?? "").localeCompare(String(a.composedAt ?? ""));
+    });
+    const facetValues = (field: "domains" | "frameworks" | "languages") =>
+      [...new Set(pub.flatMap((record) => record[field] ?? []))]
+        .sort((a, b) => a.localeCompare(b))
+        .slice(0, 40);
+    const payload = {
+      skills: ordered.slice(0, limit),
+      sort,
+      filters: { domain, framework, language },
+      facets: {
+        domains: facetValues("domains"),
+        frameworks: facetValues("frameworks"),
+        languages: facetValues("languages"),
+      },
+    };
     await cachePutJson(cacheKey, payload, TOP_TTL);
     c.header("X-Cache", "MISS");
     return c.json(payload);
@@ -471,7 +616,17 @@ skillsRoute.get("/skills", async (c) => {
     const withMeta = await Promise.all(
       skills.filter(Boolean).map((s) => mergeSkillMeta(s!)),
     );
-    const payload = { skills: withMeta.map((s) => ({ ...s, onChain: true })) };
+    const payload = {
+      skills: withMeta.map((s) => ({
+        ...s,
+        onChain: true,
+        evidenceSummary: summarizeEvidence(null),
+        lineageChildrenCount: 0,
+      })),
+      sort,
+      filters: { domain, framework, language },
+      facets: { domains: [], frameworks: [], languages: [] },
+    };
     await cachePutJson(cacheKey, payload, TOP_TTL);
     c.header("X-Cache", "MISS");
     return c.json(payload);

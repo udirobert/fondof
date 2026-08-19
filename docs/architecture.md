@@ -24,11 +24,15 @@ Short map so contributors don't conflate edges. Full product story: [README](../
 ## Supply-side (creator) attribution
 
 Public forges store source URL → skill hash mappings in KV (currently keyed by `source:{domain}`). This powers:
-- `/from/[domain]` — source attribution and impact surface
+- `/from/[domain]` — source attribution, lineage cues, and evidence-backed impact snapshot
+- `/api/sources/:domain` — source skills plus transparent evidence aggregation
+- `/api/sources/:domain/impact` — compact source impact summary for cards/embeds
 - `/api/sources/:domain/badge.svg` — embeddable badge for show notes / READMEs
+- `/api/skills?sort=impact|outcomes|adapted|recent` — focused discovery views with optional topic/stack filters
+- `/u/[login]` and `/api/skills/creator/:login` — owner/creator evidence snapshots when ownership is known
 - Skill pages show source credit and a re-forge path
 
-**Identity boundary:** domains are grouping keys, not thought-leader identity. Canonical source IDs and skill lineage are stored with public artifacts; author metadata and outcome-backed impact remain future offchain enrichment. Only compact public commitments need an onchain anchor.
+**Identity boundary:** domains remain grouping/navigation keys, not proof of thought-leader identity. Canonical source IDs and skill lineage are stored with public artifacts; rankings use explicit offchain evidence summaries and are not causal impact claims. Only compact public commitments need an onchain anchor.
 
 No creator onboarding needed — pages populate from forge data. Optional domain claim for analytics (future).
 
@@ -36,4 +40,4 @@ No creator onboarding needed — pages populate from forge data. Optional domain
 
 **SkillPool vs FondofAttestation:** SkillPool is the live quality loop on Monad testnet. `FondofAttestation.sol` is an earlier provenance sketch — keep for history; do not document it as the demo contract.
 
-**Artifact/proof split:** On-chain should remain minimal: skill identity, source commitments, public forger identity, backing, and challenge/use history. Human title, blurb, markdown, fit details, genres, rankings, source identity, and outcome evidence remain offchain. Public artifact records and evidence history use non-expiring KV; the short-lived Cache API remains only as a fast legacy/meta cache fallback.
+**Artifact/proof split:** On-chain should remain minimal: skill identity, source commitments, public forger identity, backing, and challenge/use history. Human title, blurb, markdown, fit details, genres, rankings, source identity, and outcome evidence remain offchain. Discovery currently exposes an explainable evidence signal: claimed uses + attached outcome/PR confirmations with transparent caveats, never a claim that a source caused a project change. Public artifact records and evidence history use non-expiring KV; the short-lived Cache API remains only as a fast legacy/meta cache fallback.

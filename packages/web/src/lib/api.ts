@@ -97,6 +97,22 @@ export type EvidenceLevel =
   | "linked-pr"
   | "verified-pr";
 
+export interface EvidenceSummary {
+  claimedUseCount: number;
+  outcomeCount: number;
+  linkedPrCount: number;
+  githubConfirmedPrCount: number;
+  mergedPrCount: number;
+  evidenceScore: number;
+}
+
+export interface ImpactSummary extends EvidenceSummary {
+  skillCount: number;
+  skillsWithEvidence: number;
+  remixCount: number;
+  fittedRepoCount: number;
+}
+
 export interface SkillEvidence {
   skillHash: string;
   claimedUseCount: number;
@@ -138,8 +154,11 @@ export interface SkillOnChainResponse {
   domains?: string[];
   patternTypes?: string[];
   derivedFromSkillHash?: string;
+  lineageChildrenCount?: number;
   outcome?: SkillOutcome;
   evidence?: SkillEvidence;
+  /** Transparent discovery summary; not a causal impact claim. */
+  evidenceSummary?: EvidenceSummary;
   /** Real source URLs (not just hashes) for provenance links */
   sourceUrls?: string[];
   canonicalSources?: CanonicalSource[];
@@ -377,6 +396,17 @@ export async function unlistSkill(
   return res.json();
 }
 
+export async function getCreatorImpact(login: string): Promise<{
+  login: string;
+  impact: ImpactSummary;
+  error?: string;
+}> {
+  const res = await fetch(
+    `${API_URL}/api/skills/creator/${encodeURIComponent(login)}`,
+  );
+  return res.json();
+}
+
 export async function getSkillSignal(hash: string): Promise<SkillOnChainResponse> {
   const res = await fetch(`${API_URL}/api/skills/${hash}`);
   return res.json();
@@ -384,8 +414,9 @@ export async function getSkillSignal(hash: string): Promise<SkillOnChainResponse
 
 export async function getTopSkills(
   limit = 5,
-): Promise<{ skills: SkillOnChainResponse[]; error?: string }> {
-  const res = await fetch(`${API_URL}/api/skills?limit=${limit}`);
+  sort: "recent" | "impact" | "outcomes" | "adapted" = "recent",
+): Promise<{ skills: SkillOnChainResponse[]; sort?: string; error?: string }> {
+  const res = await fetch(`${API_URL}/api/skills?limit=${limit}&sort=${sort}`);
   return res.json();
 }
 
