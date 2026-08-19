@@ -137,7 +137,7 @@ export function LandingExperience() {
     <div
       id="landing-story"
       ref={rootRef}
-      className="relative min-h-screen scroll-mt-16 overflow-x-clip atmosphere"
+      className="relative min-h-screen scroll-mt-16 overflow-clip atmosphere"
     >
       <AmbientToggle progress={progress} disabled={reducedMotion} />
 

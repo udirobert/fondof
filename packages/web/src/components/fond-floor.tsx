@@ -755,7 +755,7 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
             transition={{ duration: 0.28 }}
             className="flex min-h-[calc(100dvh-3.5rem)] flex-col"
           >
-            <div className="flex min-h-[calc(100dvh-3.5rem)] flex-col items-center justify-center px-4 pb-[max(2rem,env(safe-area-inset-bottom))] pt-6">
+            <div className="relative z-20 flex min-h-[calc(100dvh-3.5rem)] flex-col items-center justify-center px-4 pb-[max(2rem,env(safe-area-inset-bottom))] pt-6">
               {showFrame && (
                 <div className="mb-6 text-center">
                   <FondofWordmark size="hero" />
