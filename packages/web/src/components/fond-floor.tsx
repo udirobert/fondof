@@ -102,6 +102,7 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
   } = useAppStore();
 
   const phrase = useMemo(() => fondofPhrase(sources), [sources]);
+  const latestSource = sources.length > 0 ? sources[sources.length - 1] : null;
 
   const allRepos = useMemo(() => {
     const demos = demoRepos.map(asConnected);
@@ -351,7 +352,23 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
           cacheHit: delivered?.cacheHit,
         });
 
-        setIdeas(finalIdeas);
+        // Multi-source combo: keep ideas from other sources, replace only the
+        // ideas belonging to the source just (re-)ingested.
+        const prevIdeas = useAppStore
+          .getState()
+          .ideas.filter(
+            (idea) =>
+              idea.sourceUrl !== placeholderUrl &&
+              idea.sourceUrl !== result.source.url,
+          );
+        const mergedIdeas = [...prevIdeas, ...finalIdeas];
+        setIdeas(mergedIdeas);
+        const mergedIds = new Set(mergedIdeas.map((idea) => idea.id));
+        useAppStore.setState((state) => ({
+          selectedIdeaIds: new Set(
+            [...state.selectedIdeaIds].filter((id) => mergedIds.has(id)),
+          ),
+        }));
         // Compare (Exa) is intentional — user runs it from DiscoveryPanel
         setDiscoverySkills([]);
         if (!delivered) {
@@ -675,6 +692,13 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
                   compact
                   onIngestUrl={(url) => void runIngest({ url })}
                 />
+                {sources.length >= 1 && !isIngesting && (
+                  <p className="text-[10px] leading-snug text-muted">
+                    {sources.length === 1
+                      ? "Add another source — ideas combine into one stronger skill."
+                      : `${sources.length} sources combined — select ideas from each, forge once.`}
+                  </p>
+                )}
                 <div className="mt-2 flex gap-2 overflow-x-auto pb-1 lg:block lg:space-y-2 lg:overflow-visible">
                   {sources.map((source) => (
                     <div
@@ -705,7 +729,7 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
                     </div>
                   ))}
                 </div>
-                <div className="mt-3 hidden flex-wrap gap-1.5 lg:flex">
+                <div className="mt-3 flex flex-wrap gap-1.5">
                   {liveExamples.slice(0, 3).map((ex) => (
                     <button
                       key={ex.id}
@@ -724,30 +748,37 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
               <div className="mx-auto max-w-2xl">
                 <FondofWordmark object={phrase.object} size="inline" />
 
-                {sources[0] && (
+                {latestSource && (
                   <div className="mt-4">
                     <SourceBrief
-                      title={sources[0].title}
-                      url={sources[0].url}
-                      contentType={sources[0].contentType}
+                      title={latestSource.title}
+                      url={latestSource.url}
+                      contentType={latestSource.contentType}
                       ideasCount={ideas.length}
-                      textLength={sources[0].textLength}
+                      textLength={latestSource.textLength}
                       fondObject={phrase.object}
-                      sourceHash={sources[0].sourceHash}
+                      sourceHash={latestSource.sourceHash}
                       ingestValue={ingestValue}
                     />
-                    {sources[0].url && !sources[0].url.startsWith("need://") && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const shareLink = `${window.location.origin}/?url=${encodeURIComponent(sources[0].url)}`;
-                          void navigator.clipboard.writeText(shareLink);
-                        }}
-                        className="mt-2 text-[11px] text-muted hover:text-ember"
-                      >
-                        Copy shareable link — let others fondof this source
-                      </button>
-                    )}
+                    <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
+                      {latestSource.url && !latestSource.url.startsWith("need://") && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const shareLink = `${window.location.origin}/?url=${encodeURIComponent(latestSource.url)}`;
+                            void navigator.clipboard.writeText(shareLink);
+                          }}
+                          className="text-[11px] text-muted hover:text-ember"
+                        >
+                          Copy shareable link — let others fondof this source
+                        </button>
+                      )}
+                      {sources.length > 1 && (
+                        <span className="rounded-full bg-ember/8 px-2 py-0.5 text-[10px] font-medium text-ember">
+                          {sources.length} sources · {ideas.length} ideas combined
+                        </span>
+                      )}
+                    </div>
                   </div>
                 )}
 
