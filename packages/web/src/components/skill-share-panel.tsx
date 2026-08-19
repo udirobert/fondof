@@ -17,8 +17,7 @@ interface SkillSharePanelProps {
 
 /**
  * Share panel shown after forge/publish completion.
- * Pre-composes social posts with attribution. Recording a share
- * unlocks unlimited forges for the month.
+ * Pre-composes social posts with attribution.
  */
 export function SkillSharePanel({
   skillHash,
@@ -63,11 +62,11 @@ export function SkillSharePanel({
     <div className="rounded-xl border border-ink/8 bg-paper/80 p-4">
       <div className="flex items-center gap-2 text-sm font-medium text-ink">
         <Share2 size={14} />
-        Share your skill — unlock unlimited forges
+        Share your skill — build attribution
       </div>
       <p className="mt-1.5 text-[11px] text-muted">
-        Share publicly to get unlimited forges this month. Your skill, your
-        attribution, your brand.
+        Share publicly when you want attribution, a public source page, and a
+        path for others to re-forge it.
       </p>
 
       <div className="mt-3 flex flex-col gap-2">
@@ -81,7 +80,7 @@ export function SkillSharePanel({
           ) : (
             <ExternalLink size={14} />
           )}
-          {shared === "twitter" ? "Shared — unlimited unlocked!" : "Share on X (Twitter)"}
+          {shared === "twitter" ? "Shared publicly" : "Share on X"}
         </button>
         <button
           type="button"
@@ -93,13 +92,13 @@ export function SkillSharePanel({
           ) : (
             <ExternalLink size={14} />
           )}
-          {shared === "linkedin" ? "Shared — unlimited unlocked!" : "Share on LinkedIn"}
+          {shared === "linkedin" ? "Shared publicly" : "Share on LinkedIn"}
         </button>
       </div>
 
       {shared && (
         <p className="mt-2 text-center text-[11px] text-emerald-600">
-          You&apos;re now a Sharer — forge as much as you want this month.
+          Public share recorded — your attribution is now part of the skill’s story.
         </p>
       )}
     </div>

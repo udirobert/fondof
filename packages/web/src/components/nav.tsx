@@ -39,9 +39,9 @@ export function Nav() {
             aria-label="Progress"
           >
             {[
-              { n: 1, label: "Paste" },
-              { n: 2, label: "Select" },
-              { n: 3, label: "Forge" },
+              { n: 1, label: "Source" },
+              { n: 2, label: "Ideas" },
+              { n: 3, label: "Skill" },
             ].map((item, i) => (
               <li key={item.n} className="flex items-center gap-1">
                 {i > 0 && (

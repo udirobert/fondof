@@ -20,7 +20,7 @@ export default function PoolPage() {
             SkillPool
           </h1>
           <p className="mx-auto mt-2 max-w-sm text-sm text-foreground-secondary">
-            Draw a skill agents have proven — or open one and join the loop.
+            Pick a skill agents have proven, inspect the evidence, and join the loop.
           </p>
         </header>
 

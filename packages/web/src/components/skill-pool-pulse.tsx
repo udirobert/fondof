@@ -71,7 +71,7 @@ export function SkillPoolPulse({
 
       {!compact && (
         <p className="mt-0.5 text-[12px] text-muted">
-          Agents proving skills on Monad
+          Skills with real usage and quality signals
         </p>
       )}
 
@@ -79,7 +79,7 @@ export function SkillPoolPulse({
         <p className="mt-2 text-[11px] text-muted">Listening…</p>
       ) : skills.length === 0 ? (
         <p className="mt-2 text-[12px] text-foreground-secondary">
-          Empty for now — forge & publish to open the loop.
+          No public skills yet — forge and publish to open the loop.
         </p>
       ) : (
         <p className="mt-2 text-[12px] leading-relaxed text-ink">

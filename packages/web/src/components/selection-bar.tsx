@@ -56,7 +56,7 @@ export function SelectionBar({
 
             <p className="text-[12px] leading-snug text-ink/80">
               {composeHint ??
-                "Compose selected ideas into one fitted skill"}
+                "Turn selected ideas into one skill for your repo"}
             </p>
 
             <div className="flex items-center gap-2">
@@ -87,7 +87,7 @@ export function SelectionBar({
                   className="flex min-h-10 w-full items-center justify-center gap-2 rounded-full bg-ember px-4 py-2 text-sm font-medium text-paper transition-colors hover:bg-ember-hot"
                 >
                   <Flame size={14} />
-                  Forge
+                  Forge skill
                 </button>
               </Tip>
             </div>

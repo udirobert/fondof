@@ -13,12 +13,12 @@ export const GLOSSARY = {
   signal:
     "Proven quality score — rises with agent uses, falls hard when challenges succeed. Not a price or yield.",
   acquire:
-    "Draw the next skill for your agent — weighted by proven quality, not search ranking.",
+    "Pick a skill for your agent — weighted by proven quality, not search ranking.",
   exists: "A similar skill already covers this — prefer apply over reforging.",
   partial:
     "Something similar exists — forge the gap to capture what’s still missing.",
   skillpool:
-    "On-chain quality registry — forge, use, challenge, draw. Signaling, not a marketplace.",
+    "A quality registry for public skills — forge, use, challenge, and pick. Signaling, not a marketplace.",
   challenge:
     "Dispute a skill’s quality by staking MON. Win → you take up to your stake from the skill. Lose → your stake funds the skill’s reputation.",
   provenance:

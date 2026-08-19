@@ -151,7 +151,7 @@ export function QuickPad({
               <div className="flex min-w-0 items-center gap-2">
                 <Tip tip="Your connected GitHub repos — or type any owner/name." className="shrink-0">
                   <label htmlFor="quick-repo" className="text-[11px] text-muted">
-                    Repo
+                    Fit repo
                   </label>
                 </Tip>
                 {repos.length > 0 ? (
@@ -255,7 +255,7 @@ export function QuickPad({
               </>
             ) : (
               <>
-                Compose skill
+                Forge skill
                 <ArrowRight size={15} />
               </>
             )}
@@ -334,7 +334,7 @@ export function QuickPad({
                 className="flex min-h-9 items-center justify-center gap-2 rounded-full border border-ember/35 bg-ember/8 px-4 text-xs font-medium text-ember hover:border-ember/55 hover:bg-ember/12"
               >
                 <Sparkles size={13} />
-                Go deeper — open the shard plane for this source
+                Review ideas in Studio
               </button>
             </div>
           </div>

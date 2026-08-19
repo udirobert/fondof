@@ -27,7 +27,7 @@ const chapters = [
     anchor: "gl-arrival",
     eyebrow: "Ingest",
     title: "From what you learn",
-    body: "Podcasts via ElevenLabs, articles via Firecrawl. Discrete, actionable ideas — material you can select, not a wall of summary.",
+    body: "Podcasts and articles become discrete, actionable ideas — material you can select, not a wall of summary.",
   },
   {
     id: "fold",
@@ -41,7 +41,7 @@ const chapters = [
     anchor: "gl-settle",
     eyebrow: "SkillPool",
     title: "Useful becomes proven",
-    body: "Publish on Monad when you’re ready. Signal = backing + usage − challenge losses. Next: attach what the skill resulted in — better UI, cleaner PR, real repo delta.",
+    body: "Publish publicly when you’re ready. Signal = backing + usage − challenge losses. Attach what the skill improved — better UI, cleaner PR, real repo delta.",
   },
 ] as const;
 
@@ -133,7 +133,11 @@ export function LandingExperience() {
   }, [reducedMotion]);
 
   return (
-    <div ref={rootRef} className="relative atmosphere overflow-x-clip min-h-screen">
+    <div
+      id="landing-story"
+      ref={rootRef}
+      className="relative min-h-screen scroll-mt-16 overflow-x-clip atmosphere"
+    >
       <AmbientToggle progress={progress} disabled={reducedMotion} />
 
       <ExperienceCanvas
@@ -174,10 +178,10 @@ export function LandingExperience() {
             </p>
             <div className="pointer-events-auto mt-8 flex flex-wrap items-center gap-3">
               <Link
-                href="/canvas"
+                href="/canvas?studio=1"
                 className="inline-flex items-center gap-2 rounded-full bg-ember px-5 py-2.5 text-sm font-medium text-paper hover:bg-ember-hot transition-colors ember-glow"
               >
-                Start forging
+                Open the Studio
                 <ArrowRight size={14} />
               </Link>
               <Link
@@ -345,7 +349,7 @@ export function LandingExperience() {
         >
           <div className="copy-plate max-w-2xl p-10 sm:p-12">
             <p className="text-xs uppercase tracking-[0.2em] text-ember mb-4">
-              Start forging
+              Your turn
             </p>
             <SplitTitle
               text="Bring a source. Leave with a skill for your repo."
@@ -358,10 +362,10 @@ export function LandingExperience() {
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
               <Link
-                href="/canvas"
+                href="/canvas?studio=1"
                 className="pointer-events-auto inline-flex items-center gap-2 rounded-full bg-ember px-6 py-3 text-sm font-medium text-paper hover:bg-ember-hot transition-colors ember-glow"
               >
-                Start forging
+                Open the Studio
                 <ArrowRight size={14} />
               </Link>
               <Link

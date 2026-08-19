@@ -710,12 +710,11 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
                       Free forges used this month
                     </p>
                     <p className="mt-2 text-[12px] text-foreground-secondary">
-                      You&apos;ve used all 3 free forges. Share a skill publicly to
-                      unlock unlimited forges — build your brand while you build
-                      skills.
+                      You&apos;ve used all 3 free forges. Share publicly to add
+                      attribution and let others re-forge your work.
                     </p>
                     <p className="mt-3 text-[11px] text-muted">
-                      Or upgrade to Pro for unlimited private forges.
+                      Need more private forges? Explore the Pro plan.
                     </p>
                     <button
                       type="button"

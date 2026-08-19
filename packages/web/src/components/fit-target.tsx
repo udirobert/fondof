@@ -195,7 +195,7 @@ export function FitTarget({
           aria-label="Fit skill to repository"
         >
           <span className="shrink-0 text-[11px] uppercase tracking-wider text-muted">
-            Fit to
+            Fit ideas to
           </span>
           {repos.map((repo) => {
             const selected = repo.fullName === (active?.fullName ?? "");
@@ -322,7 +322,7 @@ export function FitTarget({
         <GitFork size={14} className="mt-0.5 shrink-0 text-ember" />
         <div>
           <h2 className="text-[11px] font-medium uppercase tracking-wider text-muted">
-            Your repo
+            Fit target
           </h2>
           <p className="mt-1 text-[11px] leading-relaxed text-foreground-secondary">
             {hasFit

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronDown, Flame } from "lucide-react";
+import { ArrowDown, ChevronDown, Flame } from "lucide-react";
 import { SourceCard } from "@/components/source-card";
 import { IdeaShard } from "@/components/idea-shard";
 import { DiscoveryPanel } from "@/components/discovery-panel";
@@ -736,7 +736,7 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
     selectedIdeaIds.size === 0
       ? relatedPair.length === 2
         ? "These two ideas are related — select both, then forge once"
-        : "Select 2+ ideas · one skill beats many thin ones"
+        : "Choose 2+ ideas to combine into one skill"
       : null;
 
   const showPad = mode === "pad" && ideas.length === 0;
@@ -784,6 +784,11 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
                       setQuickMode(id === "quick");
                     }}
                     disabled={quickBusy}
+                    title={
+                      id === "quick"
+                        ? "One ready-to-copy skill"
+                        : "Review and combine ideas"
+                    }
                     className={`min-h-10 rounded-full px-3.5 py-1.5 text-xs transition-colors ${
                       (id === "quick") === quickMode
                         ? "bg-ink text-paper"
@@ -795,8 +800,8 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
                 ))}
               </div>
               <p className="mb-3 max-w-sm text-center text-[11px] leading-snug text-muted">
-                Quick: one-shot skill in seconds · Studio: see every idea, pick
-                the best
+                Quick: one ready-to-copy skill · Studio: review and combine
+                ideas
               </p>
 
               {quickMode ? (
@@ -818,9 +823,21 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
                 />
               )}
               {showFrame && (
-                <p className="mt-6 text-center text-xs text-muted">
-                  Works with any coding agent
-                </p>
+                <>
+                  <p className="mt-6 text-center text-xs text-muted">
+                    Works with any coding agent
+                  </p>
+                  <a
+                    href="#landing-story"
+                    className="group mt-5 inline-flex items-center gap-2 rounded-full border border-ink/10 bg-paper/55 px-3.5 py-2 text-[11px] text-muted transition-colors hover:border-ember/35 hover:bg-paper hover:text-ember"
+                  >
+                    Scroll to see the Skill Pool in motion
+                    <ArrowDown
+                      size={13}
+                      className="transition-transform duration-200 group-hover:translate-y-0.5"
+                    />
+                  </a>
+                </>
               )}
             </div>
             {showFrame && <LandingExperience />}
@@ -1081,7 +1098,7 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
                       >
                         {relatedPair.length === 2
                           ? "Select related pair"
-                          : "Select top 2 to forge"}
+                          : "Choose top 2 ideas"}
                       </button>
                     )}
                   </div>

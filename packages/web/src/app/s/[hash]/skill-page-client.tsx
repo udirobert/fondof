@@ -197,7 +197,7 @@ function ProvenanceDisclosure({
                 ) : (
                   <Dices size={14} />
                 )}
-                {acquiring ? "Drawing…" : "Draw next skill for my agent"}
+                {acquiring ? "Picking…" : "Pick a proven skill for my agent"}
               </button>
             </Tip>
           </div>
@@ -525,16 +525,16 @@ export default function SkillPublicPage() {
     try {
       const res = await acquireSkill();
       if (res.error || !res.skillHash) {
-        setNote(res.error || "Pool empty");
+        setNote(res.error || "No public skills are available yet");
         return;
       }
       const sig = formatSignal(res.skill?.signal);
       stashAcquireNote(
-        `Drawn for your agent because this skill has high proven quality (signal ${sig}, weighted random — not search rank).`,
+        `Picked for your agent because this skill has a strong quality signal (score ${sig}, weighted selection — not search rank).`,
       );
       router.push(skillPublicPath(res.skillHash));
     } catch {
-      setNote("Draw unavailable");
+      setNote("Picking a skill is unavailable right now");
     } finally {
       setAcquiring(false);
     }

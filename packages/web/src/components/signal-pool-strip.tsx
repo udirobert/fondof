@@ -72,16 +72,16 @@ export function SignalPoolStrip({ desk = true }: SignalPoolStripProps) {
     try {
       const res = await acquireSkill();
       if (res.error || !res.skillHash) {
-        setAcquireNote(res.error || "Pool empty — forge first");
+        setAcquireNote(res.error || "No public skills are available yet — forge first");
         return;
       }
       const sig = formatSignal(res.skill?.signal);
-      const note = `Drawn for your agent — highest proven quality in the mix (score ${sig}, weighted random).`;
+      const note = `Picked for your agent — strong quality signal in the mix (score ${sig}, weighted selection).`;
       stashAcquireNote(note);
       setAcquireNote(note);
       router.push(skillPublicPath(res.skillHash));
     } catch {
-      setAcquireNote("Draw unavailable right now");
+      setAcquireNote("Picking a skill is unavailable right now");
     } finally {
       setAcquiring(false);
     }
@@ -132,7 +132,7 @@ export function SignalPoolStrip({ desk = true }: SignalPoolStripProps) {
               ) : (
                 <Dices size={16} />
               )}
-              {acquiring ? "Drawing…" : "Draw the next skill for my agent"}
+              {acquiring ? "Picking…" : "Pick a proven skill for my agent"}
             </button>
           </Tip>
           <p className="text-center text-[12px] text-muted">
