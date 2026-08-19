@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { File, FileText, Podcast, ScrollText } from "lucide-react";
+import { File, FileText, Podcast, ScrollText, X } from "lucide-react";
 import { Tip } from "@/components/tip";
 
 interface SourceCardProps {
@@ -16,6 +16,8 @@ interface SourceCardProps {
   /** Session body available for inspect */
   hasBodyText?: boolean;
   onViewText?: () => void;
+  /** When provided, renders a remove button (source + its ideas). */
+  onRemove?: () => void;
 }
 
 export function SourceCard({
@@ -29,6 +31,7 @@ export function SourceCard({
   isProcessing,
   hasBodyText,
   onViewText,
+  onRemove,
 }: SourceCardProps) {
   const Icon =
     type === "podcast"
@@ -58,6 +61,20 @@ export function SourceCard({
           <h3 className="text-sm font-medium leading-snug text-ink">{title}</h3>
           {author && <p className="mt-0.5 text-xs text-muted">{author}</p>}
         </div>
+        {onRemove && !isProcessing && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onRemove();
+            }}
+            aria-label={`Remove source: ${title}`}
+            title="Remove this source and its ideas"
+            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-muted transition-colors hover:bg-ember/10 hover:text-ember"
+          >
+            <X size={13} />
+          </button>
+        )}
       </div>
 
       <div className="mt-3 flex items-center justify-between gap-2">
