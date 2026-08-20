@@ -57,7 +57,7 @@ import {
 import { Tip } from "@/components/tip";
 import { EconomicsHonesty } from "@/components/economics-honesty";
 import { WhereItLandsList } from "@/components/where-it-lands";
-import { SkillSectionAccordion } from "@/components/skill-section-accordion";
+import { SkillViewer } from "@/components/skill-viewer";
 import { ReattachDraft } from "@/components/reattach-draft";
 import { SkillOutcomePanel } from "@/components/skill-outcome";
 import { getSkillMeta } from "@/lib/skill-meta";
@@ -727,7 +727,13 @@ export default function SkillPublicPage() {
         {skillMarkdown ? (
           <section className="space-y-2" aria-label="Skill body">
             <p className="text-[11px] uppercase tracking-wider text-muted">Skill for your agent</p>
-            <SkillSectionAccordion markdown={skillMarkdown} />
+            <SkillViewer
+              markdown={skillMarkdown}
+              title={metaTitle ?? skill?.title ?? "Skill"}
+              repo={metaRepo ?? skill?.repo ?? undefined}
+              initialMode="magic"
+              showActions={true}
+            />
           </section>
         ) : (
           !loading && skill && (

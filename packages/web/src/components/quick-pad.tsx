@@ -7,13 +7,15 @@ import {
   Check,
   ChevronDown,
   Copy,
+  Download,
   ExternalLink,
   Loader2,
   Lock,
   Sparkles,
   Unlock,
 } from "lucide-react";
-import { SkillSectionAccordion } from "@/components/skill-section-accordion";
+import { SkillViewer } from "@/components/skill-viewer";
+import { downloadSkillMarkdown } from "@/lib/download";
 import { loginWithGitHub } from "@/lib/auth";
 import { Tip } from "@/components/tip";
 import type { ComposeResponse } from "@/lib/api";
@@ -354,19 +356,40 @@ export function QuickPad({
               )}
             </div>
 
-            {result.markdown && <SkillSectionAccordion markdown={result.markdown} />}
+            {result.markdown && (
+              <SkillViewer
+                markdown={result.markdown}
+                title={result.title}
+                repo={result.fittedTo}
+                initialMode="magic"
+                showActions={true}
+                className="mt-3"
+              />
+            )}
 
             <div className="mt-4 flex flex-col gap-2">
-              <button
-                type="button"
-                onClick={() => void handleCopy()}
-                className="flex min-h-10 items-center justify-center gap-2 rounded-full bg-ember px-4 text-sm font-medium text-paper hover:bg-ember-hot"
-              >
-                {copied ? <Check size={14} /> : <Copy size={14} />}
-                {copied ? "Copied" : "Copy skill markdown"}
-              </button>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <button
+                  type="button"
+                  onClick={() => void handleCopy()}
+                  className="flex-1 flex min-h-10 items-center justify-center gap-2 rounded-full bg-ember px-4 text-sm font-medium text-paper hover:bg-ember-hot transition-colors"
+                >
+                  {copied ? <Check size={14} /> : <Copy size={14} />}
+                  {copied ? "Copied markdown" : "Copy skill markdown"}
+                </button>
+                {result.markdown && (
+                  <button
+                    type="button"
+                    onClick={() => downloadSkillMarkdown(result.title, result.markdown!)}
+                    className="flex min-h-10 items-center justify-center gap-2 rounded-full border border-ink/12 bg-paper px-4 text-sm font-medium text-ink hover:border-ember/40 hover:bg-mist/60 transition-colors"
+                  >
+                    <Download size={14} className="text-muted" />
+                    Download .md
+                  </button>
+                )}
+              </div>
 
-              <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+              <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 pt-2">
                 {result.skillUrl && (
                   <a
                     href={result.skillUrl}

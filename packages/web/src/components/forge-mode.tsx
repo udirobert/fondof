@@ -3,9 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  Check,
   ChevronDown,
-  Copy,
   Flame,
   GitFork,
   Shield,
@@ -40,7 +38,7 @@ import { AttestationBurst } from "@/components/experience/attestation-burst";
 import { SignalCountUp } from "@/components/experience/signal-count-up";
 import { IdentityLabel } from "@/components/identity-label";
 import { WalletButton } from "@/components/wallet-button";
-import { SkillSectionAccordion } from "@/components/skill-section-accordion";
+import { SkillViewer } from "@/components/skill-viewer";
 import { SkillFitStrip } from "@/components/skill-fit-strip";
 import { SkillSharePanel } from "@/components/skill-share-panel";
 import { SkillExportPanel } from "@/components/skill-export-panel";
@@ -95,13 +93,11 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
   const [publishing, setPublishing] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [composing, setComposing] = useState(false);
-  const [copied, setCopied] = useState(false);
   const [liveSignal, setLiveSignal] = useState<string | null>(null);
   const [usageCount, setUsageCount] = useState<number | null>(null);
   const [publishNote, setPublishNote] = useState<string | null>(null);
   const [celebrate, setCelebrate] = useState(false);
   const [attestKey, setAttestKey] = useState(0);
-  const [showFullDraft, setShowFullDraft] = useState(true);
   const [forgeTitle, setForgeTitle] = useState<string | null>(null);
   const [forgeBlocked, setForgeBlocked] = useState<ForgeCheck | null>(null);
   const [forgePrivate, setForgePrivate] = useState(true);
@@ -597,17 +593,6 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
     ideaText: ideas.map((i) => `${i.title} ${i.description}`).join(" "),
   });
 
-  const copyDraft = async () => {
-    if (!draft) return;
-    try {
-      await navigator.clipboard.writeText(draft);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1600);
-    } catch {
-      // ignore
-    }
-  };
-
   return (
     <AnimatePresence>
       {open && (
@@ -844,55 +829,15 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
                             )}
 
                             {draft && (
-                              <>
-                                {showFullDraft ? (
-                                  <div className="rounded-xl border border-ink/8 bg-paper/60 p-3">
-                                    <div className="mb-2 flex items-center justify-between">
-                                      <p className="text-[10px] uppercase tracking-wider text-muted">
-                                        Skill file
-                                      </p>
-                                      <button
-                                        type="button"
-                                        onClick={copyDraft}
-                                        disabled={!draft}
-                                        className="inline-flex min-h-8 items-center gap-1.5 rounded-full px-2 text-[11px] text-muted hover:bg-mist hover:text-ink disabled:opacity-30"
-                                      >
-                                        {copied ? (
-                                          <Check size={12} className="text-ember" />
-                                        ) : (
-                                          <Copy size={12} />
-                                        )}
-                                        {copied ? "Copied" : "Copy"}
-                                      </button>
-                                    </div>
-                                    <pre className="max-h-64 overflow-auto font-mono text-[11px] leading-relaxed whitespace-pre-wrap text-foreground-secondary">
-                                      {draft}
-                                    </pre>
-                                  </div>
-                                ) : (
-                                  <div className="pt-1">
-                                    <p className="mb-2 text-[11px] uppercase tracking-wider text-muted">
-                                      Sections
-                                    </p>
-                                    <SkillSectionAccordion markdown={draft} />
-                                  </div>
-                                )}
-
-                                <button
-                                  type="button"
-                                  onClick={() => setShowFullDraft((v) => !v)}
-                                  className="inline-flex min-h-9 items-center gap-1.5 text-[11px] text-muted hover:text-ink"
-                                  aria-expanded={showFullDraft}
-                                >
-                                  <ChevronDown
-                                    size={13}
-                                    className={`transition-transform ${showFullDraft ? "rotate-180" : ""}`}
-                                  />
-                                  {showFullDraft
-                                    ? "Show formatted"
-                                    : "Show skill file"}
-                                </button>
-                              </>
+                              <div className="pt-2">
+                                <SkillViewer
+                                  markdown={draft}
+                                  title={draftPreview.title}
+                                  repo={repo}
+                                  initialMode="magic"
+                                  showActions={true}
+                                />
+                              </div>
                             )}
                           </div>
                         )}

@@ -54,29 +54,46 @@ function slug(title: string, i: number) {
 
 /**
  * Parse `#` / `##` headings into sections. Leading title `#` becomes preamble
- * under a synthetic Context if there is body before the first `##`.
+ * under a synthetic Context only if there is real text before the first `##` and
+ * the first section is not already Context. HTML comments and trailing signatures
+ * are ignored.
  */
 export function parseSkillSections(markdown: string): SkillSection[] {
-  const text = markdown.replace(/\r\n/g, "\n").trim();
-  if (!text) return [];
+  // Strip top/embedded HTML comments (e.g. <!-- Forged with fondof ... -->)
+  const cleaned = markdown
+    .replace(/<!--[\s\S]*?-->/g, "")
+    .replace(/\r\n/g, "\n")
+    .trim();
+  if (!cleaned) return [];
 
-  const lines = text.split("\n");
+  const lines = cleaned.split("\n");
   const sections: { title: string; bodyLines: string[] }[] = [];
   let current: { title: string; bodyLines: string[] } | null = null;
   let preamble: string[] = [];
   let sawH1 = false;
 
   for (const line of lines) {
+    // Skip trailing horizontal rule and forged footer if present at the end
+    if (line.trim().startsWith("*Forged with [fondof]")) {
+      continue;
+    }
+
     const h2 = line.match(/^##\s+(.+)$/);
     const h1 = line.match(/^#\s+(.+)$/);
 
     if (h2) {
-      if (current) sections.push(current);
-      else if (preamble.some((l) => l.trim())) {
-        sections.push({ title: "Context", bodyLines: [...preamble] });
+      const nextTitle = h2[1].trim();
+      if (current) {
+        sections.push(current);
+      } else {
+        const meaningfulPreamble = preamble.filter((l) => l.trim() && l.trim() !== "---");
+        // Only push synthetic context if next section is not already Context and preamble has content
+        if (meaningfulPreamble.length > 0 && nextTitle.toLowerCase() !== "context") {
+          sections.push({ title: "Context", bodyLines: [...meaningfulPreamble] });
+        }
         preamble = [];
       }
-      current = { title: h2[1].trim(), bodyLines: [] };
+      current = { title: nextTitle, bodyLines: [] };
       continue;
     }
 
@@ -87,12 +104,13 @@ export function parseSkillSections(markdown: string): SkillSection[] {
     }
 
     if (h1 && sawH1 && !current) {
-      // Second top-level heading treated as section
-      if (preamble.some((l) => l.trim())) {
-        sections.push({ title: "Context", bodyLines: [...preamble] });
-        preamble = [];
+      const nextTitle = h1[1].trim();
+      const meaningfulPreamble = preamble.filter((l) => l.trim() && l.trim() !== "---");
+      if (meaningfulPreamble.length > 0 && nextTitle.toLowerCase() !== "context") {
+        sections.push({ title: "Context", bodyLines: [...meaningfulPreamble] });
       }
-      current = { title: h1[1].trim(), bodyLines: [] };
+      preamble = [];
+      current = { title: nextTitle, bodyLines: [] };
       continue;
     }
 
@@ -101,13 +119,18 @@ export function parseSkillSections(markdown: string): SkillSection[] {
   }
 
   if (current) sections.push(current);
-  else if (preamble.some((l) => l.trim())) {
-    sections.push({ title: "Context", bodyLines: preamble });
+  else {
+    const meaningfulPreamble = preamble.filter((l) => l.trim() && l.trim() !== "---");
+    if (meaningfulPreamble.length > 0) {
+      sections.push({ title: "Context", bodyLines: meaningfulPreamble });
+    }
   }
 
   return sections
     .map((s, i) => {
-      const body = s.bodyLines.join("\n").trim();
+      // Filter out trailing --- or footer notes from body
+      const bodyLines = s.bodyLines.filter((l) => !l.trim().startsWith("*Forged with [fondof]"));
+      const body = bodyLines.join("\n").trim().replace(/---\s*$/, "").trim();
       if (!body && sections.length > 1) return null;
       return {
         id: slug(s.title, i),

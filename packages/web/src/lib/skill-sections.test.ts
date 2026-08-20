@@ -69,4 +69,37 @@ Wire jitter into \`fetchWithRetry\`.
   it("returns [] for empty markdown", () => {
     expect(parseSkillSections("")).toEqual([]);
   });
+
+  it("handles comments and avoids duplicate context sections", () => {
+    const markdown = `<!-- Forged with fondof | Fitted for: cognivern | Sources:
+  - https://www.youtube.com/watch?v=mtFvUGTCDBE
+-->
+
+# Token Spend Optimization for Engineering Teams
+
+## Context
+This skill is designed for cognivern.
+
+## Guidance
+Calculate PnL.
+
+\`\`\`typescript
+const pnl = 100;
+\`\`\`
+
+## Anti-patterns
+- Over-allocating resources
+
+## References
+- https://www.youtube.com/watch?v=mtFvUGTCDBE
+
+---
+*Forged with [fondof](https://fondof.netlify.app) · Fitted for cognivern*
+`;
+    const sections = parseSkillSections(markdown);
+    const titles = sections.map((s) => s.title);
+    expect(titles).toEqual(["Context", "Guidance", "Anti-patterns", "References"]);
+    expect(sections[0].body).toBe("This skill is designed for cognivern.");
+    expect(sections[3].body).not.toContain("*Forged with");
+  });
 });
