@@ -13,6 +13,7 @@ import {
   Mic,
   MoreHorizontal,
   Shield,
+  Sparkles,
   Swords,
   Volume2,
   Zap,
@@ -639,19 +640,32 @@ export default function SkillPublicPage() {
 
         {/* ── Collapsed meta strip ── */}
         <div className="text-center">
-          {/* Always-visible: source domains */}
+          {/* Always-visible: source domains & Remix CTA */}
           {sourceDomains.length > 0 && (
-            <p className="text-[11px] text-muted">
-              Forged from{" "}
-              {sourceDomains.map((d, i) => (
-                <span key={d}>
-                  {i > 0 && " · "}
-                  <Link href={`/from/${encodeURIComponent(d)}`} className="text-ember hover:underline">
-                    {d}
+            <div className="space-y-2">
+              <p className="text-[11px] text-muted">
+                Forged from{" "}
+                {sourceDomains.map((d, i) => (
+                  <span key={d}>
+                    {i > 0 && " · "}
+                    <Link href={`/from/${encodeURIComponent(d)}`} className="text-ember hover:underline">
+                      {d}
+                    </Link>
+                  </span>
+                ))}
+              </p>
+              {sourceUrls.length > 0 && (
+                <div className="flex items-center justify-center pt-1">
+                  <Link
+                    href={`/?url=${encodeURIComponent(sourceUrls[0])}&studio=1`}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-ink/10 bg-paper/80 px-3 py-1 text-xs font-medium text-ink transition-colors hover:border-ember/40 hover:text-ember shadow-xs"
+                  >
+                    <Sparkles size={12} className="text-ember" />
+                    <span>Adapt for my repo in Studio</span>
                   </Link>
-                </span>
-              ))}
-            </p>
+                </div>
+              )}
+            </div>
           )}
 
           {/* Expandable detail: forger, genres, lineage, canonical */}

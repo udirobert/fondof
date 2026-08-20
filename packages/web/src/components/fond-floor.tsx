@@ -1122,15 +1122,17 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
                       </button>
                     )}
                     {activeFitCount === 1 && !fitFilterActive && (
-                      <Tip tip="fit">
-                        <button
-                          type="button"
-                          onClick={selectFitShards}
-                          className="inline-flex min-h-9 items-center justify-center rounded-full border border-ink/12 bg-mist px-3.5 text-[12px] font-medium text-ink hover:border-ember/35"
-                        >
-                          Select 1 fit
-                        </button>
-                      </Tip>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          selectFitShards();
+                          setForgeOpen(true);
+                        }}
+                        className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-full bg-ember px-3.5 text-[12px] font-medium text-paper transition-colors hover:bg-ember-hot"
+                      >
+                        <Flame size={13} />
+                        Forge 1 fit
+                      </button>
                     )}
                     {idleComposeHint && (
                       <button

@@ -25,8 +25,7 @@ export function SelectionBar({
   selectedTitles = [],
   composeHint,
 }: SelectionBarProps) {
-  const readyToForge = count >= 2;
-  const remaining = Math.max(0, 2 - count);
+  const readyToForge = count >= 1;
 
   return (
     <AnimatePresence>
@@ -60,12 +59,12 @@ export function SelectionBar({
             <div className="flex items-center justify-between gap-3">
               <p className="text-[12px] leading-snug text-ink/80">
                 {composeHint ??
-                  "Turn selected ideas into one skill for your repo"}
+                  (count === 1
+                    ? "Fit this single technique directly to your repo"
+                    : `Combine ${count} ideas into one unified skill`)}
               </p>
-              <p className={`shrink-0 text-[10px] font-medium ${readyToForge ? "text-novel" : "text-muted"}`}>
-                {readyToForge
-                  ? "Ready to forge"
-                  : `Select ${remaining} more ${remaining === 1 ? "idea" : "ideas"}`}
+              <p className="shrink-0 text-[10px] font-medium text-novel">
+                {count === 1 ? "1 idea ready" : `${count} ideas ready`}
               </p>
             </div>
 
@@ -79,7 +78,7 @@ export function SelectionBar({
                     <span className="font-serif text-ember/90">{fondObject}</span>
                   </>
                 ) : (
-                  " selected"
+                  count === 1 ? " idea selected" : " ideas selected"
                 )}
               </p>
               <button
@@ -98,7 +97,7 @@ export function SelectionBar({
                   className="flex min-h-10 w-full items-center justify-center gap-2 rounded-full bg-ember px-4 py-2 text-sm font-medium text-paper transition-colors hover:bg-ember-hot disabled:cursor-not-allowed disabled:opacity-35"
                 >
                   <Flame size={14} />
-                  {readyToForge ? "Forge skill" : "Select 2+ ideas"}
+                  {count === 1 ? "Fit 1 idea to repo" : `Forge ${count} ideas`}
                 </button>
               </Tip>
             </div>
