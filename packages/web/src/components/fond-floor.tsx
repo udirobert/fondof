@@ -572,15 +572,18 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
               : res.contentType === "text"
                 ? "text"
                 : "blog";
+        const candidateIdeas =
+          res.allIdeas && res.allIdeas.length > 0 ? res.allIdeas : res.ideas;
         addSource({
           url: sourceUrl,
-          title: res.title || src.slice(0, 48),
+          title: res.sourceTitle || res.title || src.slice(0, 48),
           contentType,
-          ideasCount: res.ideas.length,
+          ideasCount: candidateIdeas.length,
           sourceHash: res.sourceHash || "compose",
           isProcessing: false,
         });
-        setIdeas(res.ideas);
+        setIdeas(candidateIdeas);
+        // Pre-select the forged ideas in the tray so the user sees the active mix
         selectIdeas(res.ideas.map((i) => i.id));
         setMode("work");
         return;

@@ -424,17 +424,68 @@ export function QuickPad({
 
           {result.ideas && result.ideas.length > 0 && (
             <details className="rounded-xl border border-ink/8 bg-paper/60 px-4 py-3">
-              <summary className="cursor-pointer text-xs font-medium text-muted">
-                {result.ideas.length} shard{result.ideas.length !== 1 ? "s" : ""} used
+              <summary className="cursor-pointer text-xs font-medium text-muted hover:text-ink transition-colors">
+                {result.allIdeas && result.allIdeas.length > result.ideas.length ? (
+                  <span>
+                    Forged from <strong className="text-ink">{result.ideas.length}</strong> of{" "}
+                    <strong className="text-ink">{result.allIdeas.length} ideas</strong> found · Click to inspect mix
+                  </span>
+                ) : (
+                  <span>{result.ideas.length} shard{result.ideas.length !== 1 ? "s" : ""} used in this skill</span>
+                )}
               </summary>
-              <ul className="mt-2 space-y-1.5">
-                {result.ideas.map((idea) => (
-                  <li key={idea.id} className="text-xs text-ink/80">
-                    <span className="font-medium">{idea.title}</span>
-                    {idea.description ? ` — ${idea.description}` : ""}
-                  </li>
-                ))}
-              </ul>
+
+              <div className="mt-3 space-y-3">
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-ember">
+                    Forged in this skill ({result.ideas.length})
+                  </p>
+                  <ul className="mt-1.5 space-y-1.5">
+                    {result.ideas.map((idea) => (
+                      <li key={idea.id} className="text-xs text-ink/90 flex items-start gap-1.5">
+                        <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-ember" />
+                        <div>
+                          <span className="font-medium">{idea.title}</span>
+                          {idea.description ? <span className="text-muted"> — {idea.description}</span> : null}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {result.allIdeas && result.allIdeas.length > result.ideas.length && (
+                  <div className="border-t border-ink/6 pt-2">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted">
+                      Other candidate ideas in source ({result.allIdeas.length - result.ideas.length})
+                    </p>
+                    <ul className="mt-1.5 space-y-1.5">
+                      {result.allIdeas
+                        .filter((cand) => !result.ideas?.some((used) => used.id === cand.id || used.title === cand.title))
+                        .map((idea) => (
+                          <li key={idea.id} className="text-xs text-muted flex items-start gap-1.5">
+                            <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-ink/20" />
+                            <div>
+                              <span className="font-medium text-foreground-secondary">{idea.title}</span>
+                              {idea.description ? <span> — {idea.description}</span> : null}
+                            </div>
+                          </li>
+                        ))}
+                    </ul>
+                    <div className="mt-2.5 pt-1">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          submitted && onGoDeeper(submitted.source, submitted.isNeed)
+                        }
+                        className="inline-flex items-center gap-1 text-[11px] font-medium text-ember hover:underline"
+                      >
+                        <Sparkles size={11} />
+                        Open Studio to customize and re-forge mix
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </details>
           )}
         </motion.div>

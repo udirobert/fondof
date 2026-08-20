@@ -611,6 +611,10 @@ export async function resolveChallenge(
 export interface ComposeResponse {
   markdown?: string;
   ideas?: IdeaFromAPI[];
+  allIdeas?: IdeaFromAPI[];
+  totalIdeasCount?: number;
+  sourceTitle?: string;
+  textLength?: number;
   skillHash?: string;
   skillUrl?: string | null;
   canonicalSources?: CanonicalSource[];

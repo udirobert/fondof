@@ -74,14 +74,17 @@ composeRoute.post("/compose", rateLimit("compose"), async (c) => {
       );
     }
 
-    // 2. Top forge-worthy shards
-    const topN = clamp(body.topShards ?? 2, 1, 6);
-    const topShards = ingestResult.ideas.slice(0, topN);
-
-    // Repo context — agents can just say "owner/name"; we detect the stack.
+    // 2. Repo context — agents can just say "owner/name"; we detect the stack.
     const repo = await resolveRepoContext(body.repo, c.env.SESSIONS);
 
-    // 3. Forge via the shared core (same caching as /api/forge).
+    // 3. Rank forge-worthy shards against repo context (if provided)
+    const allCandidateIdeas = [...ingestResult.ideas];
+    const rankedIdeas = rankIdeasForRepo(allCandidateIdeas, repo);
+
+    const topN = clamp(body.topShards ?? 2, 1, 6);
+    const topShards = rankedIdeas.slice(0, topN);
+
+    // 4. Forge via the shared core (same caching as /api/forge).
     //    A compose is private unless public sharing is explicit.
     const isPrivate = body.private !== false;
     const session = await resolveSession(
@@ -123,6 +126,10 @@ composeRoute.post("/compose", rateLimit("compose"), async (c) => {
     return c.json({
       markdown: payload.markdown,
       ideas: topShards,
+      allIdeas: allCandidateIdeas,
+      totalIdeasCount: allCandidateIdeas.length,
+      sourceTitle: ingestResult.title,
+      textLength: ingestResult.textLength,
       skillHash: payload.skillHash,
       skillUrl: isPrivate ? null : skillUrl,
       title: payload.title,
@@ -142,3 +149,68 @@ composeRoute.post("/compose", rateLimit("compose"), async (c) => {
     return c.json({ error: msg }, 500);
   }
 });
+
+interface IdeaLike {
+  title: string;
+  description: string;
+  domain?: string[];
+  applicability?: string[];
+  patternType?: string;
+}
+
+function rankIdeasForRepo<T extends IdeaLike>(
+  ideas: T[],
+  repo?: { frameworks?: string[]; languages?: string[] },
+): T[] {
+  if (!repo || ((!repo.frameworks || repo.frameworks.length === 0) && (!repo.languages || repo.languages.length === 0))) {
+    // Without repo stack, preserve extraction order with slight bonus for actionable patterns
+    return [...ideas].sort((a, b) => patternWeight(b.patternType) - patternWeight(a.patternType));
+  }
+
+  const fwSet = new Set((repo.frameworks ?? []).map((f) => f.toLowerCase()));
+  const langSet = new Set((repo.languages ?? []).map((l) => l.toLowerCase()));
+
+  return [...ideas].sort((a, b) => {
+    const scoreA = computeIdeaScore(a, fwSet, langSet);
+    const scoreB = computeIdeaScore(b, fwSet, langSet);
+    return scoreB - scoreA;
+  });
+}
+
+function computeIdeaScore(
+  idea: IdeaLike,
+  repoFrameworks: Set<string>,
+  repoLanguages: Set<string>,
+): number {
+  let score = patternWeight(idea.patternType);
+
+  const applicability = (idea.applicability ?? []).map((a) => a.toLowerCase());
+  const domains = (idea.domain ?? []).map((d) => d.toLowerCase());
+
+  for (const tag of applicability) {
+    if (repoFrameworks.has(tag)) score += 3.0;
+    if (repoLanguages.has(tag)) score += 2.0;
+  }
+
+  for (const domain of domains) {
+    if (repoFrameworks.has(domain)) score += 2.0;
+    if (repoLanguages.has(domain)) score += 1.5;
+  }
+
+  return score;
+}
+
+function patternWeight(patternType?: string): number {
+  switch (patternType) {
+    case "technique":
+      return 3;
+    case "architecture":
+      return 2.5;
+    case "anti-pattern":
+      return 1.5;
+    case "mental-model":
+      return 1;
+    default:
+      return 1;
+  }
+}
