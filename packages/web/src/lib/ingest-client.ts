@@ -279,10 +279,11 @@ export async function resolveIngestStream(
     }
 
     if (streamError) {
-      // fall through to JSON then demo
+      throw new Error(streamError);
     }
   } catch (err) {
     if (isAbort(err)) throw err;
+    if (streamError) throw err;
   }
 
   // JSON fallback
@@ -424,11 +425,11 @@ function isAbort(err: unknown) {
 
 function rejectAfter(ms: number, signal?: AbortSignal) {
   return new Promise<never>((_, reject) => {
-    const t = window.setTimeout(() => reject(new Error("timeout")), ms);
+    const t = globalThis.setTimeout(() => reject(new Error("timeout")), ms);
     signal?.addEventListener(
       "abort",
       () => {
-        window.clearTimeout(t);
+        globalThis.clearTimeout(t);
         reject(new DOMException("Aborted", "AbortError"));
       },
       { once: true },

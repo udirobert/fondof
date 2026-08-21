@@ -42,10 +42,14 @@ export function clearToken(): void {
 }
 
 /** Redirect to GitHub OAuth via the API. */
-export function loginWithGitHub(redirect?: string): void {
+export function loginWithGitHub(
+  redirect?: string,
+  opts?: { intent?: "publish" },
+): void {
   const params = new URLSearchParams();
   const path = safeClientRedirect(redirect);
   if (path && path !== "/") params.set("redirect", path);
+  if (opts?.intent === "publish") params.set("intent", "publish");
   // OAuth must leave the app and may target a separately hosted API.
   // eslint-disable-next-line @next/next/no-location-assign-relative-destination
   window.location.href = `${API_BASE}/api/auth/github?${params}`;

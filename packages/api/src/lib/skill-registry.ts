@@ -352,22 +352,41 @@ export async function unlistPublicSkill(
 
 /**
  * Recent public skills, newest first (the "pool of skills, not txs").
+ * KV list is lexicographic by hash, so we page through every `pub-skill:`
+ * key before sorting by composedAt and applying `limit`.
  */
 export async function listPublicSkills(
   env: Env,
   limit = 20,
 ): Promise<PublicSkillRecord[]> {
-  const listed = await env.SESSIONS.list({
-    prefix: PREFIX,
-    limit: Math.min(limit * 2, 100),
-  });
-  if (!listed?.keys?.length) return [];
+  const names: string[] = [];
+  let cursor: string | undefined;
+  const pageSize = 1000;
+  const cap = 8000;
 
-  const records = await Promise.all(
-    listed.keys.map((k) => getPublicSkill(env, k.name.slice(PREFIX.length))),
-  );
+  do {
+    const listed = await env.SESSIONS.list({
+      prefix: PREFIX,
+      limit: pageSize,
+      cursor,
+    });
+    for (const key of listed?.keys ?? []) names.push(key.name);
+    cursor = listed?.list_complete ? undefined : listed?.cursor;
+  } while (cursor && names.length < cap);
+
+  const records: PublicSkillRecord[] = [];
+  const batchSize = 50;
+  for (let i = 0; i < names.length; i += batchSize) {
+    const batch = names.slice(i, i + batchSize);
+    const loaded = await Promise.all(
+      batch.map((name) => getPublicSkill(env, name.slice(PREFIX.length))),
+    );
+    for (const rec of loaded) {
+      if (rec) records.push(rec);
+    }
+  }
+
   return records
-    .filter((r): r is PublicSkillRecord => r !== null)
     .sort((a, b) => (b.composedAt || "").localeCompare(a.composedAt || ""))
     .slice(0, limit);
 }

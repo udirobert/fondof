@@ -41,7 +41,8 @@ function frontendBase(env: Env): string {
  * ingest → top shards → forge → { markdown, ideas, skillHash, skillUrl, sourceUrl }
  *
  * Private by default: a shareable skillUrl is returned only when the caller
- * explicitly requests a public share; on-chain attestation remains separate.
+ * explicitly requests a public share AND the durable registry record exists.
+ * On-chain attestation remains separate.
  */
 composeRoute.post("/compose", rateLimit("compose"), async (c) => {
   let body: ComposeBody;
@@ -130,7 +131,6 @@ composeRoute.post("/compose", rateLimit("compose"), async (c) => {
             ingestResult,
             topShards,
             allCandidateIdeas,
-            isPrivate,
           },
         };
       },
@@ -140,15 +140,16 @@ composeRoute.post("/compose", rateLimit("compose"), async (c) => {
       return c.json(metered.body, metered.status as 402 | 422);
     }
 
-    const { payload, ingestResult, topShards, allCandidateIdeas, isPrivate } =
+    const { payload, ingestResult, topShards, allCandidateIdeas } =
       metered.value;
     const sourceUrl = url ? normalizeSourceUrl(url) : needUrl(need!);
-    const skillUrl = `${frontendBase(c.env)}/s/${payload.skillHash}`;
 
-    // Confirm the durable public record exists only after explicit sharing.
+    // Advertise /s/{hash} only after the durable public record reads back.
+    let shareable = !payload.private;
     let attested = false;
-    if (!isPrivate) {
+    if (shareable) {
       const rec = await getPublicSkill(c.env, payload.skillHash);
+      shareable = !!rec;
       attested = rec?.onChain ?? false;
     }
 
@@ -160,7 +161,9 @@ composeRoute.post("/compose", rateLimit("compose"), async (c) => {
       sourceTitle: ingestResult.title,
       textLength: ingestResult.textLength,
       skillHash: payload.skillHash,
-      skillUrl: isPrivate ? null : skillUrl,
+      skillUrl: shareable
+        ? `${frontendBase(c.env)}/s/${payload.skillHash}`
+        : null,
       title: payload.title,
       canonicalSources: payload.canonicalSources,
       derivedFromSkillHash: payload.derivedFromSkillHash,
@@ -169,7 +172,7 @@ composeRoute.post("/compose", rateLimit("compose"), async (c) => {
       contentType: ingestResult.contentType,
       fittedTo: payload.fittedTo,
       onChain: attested,
-      private: isPrivate,
+      private: !shareable,
       ingestCacheHit: !!ingestResult.cacheHit,
       providers: ingestResult.providers,
     });

@@ -246,12 +246,10 @@ export async function ingestURLStream(
   });
 
   if (!res.ok || !res.body) {
-    const err = await res.json().catch(() => ({ error: "Stream failed" }));
-    onEvent({
-      type: "error",
-      error: (err as { error?: string }).error || `HTTP ${res.status}`,
-    });
-    return;
+    throw new Error(
+      ((await res.json().catch(() => ({}))) as { error?: string }).error ||
+        `HTTP ${res.status}`,
+    );
   }
 
   const reader = res.body.getReader();

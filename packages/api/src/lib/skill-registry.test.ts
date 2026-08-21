@@ -38,17 +38,22 @@ function fakeKV(): KVNamespace {
           : undefined,
       });
     },
-    list: async (opts?: { prefix?: string; limit?: number }) => {
-      const keys = [...store.keys()]
+    list: async (opts?: { prefix?: string; limit?: number; cursor?: string }) => {
+      const all = [...store.keys()]
         .filter((k) => (opts?.prefix ? k.startsWith(opts.prefix) : true))
-        .map((name) => ({
+        .sort();
+      const start = opts?.cursor ? Number(opts.cursor) || 0 : 0;
+      const limit = opts?.limit ?? 1000;
+      const page = all.slice(start, start + limit);
+      const next = start + limit;
+      return {
+        keys: page.map((name) => ({
           name,
           expiration: undefined,
           metadata: undefined,
-        }));
-      return {
-        keys: keys.slice(0, opts?.limit ?? 1000),
-        list_complete: true,
+        })),
+        list_complete: next >= all.length,
+        cursor: next >= all.length ? undefined : String(next),
         cacheStatus: undefined,
       };
     },
@@ -275,6 +280,26 @@ describe("skill-registry (durable public skills)", () => {
     });
     const list = await listPublicSkills(env, 10);
     expect(list.map((r) => r.hash)).toEqual(["bbb", "ccc", "aaa"]);
+  });
+
+  it("includes a newly composed skill whose hash sorts after the first KV page", async () => {
+    const env = envWith(fakeKV());
+    for (let i = 0; i < 25; i++) {
+      await recordPublicSkill(env, {
+        ...baseInput,
+        hash: i.toString(16).padStart(64, "0"),
+        composedAt: `2026-01-01T00:00:${String(i).padStart(2, "0")}.000Z`,
+      });
+    }
+    const newest = "f".repeat(64);
+    await recordPublicSkill(env, {
+      ...baseInput,
+      hash: newest,
+      composedAt: "2026-12-31T00:00:00.000Z",
+    });
+    const list = await listPublicSkills(env, 10);
+    expect(list[0]?.hash).toBe(newest);
+    expect(list).toHaveLength(10);
   });
 
   it("caps markdown and arrays", async () => {

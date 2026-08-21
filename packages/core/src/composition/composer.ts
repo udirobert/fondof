@@ -73,9 +73,7 @@ Architecture: ${targetRepo.conventions.architecture}`;
   // Build sources from ideas
   const sources: SkillSource[] = ideas.map((idea) => ({
     url: idea.sourceUrl,
-    segment: idea.segment.startTime
-      ? `${formatTime(idea.segment.startTime)}–${formatTime(idea.segment.endTime ?? 0)}`
-      : `Paragraphs ${idea.segment.startParagraph ?? 0}–${idea.segment.endParagraph ?? 0}`,
+    segment: sourceSegmentLabel(idea.segment),
     contribution: idea.idea.title,
   }));
 
@@ -194,4 +192,17 @@ function formatTime(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = Math.floor(seconds % 60);
   return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+/** Audio uses timestamps; text uses paragraphs. `startTime: 0` is a valid cue. */
+export function sourceSegmentLabel(segment: {
+  startTime?: number;
+  endTime?: number;
+  startParagraph?: number;
+  endParagraph?: number;
+}): string {
+  if (segment.startTime !== undefined) {
+    return `${formatTime(segment.startTime)}–${formatTime(segment.endTime ?? 0)}`;
+  }
+  return `Paragraphs ${segment.startParagraph ?? 0}–${segment.endParagraph ?? 0}`;
 }

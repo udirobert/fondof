@@ -1,6 +1,12 @@
 import { Hono } from "hono";
+import type { Context } from "hono";
 import type { Env } from "../index.js";
 import { resolveSession } from "./auth.js";
+import {
+  missingGitHubPublishScopes,
+  readGitHubOAuthScopes,
+  type GitHubPublishKind,
+} from "../lib/github-scopes.js";
 
 export const githubPublishRoute = new Hono<{ Bindings: Env }>();
 
@@ -35,6 +41,12 @@ githubPublishRoute.post("/publish/github", async (c) => {
 
   const isPrivate = body.private === true;
   const filename = toFilename(body.title);
+  const kind: GitHubPublishKind = body.repo ? "repo" : "gist";
+  const granted = await readGitHubOAuthScopes(session.accessToken);
+  const missing = missingGitHubPublishScopes(granted, kind);
+  if (missing.length) {
+    return githubScopeRequired(c, missing);
+  }
 
   // Default: create a public gist
   if (!body.repo) {
@@ -56,6 +68,9 @@ githubPublishRoute.post("/publish/github", async (c) => {
 
     if (!gistRes.ok) {
       const err = await gistRes.text();
+      if (gistRes.status === 403 || gistRes.status === 401) {
+        return githubScopeRequired(c, ["gist"], err);
+      }
       return c.json(
         { error: "GitHub API error", detail: err.slice(0, 200) },
         502,
@@ -123,6 +138,9 @@ githubPublishRoute.post("/publish/github", async (c) => {
 
   if (!putRes.ok) {
     const err = await putRes.text();
+    if (putRes.status === 403 || putRes.status === 401) {
+      return githubScopeRequired(c, ["repo"], err);
+    }
     return c.json(
       { error: "GitHub API error", detail: err.slice(0, 200) },
       502,
@@ -201,6 +219,25 @@ async function getPublishedSkills(
 ): Promise<PublishedSkill[]> {
   const key = `published:${userId}`;
   return ((await kv.get(key, "json")) as PublishedSkill[] | null) || [];
+}
+
+function githubScopeRequired(
+  c: Context<{ Bindings: Env }>,
+  missing: string[],
+  detail?: string,
+) {
+  const origin = c.req.url.split("/api/publish/github")[0];
+  return c.json(
+    {
+      error:
+        "GitHub has not granted permission to publish. Authorize the extra scopes, then retry.",
+      code: "github_scope_required",
+      missing,
+      authorizeUrl: `${origin}/api/auth/github?intent=publish`,
+      ...(detail ? { detail: detail.slice(0, 200) } : {}),
+    },
+    403,
+  );
 }
 
 function toFilename(title: string): string {

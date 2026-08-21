@@ -125,4 +125,16 @@ describe("planChangeFromStripeEvent", () => {
       }),
     ).toEqual({ userId: "42", plan: "free" });
   });
+
+  it("revokes Pro using a mapped user id when subscription metadata is absent", () => {
+    expect(
+      planChangeFromStripeEvent(
+        {
+          type: "customer.subscription.paused",
+          data: { object: { id: "sub_ada", customer: "cus_ada" } },
+        },
+        "42",
+      ),
+    ).toEqual({ userId: "42", plan: "free" });
+  });
 });

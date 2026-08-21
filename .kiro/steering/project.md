@@ -146,7 +146,7 @@ fondof/
 ## Key Design Decisions
 
 - **Relayer + optional wallet:** Relayer submits forge/use/challenge for demos; wallet forge attributes the forger on-chain.
-- **Hashes on-chain, titles + skill body at the edge:** SkillPool stores hashes; title, blurb, landing map, and capped markdown live in Worker edge cache so `/s/[hash]` is a real artifact for any judge browser — not localStorage-only.
+- **Hashes on-chain, titles + skill body at the edge:** SkillPool stores hashes; title, blurb, landing map, and capped markdown live in the durable KV registry so `/s/[hash]` is a real artifact for any judge browser — not localStorage-only. A public forge advertises that URL only after the registry record reads back.
 - **Re-attach draft:** If a live skill hash has no edge markdown (or after a pool reset), `/s/[hash]` offers paste-to-attach so any browser gets sections + copy without republishing on-chain.
 - **Fit check ≠ FR6 benchmark:** Forge shows a structural fit strip (sections, citations, repo tokens, length) plus a **Where it lands** path map. That is not a live agent eval on the user’s repo. Real Validation Engine stays deferred. Post-publish **Proof** = SkillPool signal (uses, escrow, losses) with sparkline motion — secondary to copying the skill for an agent.
 - **Outcomes (edge meta):** Optional `outcome: { note, prUrl?, screenshotUrl? }` merged into skill meta. Honest receipts only — no invented before/after scores.

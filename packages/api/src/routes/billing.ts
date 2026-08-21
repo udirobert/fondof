@@ -2,6 +2,9 @@ import { Hono } from "hono";
 import type { Env } from "../index.js";
 import {
   planChangeFromStripeEvent,
+  stripeCustomerId,
+  stripeEventId,
+  stripeSubscriptionId,
   verifyStripeWebhook,
   type StripeWebhookEvent,
 } from "../lib/stripe-webhook.js";
@@ -167,10 +170,63 @@ billingRoute.post("/billing/webhook", async (c) => {
     return c.json({ error: "Invalid payload" }, 400);
   }
 
-  const change = planChangeFromStripeEvent(event);
+  const eventId = stripeEventId(event);
+  if (eventId) {
+    const seen = await c.env.SESSIONS.get(`stripe-event:${eventId}`);
+    if (seen) return c.json({ received: true, duplicate: true });
+  }
+
+  const mappedUserId = await resolveStripeUserId(c.env.SESSIONS, event);
+  const change = planChangeFromStripeEvent(event, mappedUserId);
+  const userId = change?.userId || mappedUserId;
+  if (userId) {
+    await persistStripeUserMapping(c.env.SESSIONS, event, userId);
+  }
   if (change) {
     await c.env.SESSIONS.put(`plan:${change.userId}`, change.plan);
   }
 
+  if (eventId) {
+    await c.env.SESSIONS.put(`stripe-event:${eventId}`, "1", {
+      expirationTtl: 60 * 60 * 24 * 30,
+    });
+  }
+
   return c.json({ received: true });
 });
+
+function stripeCustomerKey(customerId: string): string {
+  return `stripe-user:customer:${customerId}`;
+}
+
+function stripeSubKey(subscriptionId: string): string {
+  return `stripe-user:sub:${subscriptionId}`;
+}
+
+async function resolveStripeUserId(
+  kv: KVNamespace,
+  event: StripeWebhookEvent,
+): Promise<string | null> {
+  const sub = stripeSubscriptionId(event);
+  if (sub) {
+    const userId = await kv.get(stripeSubKey(sub));
+    if (userId) return userId;
+  }
+  const customer = stripeCustomerId(event.data.object);
+  if (customer) {
+    const userId = await kv.get(stripeCustomerKey(customer));
+    if (userId) return userId;
+  }
+  return null;
+}
+
+async function persistStripeUserMapping(
+  kv: KVNamespace,
+  event: StripeWebhookEvent,
+  userId: string,
+): Promise<void> {
+  const customer = stripeCustomerId(event.data.object);
+  if (customer) await kv.put(stripeCustomerKey(customer), userId);
+  const sub = stripeSubscriptionId(event);
+  if (sub) await kv.put(stripeSubKey(sub), userId);
+}

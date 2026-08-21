@@ -17,6 +17,8 @@ import { relayerRoute } from "./routes/relayer.js";
 export interface Env {
   AI: Ai;
   SESSIONS: KVNamespace;
+  /** Strongly consistent coordinator for one-time codes and evidence counters. */
+  COORDINATOR?: DurableObjectNamespace;
   MONAD_RPC_URL: string;
   FONDOF_CONTRACT_ADDRESS: string;
   FONDOF_RELAYER_KEY: string;
@@ -90,7 +92,7 @@ Base URL: https://fondof-api.trustfall.workers.dev
 Body: { "url": "<source url>" | "need": "<stated need>", "repo": "owner/name" | { "name": "…", "frameworks": ["…"], "languages": ["…"] }, "topShards": 2, "private": false }
 
 - Exactly one of url / need. repo as "owner/name" or a GitHub URL is auto-detected (frameworks + languages from the repo's package.json).
-- Compose is private by default; pass "private": false for an explicit public share. Public sharing returns a shareable skillUrl (https://fondof.netlify.app/s/{skillHash}) without requiring chain attestation.
+- Compose is private by default; pass "private": false for an explicit public share. A shareable skillUrl is returned only after the durable public record is written and read back. If that write fails, the response stays private (skillUrl: null) with the markdown still included.
 - Response: { markdown, ideas: [{ title, description, domain, applicability, patternType, sourceUrl }], skillHash, skillUrl, title, canonicalSources, derivedFromSkillHash, sourceUrl, sourceHash, contentType, fittedTo, onChain, private, providers }
 - Errors: 400 bad body, 402 monthly forge quota exceeded (3/IP or signed-in free account), 422 nothing extractable, 429 rate limit (10/hour/IP), 500 upstream.
 
@@ -166,4 +168,5 @@ app.route("/api", githubPublishRoute);
 app.route("/api", sourcesRoute);
 app.route("/api", relayerRoute);
 
+export { FondofCoordinator } from "./durable/coordinator.js";
 export default app;

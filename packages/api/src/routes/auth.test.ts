@@ -24,7 +24,13 @@ function envWith(kv: KVNamespace) {
     FRONTEND_URL: "https://fondof.netlify.app",
     GITHUB_CLIENT_ID: "client",
     GITHUB_CLIENT_SECRET: "secret",
-  } as never;
+  } as {
+    SESSIONS: KVNamespace;
+    FRONTEND_URL: string;
+    GITHUB_CLIENT_ID: string;
+    GITHUB_CLIENT_SECRET: string;
+    COORDINATOR?: DurableObjectNamespace;
+  };
 }
 
 afterEach(() => {
@@ -72,6 +78,24 @@ describe("OAuth redirect allowlist", () => {
       (await kv.get(`oauth-state:${state}`)) as string,
     ) as { redirect: string };
     expect(stored.redirect).toBe("/s/abc");
+  });
+
+  it("requests publish scopes only when intent=publish", async () => {
+    const signIn = await authRoute.request(
+      "/auth/github",
+      { method: "GET" },
+      envWith(fakeKV()),
+    );
+    const signInUrl = new URL(signIn.headers.get("Location") ?? "");
+    expect(signInUrl.searchParams.get("scope")).toBe("read:user");
+
+    const publish = await authRoute.request(
+      "/auth/github?intent=publish",
+      { method: "GET" },
+      envWith(fakeKV()),
+    );
+    const publishUrl = new URL(publish.headers.get("Location") ?? "");
+    expect(publishUrl.searchParams.get("scope")).toBe("read:user gist repo");
   });
 
   it("sends the exchange code to the frontend, not an attacker origin", async () => {
@@ -235,5 +259,41 @@ describe("POST /auth/exchange", () => {
     );
     expect(res.status).toBe(401);
     expect(await kv.get("oauth-exchange:deadbeef")).toBeTruthy();
+  });
+
+  it("redeems a code only once when two requests race", async () => {
+    const kv = fakeKV();
+    const env = envWith(kv);
+    const { createMemoryCoordinator } = await import("../durable/coordinator.js");
+    const { storeOAuthExchange } = await import("../lib/oauth-exchange.js");
+    env.COORDINATOR = createMemoryCoordinator(env);
+    await storeOAuthExchange(
+      env as never,
+      "deadbeef",
+      { token: "session-token", browserNonce: "nonce" },
+      60,
+    );
+
+    const headers = {
+      "Content-Type": "application/json",
+      Cookie: "fondof_oauth=nonce",
+      Origin: "https://fondof.netlify.app",
+    };
+    const req = {
+      method: "POST" as const,
+      headers,
+      body: JSON.stringify({ code: "deadbeef" }),
+    };
+    const [a, b] = await Promise.all([
+      authRoute.request("/auth/exchange", req, env),
+      authRoute.request("/auth/exchange", { ...req }, env),
+    ]);
+    const statuses = [a.status, b.status].sort();
+    expect(statuses).toEqual([200, 401]);
+    const bodies = await Promise.all([a.json(), b.json()]);
+    const tokens = bodies
+      .map((body) => (body as { token?: string }).token)
+      .filter(Boolean);
+    expect(tokens).toEqual(["session-token"]);
   });
 });

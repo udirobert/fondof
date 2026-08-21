@@ -2,6 +2,12 @@ import { Hono } from "hono";
 import { getCookie, setCookie, deleteCookie } from "hono/cookie";
 import type { Env } from "../index.js";
 import { inspectForgeEntitlement } from "../lib/forge-quota.js";
+import { githubScopesForIntent } from "../lib/github-scopes.js";
+import {
+  peekOAuthExchange,
+  storeOAuthExchange,
+  takeOAuthExchange,
+} from "../lib/oauth-exchange.js";
 import { postLoginUrl, safeAppPath } from "../lib/oauth-redirect.js";
 import { isResolverLogin } from "../lib/relayer-guard.js";
 
@@ -48,6 +54,8 @@ function oauthCookieOpts(frontendUrl: string) {
 /**
  * GET /auth/github — redirect user to GitHub OAuth consent screen.
  * Query params: ?redirect= (optional post-login path for the frontend).
+ * Optional ?intent=publish requests gist + repo scopes incrementally so
+ * GitHub publish can succeed after a profile-only sign-in.
  * Only relative application paths are stored; absolute URLs are dropped.
  *
  * The state param is a random nonce stored server-side (one-time, 10 min TTL)
@@ -68,7 +76,7 @@ authRoute.get("/auth/github", async (c) => {
   const params = new URLSearchParams({
     client_id: c.env.GITHUB_CLIENT_ID,
     redirect_uri: `${c.req.url.split("/api/auth/github")[0]}/api/auth/callback`,
-    scope: "read:user",
+    scope: githubScopesForIntent(c.req.query("intent")),
     state,
   });
   return c.redirect(`https://github.com/login/oauth/authorize?${params}`);
@@ -200,10 +208,11 @@ authRoute.get("/auth/callback", async (c) => {
   // session token itself — the token never appears in a URL (no history,
   // referrer, or log leakage). The frontend swaps the code for the token.
   const exchangeCode = generateToken();
-  await c.env.SESSIONS.put(
-    `oauth-exchange:${exchangeCode}`,
-    JSON.stringify({ token, browserNonce }),
-    { expirationTtl: EXCHANGE_TTL },
+  await storeOAuthExchange(
+    c.env,
+    exchangeCode,
+    { token, browserNonce },
+    EXCHANGE_TTL,
   );
   const url = postLoginUrl(frontendUrl, redirect);
   url.searchParams.set("code", exchangeCode);
@@ -229,19 +238,11 @@ authRoute.post("/auth/exchange", async (c) => {
   const code = body.code?.trim();
   if (!code) return c.json({ error: "code is required" }, 400);
 
-  const key = `oauth-exchange:${code}`;
-  const raw = await c.env.SESSIONS.get(key);
-  if (!raw) return c.json({ error: "Code expired or already used" }, 401);
+  const peeked = await peekOAuthExchange(c.env, code);
+  if (!peeked) return c.json({ error: "Code expired or already used" }, 401);
 
-  let token = "";
-  let browserNonce = "";
-  try {
-    const parsed = JSON.parse(raw) as { token?: string; browserNonce?: string };
-    token = parsed.token?.trim() || "";
-    browserNonce = parsed.browserNonce?.trim() || "";
-  } catch {
-    return c.json({ error: "Code expired or already used" }, 401);
-  }
+  const token = peeked.token?.trim() || "";
+  const browserNonce = peeked.browserNonce?.trim() || "";
 
   const cookieNonce = getCookie(c, OAUTH_COOKIE);
   if (cookieNonce && cookieNonce !== browserNonce) {
@@ -253,9 +254,12 @@ authRoute.post("/auth/exchange", async (c) => {
     return c.json({ error: "Code expired or already used" }, 401);
   }
 
-  await c.env.SESSIONS.delete(key);
+  const taken = await takeOAuthExchange(c.env, code);
+  if (!taken?.token) {
+    return c.json({ error: "Code expired or already used" }, 401);
+  }
   deleteCookie(c, OAUTH_COOKIE, { path: "/api/auth" });
-  return c.json({ token });
+  return c.json({ token: taken.token });
 });
 
 /**

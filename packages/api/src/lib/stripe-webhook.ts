@@ -21,14 +21,17 @@ export type StripeWebhookVerifyResult =
   | { ok: false; error: StripeWebhookVerifyError };
 
 export interface StripeWebhookObject {
+  id?: string;
   client_reference_id?: string;
-  customer?: string;
+  customer?: string | { id?: string };
+  subscription?: string | { id?: string };
   metadata?: { github_id?: string };
   payment_status?: string;
   status?: string;
 }
 
 export interface StripeWebhookEvent {
+  id?: string;
   type: string;
   data: { object: StripeWebhookObject };
 }
@@ -135,14 +138,39 @@ function eventUserId(obj: StripeWebhookObject): string | null {
   return id || null;
 }
 
+function asId(value: string | { id?: string } | undefined): string | null {
+  if (typeof value === "string" && value) return value;
+  if (value && typeof value === "object" && value.id) return value.id;
+  return null;
+}
+
+export function stripeCustomerId(obj: StripeWebhookObject): string | null {
+  return asId(obj.customer);
+}
+
+/** Subscription id from a Checkout Session or a subscription lifecycle object. */
+export function stripeSubscriptionId(event: StripeWebhookEvent): string | null {
+  const obj = event.data.object;
+  const nested = asId(obj.subscription);
+  if (nested) return nested;
+  if (event.type.startsWith("customer.subscription.") && obj.id) return obj.id;
+  return null;
+}
+
+export function stripeEventId(event: StripeWebhookEvent): string | null {
+  return event.id?.trim() || null;
+}
+
 /**
  * Map a verified Stripe event to a plan mutation.
  * Unsigned or unpaid checkouts must not grant Pro.
+ * `mappedUserId` is used when subscription lifecycle events omit session metadata.
  */
 export function planChangeFromStripeEvent(
   event: StripeWebhookEvent,
+  mappedUserId?: string | null,
 ): PlanChange | null {
-  const userId = eventUserId(event.data.object);
+  const userId = eventUserId(event.data.object) || mappedUserId || null;
   if (!userId) return null;
 
   const paymentStatus = event.data.object.payment_status;

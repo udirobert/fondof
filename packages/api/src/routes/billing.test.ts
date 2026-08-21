@@ -144,6 +144,74 @@ describe("POST /billing/webhook", () => {
     expect(response.status).toBe(200);
     expect(await kv.get("plan:42")).toBe("pro");
   });
+
+  it("stores a customer/subscription mapping and revokes Pro without subscription metadata", async () => {
+    const kv = fakeKV();
+    const paid = JSON.stringify({
+      id: "evt_paid",
+      type: "checkout.session.completed",
+      data: {
+        object: {
+          client_reference_id: "42",
+          payment_status: "paid",
+          customer: "cus_ada",
+          subscription: "sub_ada",
+        },
+      },
+    });
+    const paidRes = await billingRoute.request(
+      "/billing/webhook",
+      { method: "POST", ...(await signedWebhook(paid)) },
+      envWith(kv),
+    );
+    expect(paidRes.status).toBe(200);
+    expect(await kv.get("plan:42")).toBe("pro");
+    expect(await kv.get("stripe-user:customer:cus_ada")).toBe("42");
+    expect(await kv.get("stripe-user:sub:sub_ada")).toBe("42");
+
+    const canceled = JSON.stringify({
+      id: "evt_cancel",
+      type: "customer.subscription.deleted",
+      data: { object: { id: "sub_ada", customer: "cus_ada" } },
+    });
+    const cancelRes = await billingRoute.request(
+      "/billing/webhook",
+      { method: "POST", ...(await signedWebhook(canceled)) },
+      envWith(kv),
+    );
+    expect(cancelRes.status).toBe(200);
+    expect(await kv.get("plan:42")).toBe("free");
+  });
+
+  it("ignores a replayed Stripe event id", async () => {
+    const kv = fakeKV();
+    const payload = JSON.stringify({
+      id: "evt_once",
+      type: "checkout.session.completed",
+      data: {
+        object: {
+          client_reference_id: "42",
+          payment_status: "paid",
+        },
+      },
+    });
+    const signed = await signedWebhook(payload);
+    const first = await billingRoute.request(
+      "/billing/webhook",
+      { method: "POST", ...signed },
+      envWith(kv),
+    );
+    expect(first.status).toBe(200);
+    await kv.put("plan:42", "free");
+    const replay = await billingRoute.request(
+      "/billing/webhook",
+      { method: "POST", ...signed },
+      envWith(kv),
+    );
+    expect(replay.status).toBe(200);
+    expect(await replay.json()).toMatchObject({ duplicate: true });
+    expect(await kv.get("plan:42")).toBe("free");
+  });
 });
 
 function sessionJson() {

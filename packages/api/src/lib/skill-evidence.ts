@@ -1,4 +1,5 @@
 import type { Env } from "../index.js";
+import { callCoordinator } from "../durable/coordinator.js";
 
 export type EvidenceLevel =
   | "none"
@@ -169,8 +170,26 @@ export async function getSkillEvidence(
  * Record a claimed use. actorKey should be either a server-derived account
  * identity or a random browser receipt key explicitly consented to by the user.
  * Only the SHA-256 digest is stored as the per-actor marker.
+ *
+ * When COORDINATOR is bound, marker + aggregate mutate on one Durable Object
+ * so concurrent claims cannot double-count or clobber each other.
  */
 export async function recordClaimedUse(
+  env: Env,
+  hash: string,
+  actorKey?: string,
+): Promise<ClaimedUseResult> {
+  const viaDo = await callCoordinator(env, `evidence:${normalizeHash(hash)}`, {
+    op: "claim-use",
+    hash,
+    actorKey,
+  });
+  if (viaDo?.ok && viaDo.claim) return viaDo.claim;
+  return applyClaimedUse(env, hash, actorKey);
+}
+
+/** Serialized claim body — invoked from the coordinator or directly in tests. */
+export async function applyClaimedUse(
   env: Env,
   hash: string,
   actorKey?: string,

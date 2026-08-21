@@ -183,7 +183,7 @@ curl -s -X POST https://fondof-api.trustfall.workers.dev/api/ingest \
 curl -s -X POST https://fondof-api.trustfall.workers.dev/api/compose \
   -H 'content-type: application/json' \
   -d '{"url":"https://www.youtube.com/watch?v=7wuYBfE131U","repo":"udirobert/fondof"}' | head -c 600
-# Response includes skillUrl — a shareable https://fondof.netlify.app/s/<hash> page.
+# Response includes skillUrl only after the public record is stored — otherwise private: true and skillUrl: null.
 ```
 
 **Local dev (optional):** `pnpm install`, then `cd packages/api && pnpm dev` and `cd packages/web && pnpm dev` (set `NEXT_PUBLIC_API_URL=http://127.0.0.1:8787` for the local Worker). Copy [`.env.example`](.env.example) to `.env` / Worker secrets; relayer + LLM keys live in Wrangler secrets / Netlify env, never in git.

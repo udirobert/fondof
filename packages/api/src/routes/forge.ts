@@ -4,6 +4,7 @@ import { chat } from "../lib/llm.js";
 import { cacheGetJson, cachePutJson, sha256Hex } from "../lib/edge-cache.js";
 import {
   addSkillToSourceIndexes,
+  getPublicSkill,
   recordPublicSkillIfActorAllowed,
 } from "../lib/skill-registry.js";
 import { rateLimit } from "../lib/rate-limit-mw.js";
@@ -71,10 +72,80 @@ export interface ForgePayload {
   derivedFromSkillHash?: string;
 }
 
+function httpSourceUrls(body: ForgeInput): string[] {
+  return [...new Set(body.ideas.map((idea) => idea.sourceUrl))].filter(
+    (url) => url.startsWith("http") && !url.startsWith("https://fondof.local"),
+  );
+}
+
+/**
+ * Public /s/{hash} pages resolve from the durable KV registry first.
+ * Only treat a forge as public after that record reads back successfully.
+ * Source indexes are optional; a missing share page is not.
+ */
+async function persistPublicForge(
+  env: Env,
+  body: ForgeInput,
+  payload: ForgePayload,
+): Promise<boolean> {
+  const sourceUrls = httpSourceUrls(body);
+  let wrote: "created" | "updated" | "skipped" | "failed" = "failed";
+  try {
+    wrote = await recordPublicSkillIfActorAllowed(env, {
+      hash: payload.skillHash,
+      title: payload.title,
+      markdown: payload.markdown,
+      repo: body.repo?.name,
+      frameworks: body.repo?.frameworks,
+      languages: body.repo?.languages,
+      sourceUrls,
+      canonicalSources: payload.canonicalSources,
+      sourceHashes: payload.sourceHashes,
+      domains: payload.domains,
+      patternTypes: payload.patternTypes,
+      derivedFromSkillHash: payload.derivedFromSkillHash,
+      composedAt: payload.composedAt,
+      ownerId: body.owner?.userId,
+      ownerLogin: body.owner?.login,
+    });
+  } catch {
+    wrote = "failed";
+  }
+
+  const rec = await getPublicSkill(env, payload.skillHash);
+  if (!rec) return false;
+
+  if (wrote === "created" || wrote === "updated") {
+    try {
+      await addSkillToSourceIndexes(env, sourceUrls, {
+        skillHash: payload.skillHash,
+        title: payload.title,
+        fittedTo: payload.fittedTo,
+        forgedAt: payload.composedAt,
+      });
+    } catch {
+      /* discovery indexes are optional once the public record exists */
+    }
+  }
+  return true;
+}
+
+async function withPublicRegistry(
+  env: Env,
+  body: ForgeInput,
+  payload: ForgePayload,
+  requestedPrivate: boolean,
+): Promise<ForgePayload> {
+  if (requestedPrivate) return { ...payload, private: true };
+  const listed = await persistPublicForge(env, body, payload);
+  return { ...payload, private: !listed };
+}
+
 /**
  * Core forge logic — shared by POST /forge and POST /compose.
  * Returns the forged skill payload (from cache when available).
  * Throws on LLM failure so callers can map it to a 500.
+ * A public request is only marked public after the durable registry reads back.
  */
 export async function forgeSkillCore(
   env: Env,
@@ -108,34 +179,8 @@ export async function forgeSkillCore(
     const cachedPayload = hit.canonicalSources
       ? hit
       : { ...hit, canonicalSources: canonicalSourceRecords };
-    if (!cachedPayload.private) {
-      await recordPublicSkillIfActorAllowed(env, {
-        hash: cachedPayload.skillHash,
-        title: cachedPayload.title,
-        markdown: cachedPayload.markdown,
-        repo: body.repo?.name,
-        frameworks: body.repo?.frameworks,
-        languages: body.repo?.languages,
-        sourceUrls: [...new Set(body.ideas.map((idea) => idea.sourceUrl))].filter(
-          (url) => url.startsWith("http"),
-        ),
-        canonicalSources: cachedPayload.canonicalSources,
-        sourceHashes: cachedPayload.sourceHashes,
-        domains: [...new Set(body.ideas.flatMap((idea) => idea.domains ?? []))],
-        patternTypes: [
-          ...new Set(
-            body.ideas
-              .map((idea) => idea.patternType)
-              .filter((type): type is string => !!type),
-          ),
-        ],
-        derivedFromSkillHash: body.derivedFromSkillHash,
-        composedAt: cachedPayload.composedAt,
-        ownerId: body.owner?.userId,
-        ownerLogin: body.owner?.login,
-      });
-    }
-    return { payload: cachedPayload, cacheHit: true };
+    const payload = await withPublicRegistry(env, body, cachedPayload, isPrivate);
+    return { payload, cacheHit: true };
   }
 
   const gapBlock = body.gapAgainst
@@ -216,53 +261,10 @@ Write markdown with # title then ## Context, ## Guidance (one code example), ## 
     ],
     derivedFromSkillHash: body.derivedFromSkillHash,
   };
-  await cachePutJson(cacheKey, payload, FORGE_TTL);
+  const confirmed = await withPublicRegistry(env, body, payload, isPrivate);
+  await cachePutJson(cacheKey, confirmed, FORGE_TTL);
 
-  // Track source → skill mappings for /from/[source] pages (skip if private)
-  if (!isPrivate) {
-    const realSources = sourceUrls.filter(
-      (u) => u && !u.startsWith("https://fondof.local") && u.startsWith("http"),
-    );
-
-    // Durable public record → /s/[skillHash] resolves without touching the chain
-    try {
-      const wrote = await recordPublicSkillIfActorAllowed(env, {
-        hash: skillHash,
-        title,
-        markdown: fullMarkdown,
-        repo: body.repo?.name,
-        frameworks: body.repo?.frameworks,
-        languages: body.repo?.languages,
-        sourceUrls: realSources,
-        canonicalSources: canonicalSourceRecords,
-        sourceHashes,
-        domains: [...new Set(body.ideas.flatMap((idea) => idea.domains ?? []))],
-        patternTypes: [
-          ...new Set(
-            body.ideas
-              .map((idea) => idea.patternType)
-              .filter((type): type is string => !!type),
-          ),
-        ],
-        derivedFromSkillHash: body.derivedFromSkillHash,
-        composedAt: payload.composedAt,
-        ownerId: body.owner?.userId,
-        ownerLogin: body.owner?.login,
-      });
-      if (wrote !== "skipped") {
-        await addSkillToSourceIndexes(env, realSources, {
-          skillHash,
-          title,
-          fittedTo: body.repo?.name ?? "general",
-          forgedAt: payload.composedAt,
-        });
-      }
-    } catch {
-      /* best-effort — never fail the forge for registry issues */
-    }
-  }
-
-  return { payload, cacheHit: false };
+  return { payload: confirmed, cacheHit: false };
 }
 
 forgeRoute.post("/forge", rateLimit("forge"), async (c) => {

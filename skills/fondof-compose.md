@@ -41,7 +41,7 @@ Returns JSON with these fields:
 - `markdown` — the forged skill, ready to save
 - `ideas` — the top shards that were used
 - `skillHash` — unique id for the skill
-- `skillUrl` — a shareable skill page (`https://fondof.netlify.app/s/{skillHash}`) when the result is shared publicly; useful without any on-chain attestation
+- `skillUrl` — a shareable skill page (`https://fondof.netlify.app/s/{skillHash}`) when public sharing succeeded; null if the draft stayed private or the public record could not be stored
 - `sourceUrl` — the original source
 - `title` — skill title
 - `fittedTo` — repo name it was fitted for

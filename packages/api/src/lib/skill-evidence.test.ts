@@ -89,6 +89,26 @@ describe("skill evidence", () => {
     expect(third.tracking).toBe("browser-consent");
   });
 
+  it("serializes concurrent claims so the same actor counts once and distinct actors both land", async () => {
+    const kv = fakeKV();
+    const { createMemoryCoordinator } = await import("../durable/coordinator.js");
+    const env = { SESSIONS: kv } as { SESSIONS: KVNamespace; COORDINATOR?: DurableObjectNamespace };
+    env.COORDINATOR = createMemoryCoordinator(env);
+
+    const [sameA, sameB] = await Promise.all([
+      recordClaimedUse(env as never, "skill", "user:42"),
+      recordClaimedUse(env as never, "skill", "user:42"),
+    ]);
+    expect([sameA.deduplicated, sameB.deduplicated].sort()).toEqual([false, true]);
+    expect((await getSkillEvidence(env as never, "skill"))?.claimedUseCount).toBe(1);
+
+    await Promise.all([
+      recordClaimedUse(env as never, "other", "user:1"),
+      recordClaimedUse(env as never, "other", "user:2"),
+    ]);
+    expect((await getSkillEvidence(env as never, "other"))?.claimedUseCount).toBe(2);
+  });
+
   it("promotes an outcome with a linked PR to linked-pr, still unverified", async () => {
     const env = envWith(fakeKV());
     const evidence = await recordOutcome(env, "skill", {
