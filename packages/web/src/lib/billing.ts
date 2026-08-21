@@ -27,23 +27,9 @@ export async function checkForge(): Promise<ForgeCheck> {
     if (!res.ok) return { allowed: true, remaining: 3, plan: "anonymous" };
     return (await res.json()) as ForgeCheck;
   } catch {
-    // Fail open — don't block forge if billing is down
+    // UI hint only — /forge and /compose enforce quota server-side.
     return { allowed: true, remaining: 3, plan: "anonymous" };
   }
-}
-
-/** Record that a forge was consumed (call after successful forge). */
-export async function recordForge(): Promise<void> {
-  const token = getToken();
-  if (!token) return; // anonymous, nothing to record
-
-  await fetch(`${API_BASE}/api/billing/record-forge`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-  }).catch(() => {});
 }
 
 /** Initiate Stripe Checkout for Pro upgrade. Returns checkout URL or null. */

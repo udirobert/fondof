@@ -12,6 +12,7 @@ import { eventsRoute } from "./routes/events.js";
 import { billingRoute } from "./routes/billing.js";
 import { githubPublishRoute } from "./routes/github-publish.js";
 import { sourcesRoute } from "./routes/sources.js";
+import { relayerRoute } from "./routes/relayer.js";
 
 export interface Env {
   AI: Ai;
@@ -19,6 +20,9 @@ export interface Env {
   MONAD_RPC_URL: string;
   FONDOF_CONTRACT_ADDRESS: string;
   FONDOF_RELAYER_KEY: string;
+  FONDOF_RESOLVER_KEY?: string;
+  RESOLVER_LOGINS?: string;
+  RELAYER_HALT?: string;
   FRONTEND_URL: string;
   GITHUB_CLIENT_ID: string;
   GITHUB_CLIENT_SECRET: string;
@@ -70,7 +74,7 @@ Body: { "url": "<source url>" | "need": "<stated need>", "repo": "owner/name" | 
 - Exactly one of url / need. repo as "owner/name" or a GitHub URL is auto-detected (frameworks + languages from the repo's package.json).
 - Compose is private by default; pass "private": false for an explicit public share. Public sharing returns a shareable skillUrl (https://fondof.netlify.app/s/{skillHash}) without requiring chain attestation.
 - Response: { markdown, ideas: [{ title, description, domain, applicability, patternType, sourceUrl }], skillHash, skillUrl, title, canonicalSources, derivedFromSkillHash, sourceUrl, sourceHash, contentType, fittedTo, onChain, private, providers }
-- Errors: 400 bad body, 422 nothing extractable, 429 rate limit (10/hour/IP), 500 upstream.
+- Errors: 400 bad body, 402 monthly forge quota exceeded (3/IP or signed-in free account), 422 nothing extractable, 429 rate limit (10/hour/IP), 500 upstream.
 
 Example:
 curl -s -X POST https://fondof-api.trustfall.workers.dev/api/compose -H 'content-type: application/json' -d '{"url":"https://www.youtube.com/watch?v=7wuYBfE131U","repo":"udirobert/fondof"}'
@@ -80,8 +84,12 @@ What to do with it: save markdown into .kiro/steering/ or .cursor/rules/ (or CLA
 ### Other endpoints
 
 - POST /api/ingest { url | need } → { ideas, sourceHash, … } — extract shards only (no forge)
-- POST /api/forge { ideas, repo? } → { markdown, skillHash, … } — forge from your own idea list
-- POST /api/publish { skillHash, sourceHashes, … } — optionally attest a public skill on SkillPool
+- POST /api/forge { ideas, repo? } → { markdown, skillHash, … } — forge from your own idea list (same monthly quota as compose)
+- POST /api/publish { skillHash, sourceHashes, … } — attest a skill you own on SkillPool via the relayer (session required; wallet forge is separate)
+- POST /api/challenge { skillHash } — stake a dispute via the relayer (session required)
+- POST /api/challenge/{id}/resolve — demo oracle only (allowlisted GitHub login + FONDOF_RESOLVER_KEY)
+- POST /api/relayer/intent — issue a short-lived intent bound to normalized relayer params
+- POST /api/skills/hash/share — explicitly share a private draft as a public offchain artifact
 - POST /api/skills/hash/share — explicitly share a private draft as a public offchain artifact
 - DELETE /api/skills/hash/visibility — owner-only hide/unlist from public discovery
 - GET /api/skills — public skill discovery; sort=impact|outcomes|adapted|recent gives focused evidence views (not causal impact). Optional genre, domain, framework, and language filters expose deterministic topic/stack discovery.
@@ -101,7 +109,7 @@ What to do with it: save markdown into .kiro/steering/ or .cursor/rules/ (or CLA
 
 ## Notes
 
-- Rate limits: compose 10/h, ingest 10/h, forge 20/h per IP. X-Cache: HIT means a cached result.
+- Rate limits: compose 10/h, ingest 10/h, forge 20/h per IP. Monthly forge quota is 3 (anonymous per IP, signed-in free per account); 402 means the quota is spent. X-Cache: HIT means a cached result.
 - Skill markdown sections: # Title, ## Context, ## Guidance, ## Anti-patterns, ## References.
 - Full product docs: https://fondof.netlify.app/llms.txt
 `;
@@ -139,5 +147,6 @@ app.route("/api", eventsRoute);
 app.route("/api", billingRoute);
 app.route("/api", githubPublishRoute);
 app.route("/api", sourcesRoute);
+app.route("/api", relayerRoute);
 
 export default app;

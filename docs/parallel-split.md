@@ -54,7 +54,7 @@ A `SKILL.md` (or `.cursor/rules`) that tells Cursor/Claude: call compose, write 
 
 ### Do not do before Day 1 film
 
-CLI hosted-API parity, Find sources (FR4.5), billing for anonymous compose (keep rate limit).
+CLI hosted-API parity, Find sources (FR4.5).
 
 ---
 

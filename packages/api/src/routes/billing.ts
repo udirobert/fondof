@@ -1,56 +1,48 @@
 import { Hono } from "hono";
 import type { Env } from "../index.js";
-import { billingMonth, resolveSession } from "./auth.js";
+import {
+  planChangeFromStripeEvent,
+  verifyStripeWebhook,
+  type StripeWebhookEvent,
+} from "../lib/stripe-webhook.js";
+import {
+  grantVerifiedShareBenefit,
+  inspectForgeEntitlement,
+} from "../lib/forge-quota.js";
+import { clientIp } from "../lib/rate-limit.js";
+import { getPublicSkill } from "../lib/skill-registry.js";
+import { resolveSession } from "./auth.js";
 
 export const billingRoute = new Hono<{ Bindings: Env }>();
 
-const FREE_FORGE_LIMIT = 3;
-
 /**
- * POST /billing/check-forge — check if user can forge.
- * Logic: Pro → unlimited. Shared this month → unlimited. Else free tier limit.
+ * POST /billing/check-forge — read-only remaining allowance for the UI.
+ * Enforcement lives in /forge and /compose; this must not grant capacity.
  */
 billingRoute.post("/billing/check-forge", async (c) => {
-  const auth = c.req.header("Authorization");
-  const session = await resolveSession(auth, c.env.SESSIONS);
-
-  if (!session) {
-    return c.json({ allowed: true, remaining: FREE_FORGE_LIMIT, plan: "anonymous" });
-  }
-
-  const planRaw = await c.env.SESSIONS.get(`plan:${session.userId}`);
-  const plan = planRaw || "free";
-
-  if (plan === "pro") {
-    return c.json({ allowed: true, remaining: null, plan: "pro" });
-  }
-
-  // Check if user has shared this month → unlocks unlimited
-  const shareKey = `shared:${session.userId}:${billingMonth()}`;
-  const hasShared = await c.env.SESSIONS.get(shareKey);
-  if (hasShared) {
-    return c.json({ allowed: true, remaining: null, plan: "sharer" });
-  }
-
-  const usageKey = `usage:${session.userId}:${billingMonth()}`;
-  const usageRaw = await c.env.SESSIONS.get(usageKey);
-  const forgeCount = usageRaw ? parseInt(usageRaw, 10) : 0;
-
-  if (forgeCount >= FREE_FORGE_LIMIT) {
-    return c.json({ allowed: false, remaining: 0, plan: "free" });
-  }
-
-  return c.json({ allowed: true, remaining: FREE_FORGE_LIMIT - forgeCount, plan: "free" });
+  const session = await resolveSession(
+    c.req.header("Authorization"),
+    c.env.SESSIONS,
+  );
+  const entitlement = await inspectForgeEntitlement(
+    c.env.SESSIONS,
+    session,
+    clientIp(c.req.raw),
+  );
+  return c.json(entitlement);
 });
 
 /**
- * POST /billing/record-share — user shared a skill publicly.
- * Unlocks unlimited forges for the current billing month.
- * Body: { skillHash, platform: "twitter" | "linkedin" | "github" }
+ * POST /billing/record-share — unlock unlimited forges after a verified
+ * public share of a skill the signed-in user owns. Claiming an arbitrary
+ * hash (or a skill that is still private) does not grant the benefit.
+ * Body: { skillHash, platform?: "twitter" | "linkedin" | "github" }
  */
 billingRoute.post("/billing/record-share", async (c) => {
-  const auth = c.req.header("Authorization");
-  const session = await resolveSession(auth, c.env.SESSIONS);
+  const session = await resolveSession(
+    c.req.header("Authorization"),
+    c.env.SESSIONS,
+  );
 
   if (!session) {
     return c.json({ error: "Sign in to unlock sharing benefits" }, 401);
@@ -61,53 +53,43 @@ billingRoute.post("/billing/record-share", async (c) => {
     platform?: string;
   }>().catch(() => ({ skillHash: undefined, platform: undefined }));
 
-  const shareKey = `shared:${session.userId}:${billingMonth()}`;
-  const shareData = JSON.stringify({
-    firstSharedAt: Date.now(),
-    skillHash: body.skillHash || null,
-    platform: body.platform || "unknown",
-  });
-
-  await c.env.SESSIONS.put(shareKey, shareData, {
-    expirationTtl: 60 * 60 * 24 * 35,
-  });
-
-  // Also store in the user's skill list for portfolio
-  if (body.skillHash) {
-    const skillsKey = `user-skills:${session.userId}`;
-    const existing = await c.env.SESSIONS.get(skillsKey, "json") as string[] | null;
-    const skills = existing || [];
-    if (!skills.includes(body.skillHash)) {
-      skills.push(body.skillHash);
-      await c.env.SESSIONS.put(skillsKey, JSON.stringify(skills), {
-        expirationTtl: 60 * 60 * 24 * 365, // 1 year
-      });
-    }
+  const skillHash = body.skillHash?.trim().toLowerCase().replace(/^0x/, "");
+  if (!skillHash) {
+    return c.json({ error: "skillHash is required" }, 400);
   }
+
+  const record = await getPublicSkill(c.env, skillHash);
+  if (!record || record.ownerId !== session.userId) {
+    return c.json(
+      { error: "Share a public skill you own to unlock this benefit" },
+      403,
+    );
+  }
+
+  const platform = body.platform || "unknown";
+  await grantVerifiedShareBenefit(
+    c.env.SESSIONS,
+    session.userId,
+    skillHash,
+    platform,
+  );
 
   return c.json({ ok: true, plan: "sharer", remaining: null });
 });
 
 /**
- * POST /billing/record-forge — increment forge counter for the user.
- * Called by the forge route after a successful forge.
+ * POST /billing/record-forge — removed. Usage is reserved and finalized by
+ * /forge and /compose so clients cannot skip accounting.
  */
-billingRoute.post("/billing/record-forge", async (c) => {
-  const auth = c.req.header("Authorization");
-  const session = await resolveSession(auth, c.env.SESSIONS);
-
-  if (!session) return c.json({ ok: true }); // anonymous, no tracking
-
-  const usageKey = `usage:${session.userId}:${billingMonth()}`;
-  const usageRaw = await c.env.SESSIONS.get(usageKey);
-  const current = usageRaw ? parseInt(usageRaw, 10) : 0;
-
-  await c.env.SESSIONS.put(usageKey, String(current + 1), {
-    expirationTtl: 60 * 60 * 24 * 35, // slightly longer than a month
-  });
-
-  return c.json({ ok: true, forgeCount: current + 1 });
-});
+billingRoute.post("/billing/record-forge", (c) =>
+  c.json(
+    {
+      error: "Usage is recorded by /forge and /compose; this endpoint is closed.",
+      code: "gone",
+    },
+    410,
+  ),
+);
 
 /**
  * POST /billing/checkout — create a Stripe Checkout session for Pro upgrade.
@@ -143,6 +125,9 @@ billingRoute.post("/billing/checkout", async (c) => {
       client_reference_id: String(session.userId),
       "metadata[github_login]": session.login,
       "metadata[github_id]": String(session.userId),
+      // Copy identity onto the Subscription so cancel/pause webhooks can revoke Pro.
+      "subscription_data[metadata][github_id]": String(session.userId),
+      "subscription_data[metadata][github_login]": session.login,
     }),
   });
 
@@ -157,48 +142,34 @@ billingRoute.post("/billing/checkout", async (c) => {
 
 /**
  * POST /billing/webhook — Stripe webhook for subscription events.
- * Activates/deactivates Pro plan in KV.
+ * Activates/deactivates Pro plan in KV only after HMAC verification
+ * and a completed payment (never from an unsigned or unpaid payload).
  */
 billingRoute.post("/billing/webhook", async (c) => {
   if (!c.env.STRIPE_WEBHOOK_SECRET) {
     return c.json({ error: "Webhook not configured" }, 503);
   }
 
-  const sig = c.req.header("stripe-signature");
-  if (!sig) return c.json({ error: "No signature" }, 400);
-
-  // In production, verify the webhook signature using the Stripe-Signature header.
-  // For the initial build, we trust the request and parse the body.
-  // TODO: Add proper signature verification with crypto.subtle.
-  const event = await c.req.json<{
-    type: string;
-    data: {
-      object: {
-        client_reference_id?: string;
-        customer?: string;
-        metadata?: { github_id?: string };
-        status?: string;
-      };
-    };
-  }>();
-
-  const obj = event.data.object;
-
-  if (event.type === "checkout.session.completed") {
-    const userId = obj.client_reference_id || obj.metadata?.github_id;
-    if (userId) {
-      await c.env.SESSIONS.put(`plan:${userId}`, "pro");
-    }
+  const payload = await c.req.text();
+  const verified = await verifyStripeWebhook(
+    payload,
+    c.req.header("stripe-signature"),
+    c.env.STRIPE_WEBHOOK_SECRET,
+  );
+  if (!verified.ok) {
+    return c.json({ error: "Invalid signature" }, 400);
   }
 
-  if (
-    event.type === "customer.subscription.deleted" ||
-    event.type === "customer.subscription.paused"
-  ) {
-    const userId = obj.metadata?.github_id;
-    if (userId) {
-      await c.env.SESSIONS.put(`plan:${userId}`, "free");
-    }
+  let event: StripeWebhookEvent;
+  try {
+    event = JSON.parse(payload) as StripeWebhookEvent;
+  } catch {
+    return c.json({ error: "Invalid payload" }, 400);
+  }
+
+  const change = planChangeFromStripeEvent(event);
+  if (change) {
+    await c.env.SESSIONS.put(`plan:${change.userId}`, change.plan);
   }
 
   return c.json({ received: true });

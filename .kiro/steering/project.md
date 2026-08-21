@@ -154,7 +154,7 @@ fondof/
 - **Agent-agnostic skill format:** Markdown skills work with Kiro, Claude, Cursor, etc. UI uses progressive section disclosure so long files aren’t a wall.
 - **Web-first for Ready Spec Ship:** Hosted Netlify + Worker is the judge path; CLI is secondary.
 - **Graceful degradation:** Demo shards / local draft templates when APIs fail — must stay honest in copy.
-- **Demo oracle for resolve:** Challenge settle is relayer-operated in this build — disclose it.
+- **Demo oracle for resolve:** Challenge settle is allowlisted (`RESOLVER_LOGINS`) and signed with `FONDOF_RESOLVER_KEY` — not the hot user-operation relayer. Disclose it.
 
 ## Monad-Specific Notes
 

@@ -3,6 +3,8 @@ import type { Env } from "../index.js";
 import { runIngestPipeline, runNeedPipeline, needUrl } from "./ingest.js";
 import { forgeSkillCore } from "./forge.js";
 import { rateLimit } from "../lib/rate-limit-mw.js";
+import { clientIp } from "../lib/rate-limit.js";
+import { meteredGenerate } from "../lib/forge-quota.js";
 import { normalizeSourceUrl } from "../lib/source-url.js";
 import { resolveRepoContext } from "../lib/repo-context.js";
 import { getPublicSkill } from "../lib/skill-registry.js";
@@ -59,60 +61,87 @@ composeRoute.post("/compose", rateLimit("compose"), async (c) => {
   }
 
   try {
-    // 1. Ingest — reuse the exact same pipeline as /api/ingest
-    const ingestResult = url
-      ? await runIngestPipeline(url, c.env, noopEmit)
-      : await runNeedPipeline(need!, c.env, noopEmit);
-
-    if (!ingestResult.ideas?.length) {
-      return c.json(
-        {
-          error:
-            "No ideas could be extracted from the source. Try a different URL or a more detailed need.",
-        },
-        422,
-      );
-    }
-
-    // 2. Repo context — agents can just say "owner/name"; we detect the stack.
-    const repo = await resolveRepoContext(body.repo, c.env.SESSIONS);
-
-    // 3. Rank forge-worthy shards against repo context (if provided)
-    const allCandidateIdeas = [...ingestResult.ideas];
-    const rankedIdeas = rankIdeasForRepo(allCandidateIdeas, repo);
-
-    const topN = clamp(body.topShards ?? 2, 1, 6);
-    const topShards = rankedIdeas.slice(0, topN);
-
-    // 4. Forge via the shared core (same caching as /api/forge).
-    //    A compose is private unless public sharing is explicit.
-    const isPrivate = body.private !== false;
     const session = await resolveSession(
       c.req.header("Authorization"),
       c.env.SESSIONS,
     );
-    const { payload } = await forgeSkillCore(c.env, {
-      ideas: topShards.map((i) => ({
-        title: i.title,
-        description: i.description,
-        sourceUrl: i.sourceUrl,
-        sourceHash: i.sourceHash,
-        domains: i.domain,
-        applicability: i.applicability,
-        patternType: i.patternType,
-      })),
-      repo:
-        repo && {
-          name: repo.name,
-          frameworks: repo.frameworks,
-          languages: repo.languages,
-        },
-      private: isPrivate,
-      owner: session
-        ? { userId: session.userId, login: session.login }
-        : undefined,
-    });
 
+    const metered = await meteredGenerate(
+      c.env.SESSIONS,
+      session,
+      clientIp(c.req.raw),
+      async () => {
+        // 1. Ingest — reuse the exact same pipeline as /api/ingest
+        const ingestResult = url
+          ? await runIngestPipeline(url, c.env, noopEmit)
+          : await runNeedPipeline(need!, c.env, noopEmit);
+
+        if (!ingestResult.ideas?.length) {
+          return {
+            kind: "reject" as const,
+            status: 422,
+            body: {
+              error:
+                "No ideas could be extracted from the source. Try a different URL or a more detailed need.",
+            },
+          };
+        }
+
+        // 2. Repo context — agents can just say "owner/name"; we detect the stack.
+        const repo = await resolveRepoContext(body.repo, c.env.SESSIONS);
+
+        // 3. Rank forge-worthy shards against repo context (if provided)
+        const allCandidateIdeas = [...ingestResult.ideas];
+        const rankedIdeas = rankIdeasForRepo(allCandidateIdeas, repo);
+
+        const topN = clamp(body.topShards ?? 2, 1, 6);
+        const topShards = rankedIdeas.slice(0, topN);
+
+        // 4. Forge via the shared core (same caching as /api/forge).
+        //    A compose is private unless public sharing is explicit.
+        const isPrivate = body.private !== false;
+        const { payload, cacheHit } = await forgeSkillCore(c.env, {
+          ideas: topShards.map((i) => ({
+            title: i.title,
+            description: i.description,
+            sourceUrl: i.sourceUrl,
+            sourceHash: i.sourceHash,
+            domains: i.domain,
+            applicability: i.applicability,
+            patternType: i.patternType,
+          })),
+          repo:
+            repo && {
+              name: repo.name,
+              frameworks: repo.frameworks,
+              languages: repo.languages,
+            },
+          private: isPrivate,
+          owner: session
+            ? { userId: session.userId, login: session.login }
+            : undefined,
+        });
+
+        return {
+          kind: "ok" as const,
+          cacheHit: !!ingestResult.cacheHit && cacheHit,
+          value: {
+            payload,
+            ingestResult,
+            topShards,
+            allCandidateIdeas,
+            isPrivate,
+          },
+        };
+      },
+    );
+
+    if (!metered.ok) {
+      return c.json(metered.body, metered.status as 402 | 422);
+    }
+
+    const { payload, ingestResult, topShards, allCandidateIdeas, isPrivate } =
+      metered.value;
     const sourceUrl = url ? normalizeSourceUrl(url) : needUrl(need!);
     const skillUrl = `${frontendBase(c.env)}/s/${payload.skillHash}`;
 

@@ -95,6 +95,7 @@ interface ProvenanceDisclosureProps {
   acquiring: boolean;
   onChallenge: () => Promise<void>;
   onResolve: (id: number, won: boolean) => Promise<void>;
+  canResolve: boolean;
   onAcquire: () => Promise<void>;
   onReceiptComplete: () => void;
 }
@@ -111,6 +112,7 @@ function ProvenanceDisclosure({
   acquiring,
   onChallenge,
   onResolve,
+  canResolve,
   onAcquire,
   onReceiptComplete,
 }: ProvenanceDisclosureProps) {
@@ -174,6 +176,7 @@ function ProvenanceDisclosure({
             challenges={openChallenges}
             resolvingId={resolvingId}
             onResolve={(id, won) => void onResolve(id, won)}
+            canResolve={canResolve}
             losses={skill.challengeLosses}
           />
 
@@ -254,6 +257,7 @@ export default function SkillPublicPage() {
   const [receiptConsent, setReceiptConsent] = useState(false);
   const [receiptPrompt, setReceiptPrompt] = useState(false);
   const [viewerLogin, setViewerLogin] = useState<string | null>(null);
+  const [viewerResolver, setViewerResolver] = useState(false);
   const [challenging, setChallenging] = useState(false);
   const [resolvingId, setResolvingId] = useState<number | null>(null);
   const [acquiring, setAcquiring] = useState(false);
@@ -318,6 +322,7 @@ export default function SkillPublicPage() {
     void refresh();
     void fetchSession().then((session) => {
       setViewerLogin(session?.user?.login ?? null);
+      setViewerResolver(session?.resolver ?? false);
     });
     void getTopSkills(4)
       .then((res) => {
@@ -989,6 +994,7 @@ export default function SkillPublicPage() {
             acquiring={acquiring}
             onChallenge={onChallenge}
             onResolve={onResolve}
+            canResolve={viewerResolver}
             onAcquire={onAcquire}
             onReceiptComplete={() => {
               setNote("Burst of agent uses landed — watch the proven score climb.");

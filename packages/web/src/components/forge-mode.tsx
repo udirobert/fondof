@@ -53,7 +53,7 @@ import { skillFitCheck } from "@/lib/skill-fit-check";
 import { whereItLands } from "@/lib/where-it-lands";
 import { track } from "@/lib/track";
 import { publicSkillHashFromUrl } from "@/lib/skill-share";
-import { checkForge, recordForge, type ForgeCheck } from "@/lib/billing";
+import { checkForge, type ForgeCheck } from "@/lib/billing";
 
 type Phase = "ritual" | "compose" | "attested";
 
@@ -175,13 +175,21 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
         );
 
       if (signal.cancelled) return;
+      if (res.code === "quota_exceeded") {
+        setForgeBlocked({
+          allowed: false,
+          remaining: res.remaining ?? 0,
+          plan: res.plan ?? "free",
+        });
+        setComposing(false);
+        return;
+      }
       if (!res.error && res.markdown) {
         setSkillHash(res.skillHash);
         setSourceHashes(res.sourceHashes ?? []);
         if (res.title) setForgeTitle(res.title);
         pendingMarkdown.current = res.markdown;
         track("forge_completed", { repo: targetRepo, hasHash: !!res.skillHash });
-        void recordForge();
         return;
       }
     } catch {

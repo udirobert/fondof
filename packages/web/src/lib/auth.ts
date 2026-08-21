@@ -17,7 +17,8 @@ export interface AuthUser {
 export interface AuthSession {
   authenticated: boolean;
   user: AuthUser | null;
-  plan: "free" | "pro";
+  plan: "free" | "pro" | "sharer";
+  resolver?: boolean;
   usage: {
     forgesThisMonth: number;
     limit: number | null;

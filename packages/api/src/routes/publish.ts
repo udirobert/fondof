@@ -7,12 +7,25 @@ import {
   markSkillAttested,
   recordPublicSkill,
 } from "../lib/skill-registry.js";
+import { sha256Hex } from "../lib/edge-cache.js";
 import { rateLimit } from "../lib/rate-limit-mw.js";
+import {
+  relayerSigningKey,
+  runRelayerWrite,
+} from "../lib/relayer-guard.js";
 import { resolveSession } from "./auth.js";
 
 export const publishRoute = new Hono<{ Bindings: Env }>();
 
 publishRoute.post("/publish", rateLimit("publish"), async (c) => {
+  const session = await resolveSession(
+    c.req.header("Authorization"),
+    c.env.SESSIONS,
+  );
+  if (!session) {
+    return c.json({ error: "Sign in to attest with the relayer" }, 401);
+  }
+
   const body = await c.req.json<{
     skillHash: string;
     sourceHashes: string[];
@@ -22,6 +35,7 @@ publishRoute.post("/publish", rateLimit("publish"), async (c) => {
     markdown?: string;
     landings?: LandingHitRecord[];
     frameworks?: string[];
+    intent?: string;
   }>();
 
   const { skillHash, sourceHashes, title, blurb, repo, markdown, landings, frameworks } =
@@ -30,18 +44,55 @@ publishRoute.post("/publish", rateLimit("publish"), async (c) => {
   if (!skillHash) return c.json({ error: "skillHash is required" }, 400);
   if (!sourceHashes?.length) return c.json({ error: "sourceHashes are required" }, 400);
 
-  if (!c.env.FONDOF_RELAYER_KEY) {
-    return c.json({ error: "Relayer not configured" }, 500);
+  const existing = await getSkillRecord(c.env, skillHash);
+  if (existing) {
+    if (existing.ownerId !== session.userId) {
+      return c.json({ error: "Only the skill owner can attest it" }, 403);
+    }
+  } else if (markdown?.trim()) {
+    const contentHash = await sha256Hex(markdown);
+    if (contentHash !== skillHash.toLowerCase().replace(/^0x/, "")) {
+      return c.json({ error: "markdown does not match skillHash" }, 409);
+    }
+  } else {
+    return c.json(
+      { error: "Share the skill first, or provide markdown that matches skillHash" },
+      403,
+    );
   }
 
+  const key = relayerSigningKey(
+    "publish",
+    c.env.FONDOF_RELAYER_KEY,
+    c.env.FONDOF_RESOLVER_KEY,
+  );
+  if (!key.ok) return c.json(key.body, key.status as 503);
+
   try {
-    const receipt = await forgeOnChain(
-      c.env.MONAD_RPC_URL,
-      c.env.FONDOF_RELAYER_KEY,
-      c.env.FONDOF_CONTRACT_ADDRESS,
-      skillHash,
-      sourceHashes
+    const metered = await runRelayerWrite(
+      c.env.SESSIONS,
+      c.env.RELAYER_HALT,
+      session,
+      "publish",
+      { skillHash, sourceHashes },
+      async () => {
+        const receipt = await forgeOnChain(
+          c.env.MONAD_RPC_URL,
+          key.key,
+          c.env.FONDOF_CONTRACT_ADDRESS,
+          skillHash,
+          sourceHashes,
+        );
+        return {
+          txHash: receipt.txHash,
+          blockNumber: receipt.blockNumber,
+        };
+      },
+      body.intent,
     );
+    if (!metered.ok) {
+      return c.json(metered.body, metered.status as 400);
+    }
 
     if (title?.trim()) {
       await putSkillMeta(skillHash, {
@@ -54,15 +105,7 @@ publishRoute.post("/publish", rateLimit("publish"), async (c) => {
       });
     }
 
-    // Older wallet/relayer callers may have attested before creating a public
-    // registry record. Preserve that artifact durably when enough metadata is
-    // present; newer private-first flows already have the record.
-    const existing = await getSkillRecord(c.env, skillHash);
     if (!existing && title?.trim() && markdown?.trim()) {
-      const session = await resolveSession(
-        c.req.header("Authorization"),
-        c.env.SESSIONS,
-      );
       await recordPublicSkill(c.env, {
         hash: skillHash,
         title,
@@ -73,22 +116,22 @@ publishRoute.post("/publish", rateLimit("publish"), async (c) => {
         sourceUrls: [],
         sourceHashes,
         composedAt: new Date().toISOString(),
-        ownerId: session?.userId,
-        ownerLogin: session?.login,
+        ownerId: session.userId,
+        ownerLogin: session.login,
       });
     }
 
-    // Second click complete — stamp the durable public record as on-chain.
-    await markSkillAttested(c.env, skillHash, receipt.txHash).catch(
+    await markSkillAttested(c.env, skillHash, String(metered.value.txHash)).catch(
       () => undefined,
     );
 
     return c.json({
       success: true,
-      txHash: receipt.txHash,
-      blockNumber: receipt.blockNumber,
+      txHash: metered.value.txHash,
+      blockNumber: metered.value.blockNumber,
       skillHash,
-      explorer: `https://testnet.monadexplorer.com/tx/${receipt.txHash}`,
+      replay: metered.replay,
+      explorer: `https://testnet.monadexplorer.com/tx/${metered.value.txHash}`,
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Unknown error";

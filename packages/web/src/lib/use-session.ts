@@ -13,7 +13,8 @@ import {
 
 interface UseSessionReturn {
   user: AuthUser | null;
-  plan: "free" | "pro";
+  plan: "free" | "pro" | "sharer";
+  resolver: boolean;
   forgesThisMonth: number;
   forgeLimit: number | null;
   loading: boolean;
@@ -82,6 +83,7 @@ export function useSession(): UseSessionReturn {
   return {
     user: session?.user ?? null,
     plan: session?.plan ?? "free",
+    resolver: session?.resolver ?? false,
     forgesThisMonth: session?.usage?.forgesThisMonth ?? 0,
     forgeLimit: session?.usage?.limit ?? 3,
     loading,

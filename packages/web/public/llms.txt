@@ -28,11 +28,14 @@ fondof turns what developers learn — or need — into personalised coding skil
 - POST /api/compose — one-shot: ingest → top shards → forge → skill markdown
   Body: `{ "url": "https://youtu.be/...", "repo": "owner/name" }` (or `{ "need": "...", "repo": ... }`)
   `repo` accepts "owner/name", a GitHub URL (frameworks/languages auto-detected), or `{ "name", "frameworks", "languages" }`.
-  Compose is private by default; pass `"private": false` for an explicit public share. The response returns `{ "markdown", "ideas", "skillHash", "skillUrl", "sourceUrl", "onChain", ... }` when shared.
+  Compose is private by default; pass `"private": false` for an explicit public share. The response returns `{ "markdown", "ideas", "skillHash", "skillUrl", "sourceUrl", "onChain", ... }` when shared. Anonymous and free accounts are limited to 3 forges/month (402 when spent).
   `skillUrl` is a real shareable page (https://fondof.netlify.app/s/{skillHash}) that resolves without on-chain attestation. Responses include `canonicalSources` and `derivedFromSkillHash` when available.
   Pass `"private": true` to keep it private today. Write `markdown` to `.kiro/steering/` or `.cursor/rules/`.
-- POST /api/forge — compose a skill from ideas + repo context
-- POST /api/publish — optionally attest a public skill on SkillPool
+- POST /api/forge — compose a skill from ideas + repo context (3 forges/month for anonymous and free accounts; 402 when spent)
+- POST /api/publish — attest a skill you own on SkillPool via the relayer (GitHub session required). Wallet forge does not use this endpoint.
+- POST /api/challenge — stake a dispute via the relayer (session required)
+- POST /api/challenge/{id}/resolve — demo oracle; allowlisted resolver login + dedicated resolver key
+- POST /api/relayer/intent — optional two-phase intent for relayer writes
 - POST /api/skills/{hash}/share — explicitly share a private draft publicly
 - DELETE /api/skills/{hash}/visibility — owner-only hide/unlist
 - GET /api/skills — public skill discovery; `sort=impact|outcomes|adapted|recent` gives focused evidence views (not causal impact). Optional `genre`, `domain`, `framework`, and `language` filters expose deterministic topic/stack discovery.

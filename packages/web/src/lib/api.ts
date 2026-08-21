@@ -89,6 +89,10 @@ export interface ForgeResponse {
   composedAt: string;
   private?: boolean;
   error?: string;
+  code?: string;
+  allowed?: boolean;
+  remaining?: number | null;
+  plan?: "free" | "pro" | "sharer" | "anonymous";
 }
 
 export interface PublishResponse {
@@ -517,7 +521,7 @@ export async function verifySkillPr(
 /** Burst of on-chain use() receipts — Monad per-agent quality demo. */
 export async function stormUsage(
   hash: string,
-  count = 12,
+  count = 8,
 ): Promise<{
   success?: boolean;
   count?: number;
@@ -529,9 +533,14 @@ export async function stormUsage(
   note?: string;
   error?: string;
 }> {
+  const token = getToken();
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  if (token) headers.Authorization = `Bearer ${token}`;
   const res = await fetch(`${API_URL}/api/skills/${encodeURIComponent(hash)}/storm`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: JSON.stringify({ count }),
   });
   return res.json();
@@ -546,9 +555,14 @@ export async function challengeSkill(
   challengeId?: number;
   error?: string;
 }> {
+  const token = getToken();
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  if (token) headers.Authorization = `Bearer ${token}`;
   const res = await fetch(`${API_URL}/api/challenge`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: JSON.stringify({ skillHash }),
   });
   return res.json();
@@ -599,9 +613,14 @@ export async function resolveChallenge(
   challengerWon?: boolean;
   error?: string;
 }> {
+  const token = getToken();
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  if (token) headers.Authorization = `Bearer ${token}`;
   const res = await fetch(`${API_URL}/api/challenge/${challengeId}/resolve`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: JSON.stringify({ challengerWon }),
   });
   return res.json();

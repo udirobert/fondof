@@ -6,32 +6,71 @@ import {
   resolveOnChain,
 } from "../lib/monad.js";
 import { rateLimit } from "../lib/rate-limit-mw.js";
+import {
+  isResolverLogin,
+  relayerSigningKey,
+  runRelayerWrite,
+} from "../lib/relayer-guard.js";
+import { resolveSession } from "./auth.js";
 
 export const challengeRoute = new Hono<{ Bindings: Env }>();
 
 challengeRoute.post("/challenge", rateLimit("challenge"), async (c) => {
-  const { skillHash } = await c.req.json<{ skillHash: string }>();
+  const session = await resolveSession(
+    c.req.header("Authorization"),
+    c.env.SESSIONS,
+  );
+  if (!session) {
+    return c.json({ error: "Sign in to challenge with the relayer" }, 401);
+  }
+
+  const { skillHash, intent } = await c.req.json<{
+    skillHash: string;
+    intent?: string;
+  }>();
 
   if (!skillHash) return c.json({ error: "skillHash is required" }, 400);
 
-  if (!c.env.FONDOF_RELAYER_KEY) {
-    return c.json({ error: "Relayer not configured" }, 500);
-  }
+  const key = relayerSigningKey(
+    "challenge",
+    c.env.FONDOF_RELAYER_KEY,
+    c.env.FONDOF_RESOLVER_KEY,
+  );
+  if (!key.ok) return c.json(key.body, key.status as 503);
 
   try {
-    const receipt = await challengeOnChain(
-      c.env.MONAD_RPC_URL,
-      c.env.FONDOF_RELAYER_KEY,
-      c.env.FONDOF_CONTRACT_ADDRESS,
-      skillHash,
+    const metered = await runRelayerWrite(
+      c.env.SESSIONS,
+      c.env.RELAYER_HALT,
+      session,
+      "challenge",
+      { skillHash },
+      async () => {
+        const receipt = await challengeOnChain(
+          c.env.MONAD_RPC_URL,
+          key.key,
+          c.env.FONDOF_CONTRACT_ADDRESS,
+          skillHash,
+        );
+        return {
+          txHash: receipt.txHash,
+          blockNumber: receipt.blockNumber,
+          challengeId: receipt.challengeId,
+        };
+      },
+      intent,
     );
+    if (!metered.ok) {
+      return c.json(metered.body, metered.status as 400);
+    }
 
     return c.json({
       success: true,
-      txHash: receipt.txHash,
-      blockNumber: receipt.blockNumber,
-      challengeId: receipt.challengeId,
-      explorer: `https://testnet.monadexplorer.com/tx/${receipt.txHash}`,
+      txHash: metered.value.txHash,
+      blockNumber: metered.value.blockNumber,
+      challengeId: metered.value.challengeId,
+      replay: metered.replay,
+      explorer: `https://testnet.monadexplorer.com/tx/${metered.value.txHash}`,
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Unknown error";
@@ -58,25 +97,43 @@ challengeRoute.get("/challenges", async (c) => {
 });
 
 /**
- * Resolve a challenge (resolver/relayer). Demo: challengerWon true = skill loses signal.
+ * Resolve a challenge. Demo oracle: only allowlisted resolver logins, signed
+ * with the dedicated resolver key — never the hot user-operation relayer.
  */
 challengeRoute.post(
   "/challenge/:id/resolve",
   rateLimit("resolve"),
   async (c) => {
+    const session = await resolveSession(
+      c.req.header("Authorization"),
+      c.env.SESSIONS,
+    );
+    if (!session) {
+      return c.json({ error: "Sign in to resolve challenges" }, 401);
+    }
+    if (!isResolverLogin(session.login, c.env.RESOLVER_LOGINS)) {
+      return c.json({ error: "Not an authorized resolver" }, 403);
+    }
+
     const id = parseInt(c.req.param("id"), 10);
     if (!Number.isFinite(id) || id < 0) {
       return c.json({ error: "invalid challenge id" }, 400);
     }
 
     const body = (await c.req
-      .json<{ challengerWon?: boolean }>()
-      .catch(() => ({ challengerWon: true }))) as { challengerWon?: boolean };
+      .json<{ challengerWon?: boolean; intent?: string }>()
+      .catch(() => ({ challengerWon: true }))) as {
+      challengerWon?: boolean;
+      intent?: string;
+    };
     const challengerWon = body.challengerWon !== false;
 
-    if (!c.env.FONDOF_RELAYER_KEY) {
-      return c.json({ error: "Relayer not configured" }, 500);
-    }
+    const key = relayerSigningKey(
+      "resolve",
+      c.env.FONDOF_RELAYER_KEY,
+      c.env.FONDOF_RESOLVER_KEY,
+    );
+    if (!key.ok) return c.json(key.body, key.status as 503);
 
     try {
       const open = await getOpenChallengesFromChain(
@@ -86,13 +143,30 @@ challengeRoute.post(
       );
       const target = open.find((ch) => ch.challengeId === id);
 
-      const receipt = await resolveOnChain(
-        c.env.MONAD_RPC_URL,
-        c.env.FONDOF_RELAYER_KEY,
-        c.env.FONDOF_CONTRACT_ADDRESS,
-        id,
-        challengerWon,
+      const metered = await runRelayerWrite(
+        c.env.SESSIONS,
+        c.env.RELAYER_HALT,
+        session,
+        "resolve",
+        { challengeId: id, challengerWon },
+        async () => {
+          const receipt = await resolveOnChain(
+            c.env.MONAD_RPC_URL,
+            key.key,
+            c.env.FONDOF_CONTRACT_ADDRESS,
+            id,
+            challengerWon,
+          );
+          return {
+            txHash: receipt.txHash,
+            blockNumber: receipt.blockNumber,
+          };
+        },
+        body.intent,
       );
+      if (!metered.ok) {
+        return c.json(metered.body, metered.status as 400);
+      }
 
       if (target?.skillHash) {
         try {
@@ -111,9 +185,10 @@ challengeRoute.post(
         challengeId: id,
         challengerWon,
         skillHash: target?.skillHash,
-        txHash: receipt.txHash,
-        blockNumber: receipt.blockNumber,
-        explorer: `https://testnet.monadexplorer.com/tx/${receipt.txHash}`,
+        txHash: metered.value.txHash,
+        blockNumber: metered.value.blockNumber,
+        replay: metered.replay,
+        explorer: `https://testnet.monadexplorer.com/tx/${metered.value.txHash}`,
       });
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Unknown error";

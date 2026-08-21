@@ -12,6 +12,7 @@ interface ChallengeQueueProps {
   challenges: OnChainChallenge[];
   resolvingId: number | null;
   onResolve: (id: number, challengerWon: boolean) => void;
+  canResolve?: boolean;
   losses?: number;
 }
 
@@ -23,6 +24,7 @@ export function ChallengeQueue({
   challenges,
   resolvingId,
   onResolve,
+  canResolve = false,
   losses = 0,
 }: ChallengeQueueProps) {
   const [showOracle, setShowOracle] = useState(false);
@@ -94,7 +96,7 @@ export function ChallengeQueue({
         </ul>
       )}
 
-      {challenges.length > 0 && (
+      {canResolve && challenges.length > 0 && (
         <div className="rounded-xl border border-ink/8 bg-mist/40 px-3 py-2">
           <button
             type="button"

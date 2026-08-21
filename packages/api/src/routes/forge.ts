@@ -7,7 +7,9 @@ import {
   recordPublicSkill,
 } from "../lib/skill-registry.js";
 import { rateLimit } from "../lib/rate-limit-mw.js";
+import { clientIp } from "../lib/rate-limit.js";
 import { canonicalSources, type CanonicalSource } from "../lib/source-url.js";
+import { meteredGenerate } from "../lib/forge-quota.js";
 import { resolveSession } from "./auth.js";
 
 const COMPOSE_SYSTEM = `You are an expert skill author for AI coding agents. Compose a skill that is:
@@ -273,14 +275,25 @@ forgeRoute.post("/forge", rateLimit("forge"), async (c) => {
   );
 
   try {
-    const { payload, cacheHit } = await forgeSkillCore(c.env, {
-      ...body,
-      owner: session
-        ? { userId: session.userId, login: session.login }
-        : undefined,
-    });
-    c.header("X-Cache", cacheHit ? "HIT" : "MISS");
-    return c.json(payload);
+    const metered = await meteredGenerate(
+      c.env.SESSIONS,
+      session,
+      clientIp(c.req.raw),
+      async () => {
+        const { payload, cacheHit } = await forgeSkillCore(c.env, {
+          ...body,
+          owner: session
+            ? { userId: session.userId, login: session.login }
+            : undefined,
+        });
+        return { kind: "ok" as const, cacheHit, value: { payload, cacheHit } };
+      },
+    );
+    if (!metered.ok) {
+      return c.json(metered.body, metered.status as 402);
+    }
+    c.header("X-Cache", metered.value.cacheHit ? "HIT" : "MISS");
+    return c.json(metered.value.payload);
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Unknown error";
     return c.json({ error: msg }, 500);

@@ -3,13 +3,17 @@ import {
   createWalletClient,
   http,
   defineChain,
-  parseEther,
   decodeEventLog,
   keccak256,
   stringToHex,
   type Hex,
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
+import {
+  RELAYER_TX_VALUE_WEI,
+  STORM_MAX_TXS,
+  assertTxValueCeiling,
+} from "./relayer-guard.js";
 
 const SKILL_POOL_ABI = [
   {
@@ -177,6 +181,7 @@ export async function forgeOnChain(
   skillHash: string,
   sourceHashes: string[],
 ) {
+  assertTxValueCeiling(RELAYER_TX_VALUE_WEI);
   const wallet = getWalletClient(rpcUrl, privateKey);
   const pub = getPublicClient(rpcUrl);
 
@@ -185,7 +190,7 @@ export async function forgeOnChain(
     abi: SKILL_POOL_ABI,
     functionName: "forge",
     args: [toBytes32(skillHash), sourceHashes.map(toBytes32)],
-    value: parseEther("0.001"),
+    value: RELAYER_TX_VALUE_WEI,
   });
 
   const receipt = await pub.waitForTransactionReceipt({ hash: txHash });
@@ -223,7 +228,7 @@ export async function useStormOnChain(
   skillHash: string,
   count: number,
 ) {
-  const n = Math.min(25, Math.max(2, Math.floor(count)));
+  const n = Math.min(STORM_MAX_TXS, Math.max(2, Math.floor(count)));
   const wallet = getWalletClient(rpcUrl, privateKey);
   const pub = getPublicClient(rpcUrl);
   const account = wallet.account;
@@ -270,6 +275,7 @@ export async function challengeOnChain(
   contract: string,
   skillHash: string,
 ) {
+  assertTxValueCeiling(RELAYER_TX_VALUE_WEI);
   const wallet = getWalletClient(rpcUrl, privateKey);
   const pub = getPublicClient(rpcUrl);
 
@@ -278,7 +284,7 @@ export async function challengeOnChain(
     abi: SKILL_POOL_ABI,
     functionName: "challenge",
     args: [toBytes32(skillHash)],
-    value: parseEther("0.001"),
+    value: RELAYER_TX_VALUE_WEI,
   });
 
   const receipt = await pub.waitForTransactionReceipt({ hash: txHash });

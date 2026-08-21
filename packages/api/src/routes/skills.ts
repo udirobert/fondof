@@ -26,6 +26,8 @@ import {
   unlistPublicSkill,
 } from "../lib/skill-registry.js";
 import { rateLimit } from "../lib/rate-limit-mw.js";
+import { grantVerifiedShareBenefit } from "../lib/forge-quota.js";
+import { relayerSigningKey, runRelayerWrite } from "../lib/relayer-guard.js";
 import {
   classifySkillGenres,
   genreBySlug,
@@ -307,6 +309,18 @@ skillsRoute.post("/skills/:hash/share", rateLimit("publish"), async (c) => {
     fittedTo: body.repo ?? "general",
     forgedAt: composedAt,
   });
+
+  if (session) {
+    const rec = await getPublicSkill(c.env, normalizedHash);
+    if (rec?.ownerId === session.userId) {
+      await grantVerifiedShareBenefit(
+        c.env.SESSIONS,
+        session.userId,
+        normalizedHash,
+        "public-share",
+      );
+    }
+  }
 
   // A newly shared artifact should appear in both discovery modes immediately.
   for (const lim of POOL_BUST_LIMITS) {
@@ -810,7 +824,7 @@ skillsRoute.get("/skills", async (c) => {
 skillsRoute.post("/skills/:hash/use", rateLimit("use"), async (c) => {
   const hash = c.req.param("hash");
   const body = await c.req
-    .json<{ receiptKey?: string; consented?: boolean }>()
+    .json<{ receiptKey?: string; consented?: boolean; intent?: string }>()
     .catch(
       () => ({}) as { receiptKey?: string; consented?: boolean },
     );
@@ -849,7 +863,31 @@ skillsRoute.post("/skills/:hash/use", rateLimit("use"), async (c) => {
       });
     }
 
-    if (!c.env.FONDOF_RELAYER_KEY) {
+    if (!session) {
+      await caches.default
+        .delete(
+          new Request(
+            `https://fondof-cache.internal/skill:v4:${hash.toLowerCase()}`,
+          ),
+        )
+        .catch(() => undefined);
+      return c.json({
+        success: true,
+        claimed: true,
+        evidence,
+        deduplicated: claim.deduplicated,
+        tracking: claim.tracking,
+        note:
+          "Claimed use recorded off-chain. Sign in to attach an on-chain receipt (relayer-sponsored).",
+      });
+    }
+
+    const key = relayerSigningKey(
+      "use",
+      c.env.FONDOF_RELAYER_KEY,
+      c.env.FONDOF_RESOLVER_KEY,
+    );
+    if (!key.ok) {
       return c.json({
         success: true,
         claimed: true,
@@ -860,12 +898,38 @@ skillsRoute.post("/skills/:hash/use", rateLimit("use"), async (c) => {
       });
     }
 
-    const receipt = await useOnChain(
-      c.env.MONAD_RPC_URL,
-      c.env.FONDOF_RELAYER_KEY,
-      c.env.FONDOF_CONTRACT_ADDRESS,
-      hash,
+    const bodyIntent = (body as { intent?: string }).intent;
+    const metered = await runRelayerWrite(
+      c.env.SESSIONS,
+      c.env.RELAYER_HALT,
+      session,
+      "use",
+      { skillHash: hash },
+      async () => {
+        const receipt = await useOnChain(
+          c.env.MONAD_RPC_URL,
+          key.key,
+          c.env.FONDOF_CONTRACT_ADDRESS,
+          hash,
+        );
+        return {
+          txHash: receipt.txHash,
+          blockNumber: receipt.blockNumber,
+        };
+      },
+      bodyIntent,
     );
+    if (!metered.ok) {
+      return c.json({
+        success: true,
+        claimed: true,
+        evidence,
+        deduplicated: claim.deduplicated,
+        tracking: claim.tracking,
+        note: "Claimed use recorded off-chain; on-chain receipt was not sponsored.",
+        relayer: metered.body,
+      });
+    }
 
     await caches.default
       .delete(
@@ -878,11 +942,12 @@ skillsRoute.post("/skills/:hash/use", rateLimit("use"), async (c) => {
     return c.json({
       success: true,
       claimed: true,
-      txHash: receipt.txHash,
-      blockNumber: receipt.blockNumber,
+      txHash: metered.value.txHash,
+      blockNumber: metered.value.blockNumber,
       evidence,
       deduplicated: claim.deduplicated,
       tracking: claim.tracking,
+      replay: metered.replay,
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Unknown error";
@@ -933,24 +998,55 @@ skillsRoute.post(
  * Demo: quality signals at Monad speed (not viable as per-use receipts on L1).
  */
 skillsRoute.post("/skills/:hash/storm", rateLimit("storm"), async (c) => {
-  const hash = c.req.param("hash");
-  const body = (await c.req
-    .json<{ count?: number }>()
-    .catch(() => ({ count: 12 }))) as { count?: number };
-  const count = body.count ?? 12;
-
-  if (!c.env.FONDOF_RELAYER_KEY) {
-    return c.json({ error: "Relayer not configured" }, 500);
+  const session = await resolveSession(
+    c.req.header("Authorization"),
+    c.env.SESSIONS,
+  );
+  if (!session) {
+    return c.json({ error: "Sign in to run a relayer receipt storm" }, 401);
   }
 
+  const hash = c.req.param("hash");
+  const body = (await c.req
+    .json<{ count?: number; intent?: string }>()
+    .catch(() => ({ count: 8 }))) as { count?: number; intent?: string };
+  const count = body.count ?? 8;
+
+  const key = relayerSigningKey(
+    "storm",
+    c.env.FONDOF_RELAYER_KEY,
+    c.env.FONDOF_RESOLVER_KEY,
+  );
+  if (!key.ok) return c.json(key.body, key.status as 503);
+
   try {
-    const storm = await useStormOnChain(
-      c.env.MONAD_RPC_URL,
-      c.env.FONDOF_RELAYER_KEY,
-      c.env.FONDOF_CONTRACT_ADDRESS,
-      hash,
-      count,
+    const metered = await runRelayerWrite(
+      c.env.SESSIONS,
+      c.env.RELAYER_HALT,
+      session,
+      "storm",
+      { skillHash: hash, count },
+      async () => {
+        const storm = await useStormOnChain(
+          c.env.MONAD_RPC_URL,
+          key.key,
+          c.env.FONDOF_CONTRACT_ADDRESS,
+          hash,
+          count,
+        );
+        return {
+          count: storm.count,
+          submittedMs: storm.submittedMs,
+          confirmedMs: storm.confirmedMs,
+          txHashes: storm.txHashes,
+          blockNumber: storm.blockNumber,
+        };
+      },
+      body.intent,
     );
+    if (!metered.ok) {
+      return c.json(metered.body, metered.status as 400);
+    }
 
     try {
       await caches.default.delete(
@@ -967,18 +1063,20 @@ skillsRoute.post("/skills/:hash/storm", rateLimit("storm"), async (c) => {
       c.env.FONDOF_CONTRACT_ADDRESS,
       hash,
     );
+    const hashes = metered.value.txHashes as string[];
 
     return c.json({
       success: true,
-      count: storm.count,
-      submittedMs: storm.submittedMs,
-      confirmedMs: storm.confirmedMs,
-      txHashes: storm.txHashes,
-      blockNumber: storm.blockNumber,
+      count: metered.value.count,
+      submittedMs: metered.value.submittedMs,
+      confirmedMs: metered.value.confirmedMs,
+      txHashes: hashes,
+      blockNumber: metered.value.blockNumber,
       signal: skill?.signal,
       usageCount: skill?.usageCount,
-      explorer: `https://testnet.monadexplorer.com/tx/${storm.txHashes[storm.txHashes.length - 1]}`,
-      note: `${storm.count} agent receipts on Monad in ${storm.confirmedMs}ms — per-use quality tracking`,
+      replay: metered.replay,
+      explorer: `https://testnet.monadexplorer.com/tx/${hashes[hashes.length - 1]}`,
+      note: `${metered.value.count} agent receipts on Monad in ${metered.value.confirmedMs}ms — per-use quality tracking`,
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Unknown error";

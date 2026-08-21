@@ -1,5 +1,7 @@
 import { Hono } from "hono";
 import type { Env } from "../index.js";
+import { inspectForgeEntitlement } from "../lib/forge-quota.js";
+import { isResolverLogin } from "../lib/relayer-guard.js";
 
 export const authRoute = new Hono<{ Bindings: Env }>();
 
@@ -203,13 +205,11 @@ authRoute.get("/auth/me", async (c) => {
 
   const session: Session = JSON.parse(raw);
 
-  // Also return usage info for the current billing period
-  const usageKey = `usage:${session.userId}:${billingMonth()}`;
-  const usageRaw = await c.env.SESSIONS.get(usageKey);
-  const forgeCount = usageRaw ? parseInt(usageRaw, 10) : 0;
-
-  const planRaw = await c.env.SESSIONS.get(`plan:${session.userId}`);
-  const plan = planRaw || "free";
+  const entitlement = await inspectForgeEntitlement(
+    c.env.SESSIONS,
+    session,
+    "signed-in",
+  );
 
   return c.json({
     authenticated: true,
@@ -219,10 +219,15 @@ authRoute.get("/auth/me", async (c) => {
       avatarUrl: session.avatarUrl,
       name: session.name,
     },
-    plan,
+    plan: entitlement.plan,
+    resolver: isResolverLogin(session.login, c.env.RESOLVER_LOGINS),
     usage: {
-      forgesThisMonth: forgeCount,
-      limit: plan === "pro" ? null : 3,
+      forgesThisMonth:
+        entitlement.limit === null
+          ? 0
+          : entitlement.limit - (entitlement.remaining ?? 0),
+      limit: entitlement.limit,
+      remaining: entitlement.remaining,
     },
   });
 });
@@ -240,10 +245,7 @@ authRoute.post("/auth/logout", async (c) => {
 });
 
 /** Returns YYYY-MM string for the current billing period. */
-export function billingMonth(): string {
-  const now = new Date();
-  return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
-}
+export { billingMonth } from "../lib/forge-quota.js";
 
 /**
  * Helper: resolve session from Authorization header.

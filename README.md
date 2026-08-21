@@ -139,7 +139,7 @@ The numbered **Source → Ideas → Skill** path below walks the **Studio** dept
 1. **Extract from a need (no account, no GitHub).** **Need** tab → type `retry budgets for async TypeScript fetch` → click **Extract**. The API extracts discrete ideas from your exact text (~5–15 s). Type something else (e.g. `structured logging for worker services`) and you'll get different ideas — it's a live call, not a canned list.
 2. **Or extract from a URL.** **URL** tab → click a sample (talk / docs / blog) or paste any public article URL → **Extract**. YouTube pulls real captions; articles are read + LLM-extracted.
 3. **Compose a skill.** Select 1–2 shards → open the **Forge** panel → **Skill for {repo}**. The draft is LLM-composed against the repo's stack: Fit check (structural heuristics — not a live agent eval), **Where it lands**, expandable sections. Copy it for **Cursor / Claude / Kiro** — the primary hand-off.
-4. **Proof (optional).** Share the skill and attach an outcome. If public provenance or contestable quality matters, attest it through SkillPool (relayer or wallet); the chain remains a secondary proof layer. Challenge resolve is a disclosed demo oracle, not decentralized adjudication.
+4. **Proof (optional).** Share the skill and attach an outcome. If public provenance or contestable quality matters, attest it through SkillPool — your wallet, or the relayer after GitHub sign-in. Challenge resolve is a disclosed demo oracle (allowlisted resolver login + dedicated key), not decentralized adjudication.
 5. **Pool.** [**/pool**](https://fondof.netlify.app/pool) → Pick a proven skill or browse paper cards with live signal.
 
 Each step degrades **honestly** if a dependency is down: need-extract shows “API unreachable — local shards” (labeled, not silent); forge failure shows a local template draft with a visible notice, never passed off as LLM output; chain/relayer unreachable keeps publish a local draft — we do not fake “published.” Happy-path extraction and forge are live; dispute resolve stays a disclosed demo oracle.
@@ -235,7 +235,10 @@ See [`.env.example`](.env.example) for placeholders. Summary:
 ```bash
 # On-chain (SkillPool)
 MONAD_RPC_URL=https://…                 # Monad testnet RPC
-FONDOF_RELAYER_KEY=0x…                  # Relayer wallet (Worker secret)
+FONDOF_RELAYER_KEY=0x…                  # Hot relayer (Worker secret; keep thinly funded)
+FONDOF_RESOLVER_KEY=0x…                 # Resolve-only key; do not reuse the hot relayer
+RESOLVER_LOGINS=your-github-login       # Allowlisted GitHub logins for resolve / halt
+# RELAYER_HALT=1                        # Emergency-stop all relayer-sponsored writes
 FONDOF_CONTRACT_ADDRESS=0x75545e2C450897914df416d0D24aeB33a89a8b19
 
 # Web
@@ -273,11 +276,14 @@ wrangler kv namespace create SESSIONS
 
 # Set secrets
 wrangler secret put FONDOF_RELAYER_KEY
+wrangler secret put FONDOF_RESOLVER_KEY
 wrangler secret put GITHUB_CLIENT_ID
 wrangler secret put GITHUB_CLIENT_SECRET
 wrangler secret put STRIPE_SECRET_KEY
 wrangler secret put STRIPE_WEBHOOK_SECRET
 wrangler secret put STRIPE_PRICE_ID
+# Optional: wrangler secret put RESOLVER_LOGINS
+# Optional emergency stop: wrangler secret put RELAYER_HALT  (value 1)
 
 # Deploy
 wrangler deploy
@@ -301,8 +307,8 @@ Set these env vars in Netlify dashboard (or `netlify.toml`):
 1. Create a Product + Price in the [Stripe Dashboard](https://dashboard.stripe.com)
 2. Set `STRIPE_PRICE_ID` to the Price ID
 3. Create a Webhook endpoint → `https://YOUR-WORKER.workers.dev/api/billing/webhook`
-4. Events to listen for: `checkout.session.completed`, `customer.subscription.deleted`, `customer.subscription.paused`
-5. Copy the signing secret into `STRIPE_WEBHOOK_SECRET`
+4. Events to listen for: `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `customer.subscription.deleted`, `customer.subscription.paused`
+5. Copy the signing secret into `STRIPE_WEBHOOK_SECRET`. Unsigned or unpaid events are rejected; Pro is not granted until Stripe reports the session paid.
 
 ## Contributing
 

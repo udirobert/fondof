@@ -16,6 +16,8 @@ FONDOF_CONTRACT_ADDRESS = "0x75545e2C450897914df416d0D24aeB33a89a8b19"
 FRONTEND_URL = "https://fondof.netlify.app"
 # Secrets deployed (not committed):
 # GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET
+# FONDOF_RELAYER_KEY, FONDOF_RESOLVER_KEY, RESOLVER_LOGINS
+# RELAYER_HALT=1 emergency-stops all relayer-sponsored writes.
 
 [ai]
 binding = "AI"
