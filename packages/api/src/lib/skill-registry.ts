@@ -118,9 +118,29 @@ export async function getPublicSkill(
   return rec?.visibility === "public" ? rec : null;
 }
 
+export type PublicSkillMutationAccess =
+  | "create"
+  | "update"
+  | "forbidden"
+  | "immutable";
+
 /**
- * Upsert a public skill. Prior on-chain attestation and ownership are preserved
- * unless a newer explicit value is supplied.
+ * Who may mutate an existing public record. A missing record is a create.
+ * Legacy ownerless records are immutable — claiming ownership is not an upsert.
+ */
+export function publicSkillMutationAccess(
+  existing: PublicSkillRecord | null,
+  actorUserId: number | undefined,
+): PublicSkillMutationAccess {
+  if (!existing) return "create";
+  if (existing.ownerId == null) return "immutable";
+  if (actorUserId != null && existing.ownerId === actorUserId) return "update";
+  return "forbidden";
+}
+
+/**
+ * Upsert a public skill. Prior on-chain attestation is preserved. Stored
+ * ownership is never replaced here — transfer is not part of a general upsert.
  */
 export async function recordPublicSkill(
   env: Env,
@@ -151,8 +171,8 @@ export async function recordPublicSkill(
     sourceHashes: input.sourceHashes.slice(0, 24),
     composedAt: input.composedAt,
     visibility: input.visibility ?? "public",
-    ownerId: input.ownerId ?? existing?.ownerId,
-    ownerLogin: input.ownerLogin ?? existing?.ownerLogin,
+    ownerId: existing ? existing.ownerId : input.ownerId,
+    ownerLogin: existing ? existing.ownerLogin : input.ownerLogin,
     onChain: existing?.onChain ?? false,
     attestedTxHash: existing?.attestedTxHash,
     attestedAt: existing?.attestedAt,
@@ -160,6 +180,21 @@ export async function recordPublicSkill(
 
   // Public artifacts are durable records, not expiring cache entries.
   await env.SESSIONS.put(key, JSON.stringify(record));
+}
+
+/**
+ * Create or owner-update a public record. Skips when the hash already belongs
+ * to someone else or to an ownerless legacy artifact.
+ */
+export async function recordPublicSkillIfActorAllowed(
+  env: Env,
+  input: PublicSkillInput,
+): Promise<"created" | "updated" | "skipped"> {
+  const existing = await getStoredSkill(env, input.hash);
+  const access = publicSkillMutationAccess(existing, input.ownerId);
+  if (access !== "create" && access !== "update") return "skipped";
+  await recordPublicSkill(env, input);
+  return access === "create" ? "created" : "updated";
 }
 
 export type PublicSkillPatch = {

@@ -198,4 +198,16 @@ describe("relayer guard", () => {
     expect(isResolverLogin("eve", "ada, bob")).toBe(false);
     expect(isResolverLogin("ada", "")).toBe(false);
   });
+
+  it("does not default a resolve outcome to challenger-won", async () => {
+    const missing = await normalizeRelayerParams("resolve", { challengeId: 3 });
+    expect("error" in missing).toBe(true);
+    const ok = await normalizeRelayerParams("resolve", {
+      challengeId: 3,
+      challengerWon: false,
+    });
+    expect("error" in ok).toBe(false);
+    if ("error" in ok) return;
+    expect(ok.challengerWon).toBe(false);
+  });
 });

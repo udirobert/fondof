@@ -1,11 +1,20 @@
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
-import { homedir } from "node:os";
 import type { IdeaRecord } from "@fondof/shared";
+import {
+  assertSafeFile,
+  ensurePrivateDir,
+  fondofHome,
+  writePrivateFile,
+} from "./private-fs.js";
 
-const CONFIG_DIR = join(homedir(), ".fondof");
-const IDEAS_FILE = join(CONFIG_DIR, "ideas.json");
-const SESSIONS_FILE = join(CONFIG_DIR, "sessions.json");
+function ideasFile(): string {
+  return join(fondofHome(), "ideas.json");
+}
+
+function sessionsFile(): string {
+  return join(fondofHome(), "sessions.json");
+}
 
 export interface IngestSession {
   /** Unique session ID */
@@ -26,22 +35,16 @@ export interface IngestSession {
   ingestedAt: string;
 }
 
-function ensureDir(): void {
-  if (!existsSync(CONFIG_DIR)) {
-    mkdirSync(CONFIG_DIR, { recursive: true });
-  }
-}
-
-// --- Ideas ---
-
 /**
  * Load all persisted ideas.
  */
 export function loadIdeas(): IdeaRecord[] {
-  ensureDir();
-  if (!existsSync(IDEAS_FILE)) return [];
+  ensurePrivateDir(fondofHome());
+  const file = ideasFile();
+  if (!existsSync(file)) return [];
+  assertSafeFile(file);
   try {
-    return JSON.parse(readFileSync(IDEAS_FILE, "utf-8")) as IdeaRecord[];
+    return JSON.parse(readFileSync(file, "utf-8")) as IdeaRecord[];
   } catch {
     return [];
   }
@@ -51,11 +54,10 @@ export function loadIdeas(): IdeaRecord[] {
  * Save ideas (appends new, deduplicates by ID).
  */
 export function saveIdeas(newIdeas: IdeaRecord[]): void {
-  ensureDir();
   const existing = loadIdeas();
   const existingIds = new Set(existing.map((i) => i.id));
   const merged = [...existing, ...newIdeas.filter((i) => !existingIds.has(i.id))];
-  writeFileSync(IDEAS_FILE, JSON.stringify(merged, null, 2), "utf-8");
+  writePrivateFile(ideasFile(), JSON.stringify(merged, null, 2));
 }
 
 /**
@@ -83,16 +85,16 @@ export function getRecentIdeas(limit = 20): IdeaRecord[] {
     .slice(0, limit);
 }
 
-// --- Sessions ---
-
 /**
  * Load all ingest sessions.
  */
 export function loadSessions(): IngestSession[] {
-  ensureDir();
-  if (!existsSync(SESSIONS_FILE)) return [];
+  ensurePrivateDir(fondofHome());
+  const file = sessionsFile();
+  if (!existsSync(file)) return [];
+  assertSafeFile(file);
   try {
-    return JSON.parse(readFileSync(SESSIONS_FILE, "utf-8")) as IngestSession[];
+    return JSON.parse(readFileSync(file, "utf-8")) as IngestSession[];
   } catch {
     return [];
   }
@@ -102,10 +104,9 @@ export function loadSessions(): IngestSession[] {
  * Save a new ingest session.
  */
 export function saveSession(session: IngestSession): void {
-  ensureDir();
   const sessions = loadSessions();
   sessions.push(session);
-  writeFileSync(SESSIONS_FILE, JSON.stringify(sessions, null, 2), "utf-8");
+  writePrivateFile(sessionsFile(), JSON.stringify(sessions, null, 2));
 }
 
 /**

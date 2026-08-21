@@ -1,61 +1,120 @@
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { homedir } from "node:os";
 import type { RepoProfile } from "@fondof/shared";
+import {
+  assertSafeFile,
+  ensurePrivateDir,
+  fondofHome,
+  writePrivateFile,
+} from "./private-fs.js";
+import {
+  readTokenFromKeychain,
+  saveTokenToKeychain,
+} from "./keychain.js";
 
 export interface FondofConfig {
   githubToken?: string;
   githubClientId?: string;
 }
 
-const CONFIG_DIR = join(homedir(), ".fondof");
-const CONFIG_FILE = join(CONFIG_DIR, "config.json");
-const REPOS_FILE = join(CONFIG_DIR, "repos.json");
+export type TokenStorage = "keychain" | "file";
 
-/**
- * Ensure the fondof config directory exists.
- */
-function ensureConfigDir(): void {
-  if (!existsSync(CONFIG_DIR)) {
-    mkdirSync(CONFIG_DIR, { recursive: true });
-  }
+type KeychainFns = {
+  save: (token: string) => boolean;
+  read: () => string | null;
+};
+
+let keychain: KeychainFns = {
+  save: saveTokenToKeychain,
+  read: readTokenFromKeychain,
+};
+
+let lastStorage: TokenStorage = "file";
+let lastConfigWasBroadlyReadable = false;
+
+/** Test-only. Pass `null` to restore the OS vault. */
+export function setKeychainForTests(next: KeychainFns | null): void {
+  keychain = next ?? {
+    save: saveTokenToKeychain,
+    read: readTokenFromKeychain,
+  };
+}
+
+export function lastTokenStorage(): TokenStorage {
+  return lastStorage;
+}
+
+export function lastConfigWasWorldReadable(): boolean {
+  return lastConfigWasBroadlyReadable;
+}
+
+function configDir(): string {
+  return fondofHome();
+}
+
+function configFile(): string {
+  return join(configDir(), "config.json");
+}
+
+function reposFile(): string {
+  return join(configDir(), "repos.json");
 }
 
 /**
- * Load fondof configuration.
+ * Load fondof configuration. Tightens ~/.fondof permissions; does not follow
+ * symlinks. A GitHub token in this file is a fallback — prefer the OS vault.
  */
 export function loadConfig(): FondofConfig {
-  ensureConfigDir();
-  if (!existsSync(CONFIG_FILE)) {
+  ensurePrivateDir(configDir());
+  const file = configFile();
+  if (!existsSync(file)) {
+    lastConfigWasBroadlyReadable = false;
     return {};
   }
+  lastConfigWasBroadlyReadable = assertSafeFile(file).wasBroadlyReadable;
   try {
-    return JSON.parse(readFileSync(CONFIG_FILE, "utf-8")) as FondofConfig;
+    return JSON.parse(readFileSync(file, "utf-8")) as FondofConfig;
   } catch {
     return {};
   }
 }
 
 /**
- * Save fondof configuration.
+ * Save fondof configuration (owner-only file). Do not put tokens here when
+ * the OS keychain accepted them.
  */
 export function saveConfig(config: FondofConfig): void {
-  ensureConfigDir();
-  writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2), "utf-8");
+  writePrivateFile(configFile(), JSON.stringify(config, null, 2));
 }
 
 /**
  * Get the stored GitHub token.
+ * Order: GITHUB_TOKEN env, OS keychain, then owner-only config file.
  */
 export function getToken(): string | null {
+  const fromEnv = process.env.GITHUB_TOKEN?.trim();
+  if (fromEnv) return fromEnv;
+  const fromVault = keychain.read();
+  if (fromVault) return fromVault;
   const config = loadConfig();
-  return config.githubToken ?? process.env.GITHUB_TOKEN ?? null;
+  return config.githubToken ?? null;
 }
 
 /**
- * Save a GitHub token.
+ * Save a GitHub token. Prefers the OS credential vault; falls back to
+ * ~/.fondof/config.json with mode 0600.
  */
 export function saveToken(token: string): void {
+  if (keychain.save(token)) {
+    lastStorage = "keychain";
+    const config = loadConfig();
+    if (config.githubToken) {
+      delete config.githubToken;
+      saveConfig(config);
+    }
+    return;
+  }
+  lastStorage = "file";
   const config = loadConfig();
   config.githubToken = token;
   saveConfig(config);
@@ -65,12 +124,12 @@ export function saveToken(token: string): void {
  * Load all stored repo profiles.
  */
 export function loadRepoProfiles(): RepoProfile[] {
-  ensureConfigDir();
-  if (!existsSync(REPOS_FILE)) {
-    return [];
-  }
+  ensurePrivateDir(configDir());
+  const file = reposFile();
+  if (!existsSync(file)) return [];
+  assertSafeFile(file);
   try {
-    return JSON.parse(readFileSync(REPOS_FILE, "utf-8")) as RepoProfile[];
+    return JSON.parse(readFileSync(file, "utf-8")) as RepoProfile[];
   } catch {
     return [];
   }
@@ -80,7 +139,6 @@ export function loadRepoProfiles(): RepoProfile[] {
  * Save a repo profile (upsert by fullName).
  */
 export function saveRepoProfile(profile: RepoProfile): void {
-  ensureConfigDir();
   const profiles = loadRepoProfiles();
   const existingIdx = profiles.findIndex((p) => p.fullName === profile.fullName);
 
@@ -90,14 +148,13 @@ export function saveRepoProfile(profile: RepoProfile): void {
     profiles.push(profile);
   }
 
-  writeFileSync(REPOS_FILE, JSON.stringify(profiles, null, 2), "utf-8");
+  writePrivateFile(reposFile(), JSON.stringify(profiles, null, 2));
 }
 
 /**
  * Remove a repo profile by fullName.
  */
 export function removeRepoProfile(fullName: string): void {
-  ensureConfigDir();
   const profiles = loadRepoProfiles().filter((p) => p.fullName !== fullName);
-  writeFileSync(REPOS_FILE, JSON.stringify(profiles, null, 2), "utf-8");
+  writePrivateFile(reposFile(), JSON.stringify(profiles, null, 2));
 }

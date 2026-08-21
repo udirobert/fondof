@@ -195,6 +195,8 @@ pnpm --filter @fondof/cli build
 # fondof ingest | forge | publish | challenge | status
 ```
 
+GitHub login for the CLI is stored in the OS credential vault (macOS Keychain / Linux Secret Service) when available, otherwise in `~/.fondof/config.json` with directory mode `0700` and file mode `0600`. If that file was created before this change, revoke the token at GitHub and run `fondof connect` again — a typical umask left it readable by other local users.
+
 The **web floor** is the primary product for demos and Ready Spec Ship judging.
 
 ## Architecture
@@ -211,7 +213,7 @@ packages/
 
 **Package roles:** `api` is the live HTTP edge; `core` backs the CLI and reusable logic; `web` talks to `api` over HTTPS. SkillPool is the downstream public proof/discovery layer — not the core creation flow, marketplace, or listing fee.
 
-**Security model:** CSRF-safe OAuth, one-time token exchange (no tokens in URLs), owner-gated write endpoints, an SSRF guard on user-supplied URL fetches, and per-IP rate limits — documented with standing caveats in [`docs/architecture.md`](docs/architecture.md#security-model).
+**Security model:** CSRF-safe OAuth with same-origin post-login redirects, one-time token exchange bound to the initiating browser (no tokens in URLs), owner-gated write endpoints, an SSRF guard on user-supplied URL fetches, and per-IP rate limits — documented with standing caveats in [`docs/architecture.md`](docs/architecture.md#security-model).
 
 **Future of the trust layer (not shipped):** we're evaluating **Arkiv** — a queryable, time-scoped, tamper-proof Ethereum data layer — as a candidate home for provenance + contestable quality, explored **alongside** the existing Monad SkillPool (no retirement decision made). See [`docs/roadmap-arkiv.md`](docs/roadmap-arkiv.md) for the hybrid-layer boundary and why a plain DB can't credibly serve the provenance slice.
 

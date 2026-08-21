@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import type { Env } from "../index.js";
 import {
   challengeOnChain,
+  getChallengeFromChain,
   getOpenChallengesFromChain,
   resolveOnChain,
 } from "../lib/monad.js";
@@ -99,6 +100,7 @@ challengeRoute.get("/challenges", async (c) => {
 /**
  * Resolve a challenge. Demo oracle: only allowlisted resolver logins, signed
  * with the dedicated resolver key — never the hot user-operation relayer.
+ * The outcome must be an explicit boolean bound to an open on-chain challenge.
  */
 challengeRoute.post(
   "/challenge/:id/resolve",
@@ -121,12 +123,15 @@ challengeRoute.post(
     }
 
     const body = (await c.req
-      .json<{ challengerWon?: boolean; intent?: string }>()
-      .catch(() => ({ challengerWon: true }))) as {
-      challengerWon?: boolean;
+      .json<{ challengerWon?: unknown; intent?: string }>()
+      .catch(() => null)) as {
+      challengerWon?: unknown;
       intent?: string;
-    };
-    const challengerWon = body.challengerWon !== false;
+    } | null;
+    if (typeof body?.challengerWon !== "boolean") {
+      return c.json({ error: "challengerWon must be a boolean" }, 400);
+    }
+    const challengerWon = body.challengerWon;
 
     const key = relayerSigningKey(
       "resolve",
@@ -136,12 +141,17 @@ challengeRoute.post(
     if (!key.ok) return c.json(key.body, key.status as 503);
 
     try {
-      const open = await getOpenChallengesFromChain(
+      const target = await getChallengeFromChain(
         c.env.MONAD_RPC_URL,
         c.env.FONDOF_CONTRACT_ADDRESS,
-        { limit: 50 },
+        id,
       );
-      const target = open.find((ch) => ch.challengeId === id);
+      if (!target) {
+        return c.json({ error: "Challenge not found" }, 404);
+      }
+      if (target.resolved) {
+        return c.json({ error: "Challenge already resolved" }, 409);
+      }
 
       const metered = await runRelayerWrite(
         c.env.SESSIONS,
@@ -168,7 +178,22 @@ challengeRoute.post(
         return c.json(metered.body, metered.status as 400);
       }
 
-      if (target?.skillHash) {
+      if (!metered.replay) {
+        await c.env.SESSIONS.put(
+          `resolve-audit:${id}`,
+          JSON.stringify({
+            challengeId: id,
+            skillHash: target.skillHash,
+            challengerWon,
+            resolverId: session.userId,
+            resolverLogin: session.login,
+            txHash: metered.value.txHash,
+            at: new Date().toISOString(),
+          }),
+        );
+      }
+
+      if (target.skillHash) {
         try {
           await caches.default.delete(
             new Request(
@@ -184,7 +209,7 @@ challengeRoute.post(
         success: true,
         challengeId: id,
         challengerWon,
-        skillHash: target?.skillHash,
+        skillHash: target.skillHash,
         txHash: metered.value.txHash,
         blockNumber: metered.value.blockNumber,
         replay: metered.replay,

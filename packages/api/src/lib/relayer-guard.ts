@@ -134,9 +134,18 @@ export async function normalizeRelayerParams(
     if (id == null || !Number.isInteger(id) || id < 0) {
       return { error: "challengeId is required" };
     }
-    const challengerWon = params.challengerWon !== false;
-    const digest = await sha256Hex(`resolve:${id}:${challengerWon ? "1" : "0"}`);
-    return { digest, valueWei: 0n, challengeId: id, challengerWon };
+    if (typeof params.challengerWon !== "boolean") {
+      return { error: "challengerWon must be a boolean" };
+    }
+    const digest = await sha256Hex(
+      `resolve:${id}:${params.challengerWon ? "1" : "0"}`,
+    );
+    return {
+      digest,
+      valueWei: 0n,
+      challengeId: id,
+      challengerWon: params.challengerWon,
+    };
   }
 
   const skillHash = params.skillHash

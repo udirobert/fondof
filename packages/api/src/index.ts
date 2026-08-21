@@ -42,10 +42,28 @@ export interface Env {
 
 const app = new Hono<{ Bindings: Env }>();
 
-// CORS for frontend
-app.use(
-  "*",
-  cors({
+function frontendOriginFromEnv(frontendUrl: string | undefined): string {
+  try {
+    return new URL(frontendUrl || "https://fondof.netlify.app").origin;
+  } catch {
+    return "https://fondof.netlify.app";
+  }
+}
+
+// CORS for frontend. Public reads stay `*`. The OAuth exchange is credentialed
+// so the initiating-browser cookie can be sent; that route cannot use `*`.
+app.use("*", async (c, next) => {
+  const path = new URL(c.req.url).pathname;
+  if (path === "/api/auth/exchange") {
+    const allowed = frontendOriginFromEnv(c.env.FRONTEND_URL);
+    return cors({
+      origin: (origin) => (origin === allowed ? origin : allowed),
+      credentials: true,
+      allowMethods: ["POST", "OPTIONS"],
+      allowHeaders: ["Content-Type"],
+    })(c, next);
+  }
+  return cors({
     origin: "*",
     allowMethods: ["GET", "POST", "DELETE", "OPTIONS"],
     allowHeaders: ["Content-Type", "Authorization"],
@@ -55,8 +73,8 @@ app.use(
       "X-RateLimit-Remaining",
       "X-RateLimit-Reset",
     ],
-  }),
-);
+  })(c, next);
+});
 
 // API-oriented llms.txt for agents hitting the worker host directly
 const API_LLMS_TXT = `# fondof API
@@ -87,10 +105,9 @@ What to do with it: save markdown into .kiro/steering/ or .cursor/rules/ (or CLA
 - POST /api/forge { ideas, repo? } → { markdown, skillHash, … } — forge from your own idea list (same monthly quota as compose)
 - POST /api/publish { skillHash, sourceHashes, … } — attest a skill you own on SkillPool via the relayer (session required; wallet forge is separate)
 - POST /api/challenge { skillHash } — stake a dispute via the relayer (session required)
-- POST /api/challenge/{id}/resolve — demo oracle only (allowlisted GitHub login + FONDOF_RESOLVER_KEY)
+- POST /api/challenge/{id}/resolve — demo oracle only (allowlisted GitHub login + FONDOF_RESOLVER_KEY); requires an explicit challengerWon boolean bound to an open challenge
 - POST /api/relayer/intent — issue a short-lived intent bound to normalized relayer params
-- POST /api/skills/hash/share — explicitly share a private draft as a public offchain artifact
-- POST /api/skills/hash/share — explicitly share a private draft as a public offchain artifact
+- POST /api/skills/{hash}/share — first share of a private draft as a public offchain artifact; later updates require the stored owner
 - DELETE /api/skills/hash/visibility — owner-only hide/unlist from public discovery
 - GET /api/skills — public skill discovery; sort=impact|outcomes|adapted|recent gives focused evidence views (not causal impact). Optional genre, domain, framework, and language filters expose deterministic topic/stack discovery.
 - GET /api/skills/creator/{login} — evidence summary for public skills owned by a GitHub login

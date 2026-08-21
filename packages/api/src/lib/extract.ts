@@ -1,5 +1,5 @@
 import type { Env } from "../index.js";
-import { unsafeFetchReason } from "./ssrf.js";
+import { safeFetch, validateFetchTarget } from "./ssrf.js";
 
 export type ExtractProvider = "firecrawl" | "html";
 
@@ -19,8 +19,10 @@ export async function extractContent(
 ): Promise<ExtractResult | null> {
   // Try Firecrawl first (handles JS-rendered pages, returns clean markdown)
   if (env.FIRECRAWL_API_KEY) {
-    const result = await firecrawlExtract(url, env.FIRECRAWL_API_KEY);
-    if (result) return { ...result, provider: "firecrawl" };
+    if (!(await validateFetchTarget(url))) {
+      const result = await firecrawlExtract(url, env.FIRECRAWL_API_KEY);
+      if (result) return { ...result, provider: "firecrawl" };
+    }
   }
 
   // Fallback: basic HTML fetch + strip
@@ -70,13 +72,11 @@ async function firecrawlExtract(
 
 async function basicExtract(url: string): Promise<{ text: string; title: string } | null> {
   try {
-    if (unsafeFetchReason(url)) return null;
-    const response = await fetch(url, {
+    const fetched = await safeFetch(url, {
       headers: { "User-Agent": "fondof/0.1 (skill forge)" },
     });
-    if (!response.ok) return null;
-
-    const html = await response.text();
+    if (!fetched.ok) return null;
+    const html = fetched.body;
 
     // Extract title from <title> tag
     const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/i);

@@ -379,6 +379,62 @@ export type ChainChallenge = {
   createdAt: number;
 };
 
+const ZERO_ADDR = ("0x" + "0".repeat(40)).toLowerCase();
+
+function challengeFromRow(
+  challengeId: number,
+  row: unknown,
+): ChainChallenge | null {
+  const [
+    skillHashRaw,
+    challenger,
+    stake,
+    resolved,
+    challengerWon,
+    createdAt,
+  ] = row as unknown as [
+    Hex,
+    Hex,
+    bigint,
+    boolean,
+    boolean,
+    number | bigint,
+  ];
+  const skillHash = normalizeHash(skillHashRaw);
+  if (
+    skillHash === "0".repeat(64) ||
+    challenger.toLowerCase() === ZERO_ADDR ||
+    Number(createdAt) === 0
+  ) {
+    return null;
+  }
+  return {
+    challengeId,
+    skillHash,
+    challenger,
+    stake: stake.toString(),
+    resolved,
+    challengerWon,
+    createdAt: Number(createdAt),
+  };
+}
+
+/** Read one challenge by id. Null when the slot was never opened. */
+export async function getChallengeFromChain(
+  rpcUrl: string,
+  contract: string,
+  challengeId: number,
+): Promise<ChainChallenge | null> {
+  const pub = getPublicClient(rpcUrl);
+  const row = await pub.readContract({
+    address: contract as Hex,
+    abi: SKILL_POOL_ABI,
+    functionName: "challenges",
+    args: [BigInt(challengeId)],
+  });
+  return challengeFromRow(challengeId, row);
+}
+
 export async function getOpenChallengesFromChain(
   rpcUrl: string,
   contract: string,
@@ -387,7 +443,7 @@ export async function getOpenChallengesFromChain(
   const pub = getPublicClient(rpcUrl);
   const limit = opts?.limit ?? 12;
   const skillFilter = opts?.skillHash
-    ? toBytes32(opts.skillHash).toLowerCase()
+    ? normalizeHash(opts.skillHash)
     : null;
 
   const count = Number(
@@ -406,34 +462,11 @@ export async function getOpenChallengesFromChain(
       functionName: "challenges",
       args: [BigInt(i)],
     });
-    const [
-      skillHashRaw,
-      challenger,
-      stake,
-      resolved,
-      challengerWon,
-      createdAt,
-    ] = row as unknown as [
-      Hex,
-      Hex,
-      bigint,
-      boolean,
-      boolean,
-      number | bigint,
-    ];
+    const parsed = challengeFromRow(i, row);
+    if (!parsed || parsed.resolved) continue;
+    if (skillFilter && parsed.skillHash !== skillFilter) continue;
 
-    if (resolved) continue;
-    if (skillFilter && skillHashRaw.toLowerCase() !== skillFilter) continue;
-
-    out.push({
-      challengeId: i,
-      skillHash: normalizeHash(skillHashRaw),
-      challenger,
-      stake: stake.toString(),
-      resolved,
-      challengerWon,
-      createdAt: Number(createdAt),
-    });
+    out.push(parsed);
   }
 
   return out;

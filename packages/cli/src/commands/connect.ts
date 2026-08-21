@@ -8,6 +8,8 @@ import {
   indexRepo,
   getToken,
   saveToken,
+  lastTokenStorage,
+  lastConfigWasWorldReadable,
   saveRepoProfile,
   loadRepoProfiles,
   type GitHubRepo,
@@ -161,7 +163,18 @@ async function authenticateWithDeviceFlow(): Promise<string | null> {
 
     // Save token
     saveToken(tokenResult.accessToken);
-    console.log(chalk.green("  Token saved to ~/.fondof/config.json\n"));
+    const stored =
+      lastTokenStorage() === "keychain"
+        ? "the OS credential vault"
+        : "~/.fondof/config.json (owner-only)";
+    console.log(chalk.green(`  Token saved in ${stored}\n`));
+    if (lastConfigWasWorldReadable()) {
+      console.log(
+        chalk.yellow(
+          "  That file was readable by other local users. Revoke the old GitHub token and treat it as leaked.\n",
+        ),
+      );
+    }
 
     return tokenResult.accessToken;
   } catch (error) {

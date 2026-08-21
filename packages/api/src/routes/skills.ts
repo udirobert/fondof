@@ -22,6 +22,7 @@ import {
   getSkillRecord,
   listPublicSkills,
   patchPublicSkill,
+  publicSkillMutationAccess,
   recordPublicSkill,
   unlistPublicSkill,
 } from "../lib/skill-registry.js";
@@ -136,30 +137,47 @@ skillsRoute.post("/skills/:hash/meta", rateLimit("publish"), async (c) => {
     }
   }
 
-  // Authorization: the agent link and artifact identity (title/body/fit) are
-  // protected once a skill has an owner; outcome evidence stays open because
-  // it is the visitor "I used this" loop. The agent link is never anonymous —
-  // it renders as a prominent external link for every visitor, so it must be
-  // attributable and owner-controlled.
+  // Authorization: artifact identity and the agent link are owner-only once a
+  // public record exists. Ownerless legacy records are immutable. Outcome
+  // evidence stays open because it is the visitor "I used this" loop.
   const session = await resolveSession(
     c.req.header("Authorization"),
     c.env.SESSIONS,
   );
   const existingRecord = await getSkillRecord(c.env, hash);
-  const recordOwnerId = existingRecord?.ownerId;
-  const hasOwner = recordOwnerId !== undefined && recordOwnerId !== null;
-  const isOwner = hasOwner && session?.userId === recordOwnerId;
 
   if (hasAgentUrlPatch) {
     if (!session) {
       return c.json({ error: "Sign in to attach an agent link" }, 401);
     }
-    if (hasOwner && !isOwner) {
-      return c.json({ error: "Only the owner can change the agent link" }, 403);
+    if (existingRecord) {
+      const access = publicSkillMutationAccess(existingRecord, session.userId);
+      if (access !== "update") {
+        return c.json(
+          {
+            error:
+              access === "immutable"
+                ? "This skill has no owner and cannot be rewritten"
+                : "Only the owner can change the agent link",
+          },
+          403,
+        );
+      }
     }
   }
-  if (hasArtifactPatch && hasOwner && !isOwner) {
-    return c.json({ error: "Only the owner can edit this skill's artifact" }, 403);
+  if (hasArtifactPatch && existingRecord) {
+    const access = publicSkillMutationAccess(existingRecord, session?.userId);
+    if (access !== "update") {
+      return c.json(
+        {
+          error:
+            access === "immutable"
+              ? "This skill has no owner and cannot be rewritten"
+              : "Only the owner can edit this skill's artifact",
+        },
+        403,
+      );
+    }
   }
 
   const record = await putSkillMeta(hash, {
@@ -239,7 +257,8 @@ skillsRoute.post("/skills/:hash/meta", rateLimit("publish"), async (c) => {
 
 /**
  * Share a private forge as a public offchain artifact. This is intentionally
- * separate from onchain attestation and works for anonymous users.
+ * separate from onchain attestation. First share may be anonymous; any later
+ * mutation, including re-share, requires the stored owner.
  */
 skillsRoute.post("/skills/:hash/share", rateLimit("publish"), async (c) => {
   const hash = c.req.param("hash");
@@ -275,11 +294,15 @@ skillsRoute.post("/skills/:hash/share", rateLimit("publish"), async (c) => {
     c.env.SESSIONS,
   );
   const existing = await getSkillRecord(c.env, hash);
-  if (
-    existing?.visibility === "unlisted" &&
-    existing.ownerId !== session?.userId
-  ) {
-    return c.json({ error: "Only the owner can re-share this skill" }, 403);
+  const access = publicSkillMutationAccess(existing, session?.userId);
+  if (access === "immutable") {
+    return c.json(
+      { error: "This skill has no owner and cannot be rewritten" },
+      403,
+    );
+  }
+  if (access === "forbidden") {
+    return c.json({ error: "Only the owner can update this skill" }, 403);
   }
 
   const sourceUrls = (body.sourceUrls ?? []).filter((url) =>

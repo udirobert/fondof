@@ -4,7 +4,7 @@ import { chat } from "../lib/llm.js";
 import { cacheGetJson, cachePutJson, sha256Hex } from "../lib/edge-cache.js";
 import {
   addSkillToSourceIndexes,
-  recordPublicSkill,
+  recordPublicSkillIfActorAllowed,
 } from "../lib/skill-registry.js";
 import { rateLimit } from "../lib/rate-limit-mw.js";
 import { clientIp } from "../lib/rate-limit.js";
@@ -109,7 +109,7 @@ export async function forgeSkillCore(
       ? hit
       : { ...hit, canonicalSources: canonicalSourceRecords };
     if (!cachedPayload.private) {
-      await recordPublicSkill(env, {
+      await recordPublicSkillIfActorAllowed(env, {
         hash: cachedPayload.skillHash,
         title: cachedPayload.title,
         markdown: cachedPayload.markdown,
@@ -226,7 +226,7 @@ Write markdown with # title then ## Context, ## Guidance (one code example), ## 
 
     // Durable public record → /s/[skillHash] resolves without touching the chain
     try {
-      await recordPublicSkill(env, {
+      const wrote = await recordPublicSkillIfActorAllowed(env, {
         hash: skillHash,
         title,
         markdown: fullMarkdown,
@@ -249,16 +249,17 @@ Write markdown with # title then ## Context, ## Guidance (one code example), ## 
         ownerId: body.owner?.userId,
         ownerLogin: body.owner?.login,
       });
+      if (wrote !== "skipped") {
+        await addSkillToSourceIndexes(env, realSources, {
+          skillHash,
+          title,
+          fittedTo: body.repo?.name ?? "general",
+          forgedAt: payload.composedAt,
+        });
+      }
     } catch {
       /* best-effort — never fail the forge for registry issues */
     }
-
-    await addSkillToSourceIndexes(env, realSources, {
-      skillHash,
-      title,
-      fittedTo: body.repo?.name ?? "general",
-      forgedAt: payload.composedAt,
-    });
   }
 
   return { payload, cacheHit: false };

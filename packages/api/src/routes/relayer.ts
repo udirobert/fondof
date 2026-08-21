@@ -57,6 +57,9 @@ relayerRoute.post("/relayer/intent", rateLimit("publish"), async (c) => {
   if (op === "resolve" && !isResolverLogin(session.login, c.env.RESOLVER_LOGINS)) {
     return c.json({ error: "Not an authorized resolver" }, 403);
   }
+  if (op === "resolve" && typeof body.challengerWon !== "boolean") {
+    return c.json({ error: "challengerWon must be a boolean" }, 400);
+  }
 
   const params: RelayerWriteParams = {
     skillHash: body.skillHash,

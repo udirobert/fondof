@@ -10,6 +10,8 @@
  *  4. Firecrawl as a last resort.
  */
 
+import { safeFetch } from "./ssrf.js";
+
 /**
  * Check if a URL is a YouTube video.
  */
@@ -193,15 +195,18 @@ interface WatchPage {
  */
 async function fetchWatchPage(videoId: string): Promise<WatchPage | null> {
   try {
-    const response = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-        "Accept-Language": "en-US,en;q=0.9",
-        // Skip the EU consent interstitial so we actually get the player response
-        Cookie: "SOCS=CAI; CONSENT=YES+cb",
+    const fetched = await safeFetch(
+      `https://www.youtube.com/watch?v=${videoId}`,
+      {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+          "Accept-Language": "en-US,en;q=0.9",
+          Cookie: "SOCS=CAI; CONSENT=YES+cb",
+        },
       },
-    });
-    const html = await response.text();
+    );
+    if (!fetched.ok) return null;
+    const html = fetched.body;
     return {
       title: extractTitle(html) ?? `YouTube: ${videoId}`,
       captionTracks: extractCaptionTracks(html),
@@ -316,15 +321,14 @@ export function rankCaptionTracks(tracks: CaptionTrack[]): CaptionTrack[] {
 async function fetchTrackXml(baseUrl: string): Promise<string | null> {
   try {
     const cleanUrl = baseUrl.replace(/\\u0026/g, "&");
-    const response = await fetch(cleanUrl, {
+    const fetched = await safeFetch(cleanUrl, {
       headers: {
         Referer: "https://www.youtube.com/",
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
       },
     });
-    if (!response.ok) return null;
-    const xml = await response.text();
-    return parseYouTubeCaptions(xml);
+    if (!fetched.ok) return null;
+    return parseYouTubeCaptions(fetched.body);
   } catch {
     return null;
   }
@@ -357,10 +361,12 @@ async function fetchTimedTextFormat(
     const params = new URLSearchParams({ v: videoId, lang, fmt: "json3" });
     if (kind) params.set("kind", kind);
 
-    const response = await fetch(`https://www.youtube.com/api/timedtext?${params}`);
-    if (!response.ok) return null;
+    const fetched = await safeFetch(
+      `https://www.youtube.com/api/timedtext?${params}`,
+    );
+    if (!fetched.ok) return null;
 
-    const data = (await response.json()) as {
+    const data = JSON.parse(fetched.body) as {
       events?: Array<{ segs?: Array<{ utf8: string }> }>;
     };
     if (!data.events) return null;

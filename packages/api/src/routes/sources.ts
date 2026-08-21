@@ -6,7 +6,7 @@ import {
   type EvidenceSummary,
 } from "../lib/skill-evidence.js";
 import { getSkillRecord } from "../lib/skill-registry.js";
-import { unsafeFetchReason } from "../lib/ssrf.js";
+import { safeFetch } from "../lib/ssrf.js";
 import { resolveSession } from "./auth.js";
 
 export const sourcesRoute = new Hono<{ Bindings: Env }>();
@@ -266,24 +266,24 @@ sourcesRoute.post("/sources/:domain/claim/verify", async (c) => {
   ) {
     return c.json({ error: "Proof URL must be hosted on the claimed domain" }, 422);
   }
-  const ssrfReason = unsafeFetchReason(parsed.toString());
-  if (ssrfReason) {
+  const fetched = await safeFetch(parsed.toString(), {
+    headers: { "User-Agent": "fondof-source-verifier" },
+    maxBytes: 500_000,
+    sameNormalizedHost: domain,
+  });
+  if (!fetched.ok) {
+    if (fetched.reason.startsWith("http ")) {
+      return c.json(
+        { error: `Proof URL returned ${fetched.reason.slice(5)}` },
+        422,
+      );
+    }
+    if (fetched.reason === "request failed") {
+      return c.json({ error: "Could not reach the proof URL" }, 502);
+    }
     return c.json({ error: "Proof URL is not fetchable" }, 422);
   }
-
-  let response: Response;
-  try {
-    response = await fetch(parsed.toString(), {
-      headers: { "User-Agent": "fondof-source-verifier" },
-      redirect: "follow",
-    });
-  } catch {
-    return c.json({ error: "Could not reach the proof URL" }, 502);
-  }
-  if (!response.ok) {
-    return c.json({ error: `Proof URL returned ${response.status}` }, 422);
-  }
-  const text = (await response.text()).slice(0, 500_000);
+  const text = fetched.body;
   if (!text.includes(challenge.token)) {
     return c.json({ error: "The verification token was not found on that page" }, 422);
   }

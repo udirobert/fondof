@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { setHostLookupForTests } from "../lib/ssrf.js";
 import { sourcesRoute } from "./sources.js";
 
 function fakeKV(): KVNamespace {
@@ -34,6 +35,7 @@ function sessionJson() {
 }
 
 afterEach(() => {
+  setHostLookupForTests(null);
   vi.unstubAllGlobals();
 });
 
@@ -83,6 +85,7 @@ describe("source self-claims", () => {
     );
     const challenge = (await challengeResponse.json()) as { token: string };
 
+    setHostLookupForTests(async () => ["93.184.216.34"]);
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => new Response(`<main>${challenge.token}</main>`, { status: 200 })),

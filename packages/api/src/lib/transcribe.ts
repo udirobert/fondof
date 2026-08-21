@@ -1,5 +1,5 @@
 import type { Env } from "../index.js";
-import { unsafeFetchReason } from "./ssrf.js";
+import { safeFetch, validateFetchTarget } from "./ssrf.js";
 
 export interface TranscriptionResult {
   text: string;
@@ -21,6 +21,7 @@ export async function transcribeAudio(
   env: Env
 ): Promise<TranscriptionResult | null> {
   if (!env.ELEVENLABS_API_KEY) return null;
+  if (await validateFetchTarget(audioUrl)) return null;
 
   try {
     // ElevenLabs Scribe supports cloud_storage_url for direct URL transcription
@@ -110,11 +111,11 @@ export function isAudioUrl(url: string): boolean {
  */
 export async function resolveAudioUrl(url: string): Promise<string | null> {
   try {
-    if (unsafeFetchReason(url)) return null;
-    const response = await fetch(url, {
+    const fetched = await safeFetch(url, {
       headers: { "User-Agent": "fondof/0.1" },
     });
-    const text = await response.text();
+    if (!fetched.ok) return null;
+    const text = fetched.body;
 
     // Look for audio enclosure in RSS
     const enclosureMatch = text.match(/<enclosure[^>]+url=["']([^"']+)["']/);
@@ -125,7 +126,7 @@ export async function resolveAudioUrl(url: string): Promise<string | null> {
     if (audioMatch) return audioMatch[1];
 
     // The URL itself might be the audio
-    const contentType = response.headers.get("content-type") ?? "";
+    const contentType = fetched.headers.get("content-type") ?? "";
     if (contentType.startsWith("audio/")) return url;
 
     return null;

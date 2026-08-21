@@ -100,7 +100,7 @@ Alternatives to redirect users toward:
 - **LLM:** Workers AI / optional Claude
 - **Blockchain:** Monad (EVM L1) — **SkillPool.sol** is the demo contract; `FondofAttestation.sol` is legacy
 - **Contract Tooling:** Foundry
-- **Auth:** GitHub OAuth (session in KV); optional wallet for on-chain forger attribution
+- **Auth:** GitHub OAuth (session in KV); post-login `redirect` is a relative app path only; optional wallet for on-chain forger attribution
 
 ## Coding Conventions
 

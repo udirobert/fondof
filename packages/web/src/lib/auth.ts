@@ -44,10 +44,29 @@ export function clearToken(): void {
 /** Redirect to GitHub OAuth via the API. */
 export function loginWithGitHub(redirect?: string): void {
   const params = new URLSearchParams();
-  if (redirect) params.set("redirect", redirect);
+  const path = safeClientRedirect(redirect);
+  if (path && path !== "/") params.set("redirect", path);
   // OAuth must leave the app and may target a separately hosted API.
   // eslint-disable-next-line @next/next/no-location-assign-relative-destination
   window.location.href = `${API_BASE}/api/auth/github?${params}`;
+}
+
+/** Only relative app paths — the API also enforces this. */
+function safeClientRedirect(redirect?: string): string {
+  const candidate =
+    redirect ||
+    (typeof window !== "undefined"
+      ? `${window.location.pathname}${window.location.search}`
+      : "/");
+  if (
+    !candidate.startsWith("/") ||
+    candidate.startsWith("//") ||
+    candidate.includes("://") ||
+    candidate.includes("\\")
+  ) {
+    return "/";
+  }
+  return candidate.slice(0, 512);
 }
 
 /**
@@ -62,6 +81,7 @@ export async function exchangeAuthCode(
     const res = await fetch(`${API_BASE}/api/auth/exchange`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      credentials: "include",
       body: JSON.stringify({ code }),
     });
     if (!res.ok) return null;

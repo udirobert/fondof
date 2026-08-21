@@ -3,7 +3,7 @@
  * Given an RSS feed URL, extracts the latest episode's audio file URL and title.
  */
 
-import { unsafeFetchReason } from "./ssrf.js";
+import { safeFetch } from "./ssrf.js";
 
 export interface RssEpisode {
   title: string;
@@ -37,14 +37,12 @@ export function isRssUrl(url: string): boolean {
  */
 export async function getLatestEpisodeFromRss(feedUrl: string): Promise<RssEpisode | null> {
   try {
-    if (unsafeFetchReason(feedUrl)) return null;
-    const response = await fetch(feedUrl, {
+    const fetched = await safeFetch(feedUrl, {
       headers: { "User-Agent": "fondof/0.1 (podcast skill forge)" },
     });
+    if (!fetched.ok) return null;
 
-    if (!response.ok) return null;
-
-    const xml = await response.text();
+    const xml = fetched.body;
 
     // Check if it's actually XML/RSS
     if (!xml.includes("<rss") && !xml.includes("<feed") && !xml.includes("<enclosure")) {

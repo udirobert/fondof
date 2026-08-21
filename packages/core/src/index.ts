@@ -10,6 +10,8 @@ export {
   saveConfig,
   getToken,
   saveToken,
+  lastTokenStorage,
+  lastConfigWasWorldReadable,
   loadRepoProfiles,
   saveRepoProfile,
   loadIdeas,

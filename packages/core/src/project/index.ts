@@ -6,10 +6,13 @@ export {
   saveConfig,
   getToken,
   saveToken,
+  lastTokenStorage,
+  lastConfigWasWorldReadable,
   loadRepoProfiles,
   saveRepoProfile,
   removeRepoProfile,
   type FondofConfig,
+  type TokenStorage,
 } from "./store.js";
 export {
   loadIdeas,

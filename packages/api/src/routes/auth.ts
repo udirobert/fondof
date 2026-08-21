@@ -1,6 +1,8 @@
 import { Hono } from "hono";
+import { getCookie, setCookie, deleteCookie } from "hono/cookie";
 import type { Env } from "../index.js";
 import { inspectForgeEntitlement } from "../lib/forge-quota.js";
+import { postLoginUrl, safeAppPath } from "../lib/oauth-redirect.js";
 import { isResolverLogin } from "../lib/relayer-guard.js";
 
 export const authRoute = new Hono<{ Bindings: Env }>();
@@ -18,6 +20,7 @@ export interface Session {
 const SESSION_TTL = 60 * 60 * 24 * 30; // 30 days
 const STATE_TTL = 60 * 10; // OAuth state nonce: 10 minutes
 const EXCHANGE_TTL = 60; // One-time token exchange code: 60 seconds
+const OAUTH_COOKIE = "fondof_oauth";
 
 function generateToken(): string {
   const buf = new Uint8Array(32);
@@ -27,21 +30,41 @@ function generateToken(): string {
     .join("");
 }
 
+function frontendOrigin(frontendUrl: string): string {
+  return new URL(frontendUrl).origin;
+}
+
+function oauthCookieOpts(frontendUrl: string) {
+  const https = frontendUrl.startsWith("https:");
+  return {
+    path: "/api/auth",
+    httpOnly: true,
+    secure: https,
+    sameSite: (https ? "None" : "Lax") as "None" | "Lax",
+    maxAge: STATE_TTL,
+  };
+}
+
 /**
  * GET /auth/github — redirect user to GitHub OAuth consent screen.
- * Query params: ?redirect= (optional post-login redirect for the frontend)
+ * Query params: ?redirect= (optional post-login path for the frontend).
+ * Only relative application paths are stored; absolute URLs are dropped.
  *
  * The state param is a random nonce stored server-side (one-time, 10 min TTL)
  * so the callback can verify the flow was initiated by this app — CSRF-safe.
+ * A SameSite cookie binds the later code exchange to this browser.
  */
 authRoute.get("/auth/github", async (c) => {
-  const redirect = c.req.query("redirect") || "/";
+  const frontendUrl = c.env.FRONTEND_URL || "https://fondof.netlify.app";
+  const redirect = safeAppPath(c.req.query("redirect"));
   const state = generateToken();
+  const browserNonce = generateToken();
   await c.env.SESSIONS.put(
     `oauth-state:${state}`,
-    JSON.stringify({ redirect }),
+    JSON.stringify({ redirect, browserNonce }),
     { expirationTtl: STATE_TTL },
   );
+  setCookie(c, OAUTH_COOKIE, browserNonce, oauthCookieOpts(frontendUrl));
   const params = new URLSearchParams({
     client_id: c.env.GITHUB_CLIENT_ID,
     redirect_uri: `${c.req.url.split("/api/auth/github")[0]}/api/auth/callback`,
@@ -82,12 +105,28 @@ authRoute.get("/auth/callback", async (c) => {
   }
   await c.env.SESSIONS.delete(`oauth-state:${stateRaw}`);
   let redirect = "/";
+  let browserNonce = "";
   try {
-    const parsed = JSON.parse(stateRawStored) as { redirect?: string };
-    if (parsed.redirect) redirect = parsed.redirect;
+    const parsed = JSON.parse(stateRawStored) as {
+      redirect?: string;
+      browserNonce?: string;
+    };
+    redirect = safeAppPath(parsed.redirect);
+    browserNonce = parsed.browserNonce?.trim() || "";
   } catch {
     // ignore bad state payload
   }
+
+  const cookieNonce = getCookie(c, OAUTH_COOKIE);
+  if (!browserNonce || cookieNonce !== browserNonce) {
+    const url = new URL("/", frontendUrl);
+    url.searchParams.set(
+      "auth_error",
+      "Sign-in session expired or was not started here. Please try again.",
+    );
+    return c.redirect(url.toString());
+  }
+  setCookie(c, OAUTH_COOKIE, browserNonce, oauthCookieOpts(frontendUrl));
 
   // Exchange code for access token
   const tokenRes = await fetch("https://github.com/login/oauth/access_token", {
@@ -161,19 +200,29 @@ authRoute.get("/auth/callback", async (c) => {
   // session token itself — the token never appears in a URL (no history,
   // referrer, or log leakage). The frontend swaps the code for the token.
   const exchangeCode = generateToken();
-  await c.env.SESSIONS.put(`oauth-exchange:${exchangeCode}`, token, {
-    expirationTtl: EXCHANGE_TTL,
-  });
-  const url = new URL(redirect, frontendUrl);
+  await c.env.SESSIONS.put(
+    `oauth-exchange:${exchangeCode}`,
+    JSON.stringify({ token, browserNonce }),
+    { expirationTtl: EXCHANGE_TTL },
+  );
+  const url = postLoginUrl(frontendUrl, redirect);
   url.searchParams.set("code", exchangeCode);
   return c.redirect(url.toString());
 });
 
 /**
  * POST /auth/exchange — swap a one-time OAuth code for the session token.
- * The code is single-use and expires in 60 seconds.
+ * The code is single-use, expires in 60 seconds, and is bound to the
+ * initiating browser via an HttpOnly cookie plus the frontend Origin.
  */
 authRoute.post("/auth/exchange", async (c) => {
+  const frontendUrl = c.env.FRONTEND_URL || "https://fondof.netlify.app";
+  const allowedOrigin = frontendOrigin(frontendUrl);
+  const origin = c.req.header("Origin");
+  if (origin && origin !== allowedOrigin) {
+    return c.json({ error: "Code expired or already used" }, 401);
+  }
+
   const body = (await c.req.json<{ code?: string }>().catch(() => ({}))) as {
     code?: string;
   };
@@ -181,9 +230,31 @@ authRoute.post("/auth/exchange", async (c) => {
   if (!code) return c.json({ error: "code is required" }, 400);
 
   const key = `oauth-exchange:${code}`;
-  const token = await c.env.SESSIONS.get(key);
-  if (!token) return c.json({ error: "Code expired or already used" }, 401);
+  const raw = await c.env.SESSIONS.get(key);
+  if (!raw) return c.json({ error: "Code expired or already used" }, 401);
+
+  let token = "";
+  let browserNonce = "";
+  try {
+    const parsed = JSON.parse(raw) as { token?: string; browserNonce?: string };
+    token = parsed.token?.trim() || "";
+    browserNonce = parsed.browserNonce?.trim() || "";
+  } catch {
+    return c.json({ error: "Code expired or already used" }, 401);
+  }
+
+  const cookieNonce = getCookie(c, OAUTH_COOKIE);
+  if (cookieNonce && cookieNonce !== browserNonce) {
+    return c.json({ error: "Code expired or already used" }, 401);
+  }
+  const boundToBrowser = Boolean(browserNonce) && cookieNonce === browserNonce;
+  const boundToFrontend = origin === allowedOrigin;
+  if (!token || !browserNonce || (!boundToBrowser && !boundToFrontend)) {
+    return c.json({ error: "Code expired or already used" }, 401);
+  }
+
   await c.env.SESSIONS.delete(key);
+  deleteCookie(c, OAUTH_COOKIE, { path: "/api/auth" });
   return c.json({ token });
 });
 

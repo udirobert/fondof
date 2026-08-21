@@ -5,7 +5,9 @@ import {
   listPublicSkills,
   markSkillAttested,
   patchPublicSkill,
+  publicSkillMutationAccess,
   recordPublicSkill,
+  recordPublicSkillIfActorAllowed,
   unlistPublicSkill,
   type PublicSkillInput,
 } from "./skill-registry.js";
@@ -182,6 +184,76 @@ describe("skill-registry (durable public skills)", () => {
     expect(rec?.onChain).toBe(true);
     expect(rec?.attestedTxHash).toBe("0x1");
     expect(rec?.title).toBe("Retry Budgets v2");
+  });
+
+  it("does not let a later upsert replace stored ownership", async () => {
+    const env = envWith(fakeKV());
+    await recordPublicSkill(env, {
+      ...baseInput,
+      ownerId: 42,
+      ownerLogin: "ada",
+    });
+    await recordPublicSkill(env, {
+      ...baseInput,
+      title: "Hijacked",
+      ownerId: 7,
+      ownerLogin: "mallory",
+    });
+    const rec = await getPublicSkill(env, "abc123");
+    expect(rec?.ownerId).toBe(42);
+    expect(rec?.ownerLogin).toBe("ada");
+    expect(rec?.title).toBe("Hijacked");
+  });
+
+  it("does not let an upsert claim an ownerless legacy record", async () => {
+    const env = envWith(fakeKV());
+    await recordPublicSkill(env, baseInput);
+    await recordPublicSkill(env, {
+      ...baseInput,
+      ownerId: 7,
+      ownerLogin: "mallory",
+    });
+    expect((await getPublicSkill(env, "abc123"))?.ownerId).toBeUndefined();
+  });
+
+  it("gates mutations: create, owner update, otherwise forbidden or immutable", async () => {
+    const env = envWith(fakeKV());
+    expect(publicSkillMutationAccess(null, 42)).toBe("create");
+
+    await recordPublicSkill(env, {
+      ...baseInput,
+      hash: "owned",
+      ownerId: 42,
+      ownerLogin: "ada",
+    });
+    const owned = await getPublicSkill(env, "owned");
+    expect(publicSkillMutationAccess(owned, 42)).toBe("update");
+    expect(publicSkillMutationAccess(owned, 7)).toBe("forbidden");
+    expect(publicSkillMutationAccess(owned, undefined)).toBe("forbidden");
+
+    await recordPublicSkill(env, { ...baseInput, hash: "legacy" });
+    const legacy = await getPublicSkill(env, "legacy");
+    expect(publicSkillMutationAccess(legacy, 42)).toBe("immutable");
+  });
+
+  it("skips writes when the actor does not own the existing record", async () => {
+    const env = envWith(fakeKV());
+    await recordPublicSkill(env, {
+      ...baseInput,
+      ownerId: 42,
+      ownerLogin: "ada",
+    });
+    expect(
+      await recordPublicSkillIfActorAllowed(env, {
+        ...baseInput,
+        title: "Stolen",
+        ownerId: 7,
+        ownerLogin: "mallory",
+      }),
+    ).toBe("skipped");
+    const rec = await getPublicSkill(env, "abc123");
+    expect(rec?.title).toBe("Retry Budgets");
+    expect(rec?.ownerId).toBe(42);
   });
 
   it("lists public skills newest first", async () => {
