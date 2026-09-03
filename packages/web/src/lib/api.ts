@@ -638,18 +638,22 @@ export interface ComposeResponse {
   derivedFromSkillHash?: string;
   title?: string;
   sourceUrl?: string;
+  sourceUrls?: string[];
   sourceHash?: string;
+  sourceHashes?: string[];
   contentType?: string;
   fittedTo?: string;
   onChain?: boolean;
   private?: boolean;
   ingestCacheHit?: boolean;
   providers?: string[];
+  sourceFailures?: Array<{ url: string; error: string }>;
   error?: string;
 }
 
 export async function composeSkill(body: {
   url?: string;
+  urls?: string[];
   need?: string;
   repo?: string | { name: string; frameworks?: string[]; languages?: string[] };
   topShards?: number;
