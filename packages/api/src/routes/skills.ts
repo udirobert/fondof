@@ -430,6 +430,7 @@ skillsRoute.delete(
  * reports attached evidence, not reputation or causal project impact.
  */
 skillsRoute.get("/skills/creator/:login", async (c) => {
+  c.header("Cache-Control", "public, max-age=60, s-maxage=300");
   const login = c.req.param("login")?.trim().toLowerCase();
   if (!login) return c.json({ error: "login required" }, 400);
 
@@ -470,6 +471,7 @@ skillsRoute.get("/skills/creator/:login", async (c) => {
  * individual skill pages; this endpoint exposes only graph metadata.
  */
 skillsRoute.get("/skills/:hash/lineage", async (c) => {
+  c.header("Cache-Control", "public, max-age=60, s-maxage=300");
   const hash = c.req.param("hash").toLowerCase().replace(/^0x/, "");
   const record = await getPublicSkill(c.env, hash);
   if (!record) return c.json({ error: "Skill not found" }, 404);
@@ -534,6 +536,7 @@ skillsRoute.get("/skills/:hash/lineage", async (c) => {
 // Get skill data + signal from chain (short edge cache — protects RPC)
 skillsRoute.get("/skills/:hash", async (c) => {
   const hash = c.req.param("hash");
+  c.header("Cache-Control", "public, max-age=60, s-maxage=300");
   const cacheKey = `skill:v4:${hash.toLowerCase()}`;
 
   const hit = await cacheGetJson<Record<string, unknown>>(cacheKey);
@@ -645,6 +648,7 @@ skillsRoute.get("/skills/:hash", async (c) => {
 
 // Get top skills by signal
 skillsRoute.get("/skills", async (c) => {
+  c.header("Cache-Control", "public, max-age=60, s-maxage=300");
   const limit = clampLimit(parseInt(c.req.query("limit") ?? "10"));
   const requestedSort = c.req.query("sort");
   const sort = (["recent", "impact", "outcomes", "adapted"] as const).includes(

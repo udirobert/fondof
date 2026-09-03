@@ -60,6 +60,10 @@ function frontendOriginFromEnv(frontendUrl: string | undefined): string {
 
 // CORS for frontend. Public reads stay `*`. The OAuth exchange is credentialed
 // so the initiating-browser cookie can be sent; that route cannot use `*`.
+// Mutating routes require the known frontend origin (or local dev / Netlify previews)
+// so a leaked Authorization token cannot be used from an arbitrary site.
+const LOCAL_ORIGIN_RE = /^http:\/\/(localhost|127\.0\.0\.1):\d+$/;
+
 app.use("*", async (c, next) => {
   const path = new URL(c.req.url).pathname;
   if (path === "/api/auth/exchange") {
@@ -72,7 +76,20 @@ app.use("*", async (c, next) => {
     })(c, next);
   }
   return cors({
-    origin: "*",
+    origin: (origin, ctx) => {
+      // Public read endpoints can be queried from any origin.
+      if (ctx.req.method === "GET") return "*";
+      const allowed = frontendOriginFromEnv(ctx.env.FRONTEND_URL);
+      if (!origin) return null;
+      if (
+        origin === allowed ||
+        LOCAL_ORIGIN_RE.test(origin) ||
+        origin.endsWith(".netlify.app")
+      ) {
+        return origin;
+      }
+      return null;
+    },
     allowMethods: ["GET", "POST", "DELETE", "OPTIONS"],
     allowHeaders: ["Content-Type", "Authorization"],
     exposeHeaders: [

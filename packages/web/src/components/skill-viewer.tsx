@@ -29,6 +29,19 @@ import {
 
 export type SkillViewMode = "magic" | "inspect" | "raw";
 
+function safeUrl(raw: string): string {
+  const trimmed = raw.trim();
+  try {
+    const u = new URL(trimmed, "https://fondof.netlify.app");
+    if (u.protocol === "http:" || u.protocol === "https:" || u.protocol === "mailto:") {
+      return trimmed;
+    }
+  } catch {
+    // fall through
+  }
+  return "#";
+}
+
 interface SkillViewerProps {
   markdown: string;
   title?: string;
@@ -600,7 +613,7 @@ function renderInlineMarkdown(text: string) {
       parts.push(
         <a
           key={match.index}
-          href={match[2]}
+          href={safeUrl(match[2])}
           target="_blank"
           rel="noopener noreferrer"
           className="text-ember hover:underline inline-flex items-center gap-0.5"
@@ -615,7 +628,7 @@ function renderInlineMarkdown(text: string) {
       parts.push(
         <a
           key={match.index}
-          href={url}
+          href={safeUrl(url)}
           target="_blank"
           rel="noopener noreferrer"
           className="text-ember hover:underline inline-flex items-center gap-0.5 truncate max-w-[280px] align-bottom"
