@@ -51,13 +51,14 @@ export function WebMCPProvider() {
         name: "search_skills",
         title: "Search public skills",
         description:
-          "Search the public fondof skill pool for existing skills that match a topic or query. Returns a list of skills with title, URL, and snippet.",
+          "Search the public fondof skill pool for existing skills that match a topic or query. DO NOT call this tool unless the user has provided a query. If no query is present, ask the user what topic they want to search for (e.g., React performance, retry budgets, webhook idempotency). Returns a list of skills with title, URL, and snippet.",
         inputSchema: {
           type: "object",
           properties: {
             query: {
               type: "string",
-              description: "The topic, technique, or search query.",
+              description:
+                "The topic, technique, or search query. Can be a short phrase or keyword like a technology, pattern, or problem.",
               examples: ["React performance", "retry budgets for webhooks"],
             },
           },
@@ -78,6 +79,11 @@ export function WebMCPProvider() {
         },
         execute: async (input) => {
           const { query } = input as { query: string };
+          if (!query || typeof query !== "string") {
+            throw new Error(
+              "I need a search query before I can look for skills. Ask the user what topic they want to search for (e.g., 'React performance' or 'retry budgets').",
+            );
+          }
           const res = await searchExistingSkills(query);
           if (res.error) throw new Error(res.error);
           return res.results;
@@ -87,14 +93,14 @@ export function WebMCPProvider() {
         name: "get_skill",
         title: "Get a skill by hash",
         description:
-          "Fetch a public fondof skill by its hash. Returns the title, markdown body, target repo, source URLs, and evidence summary.",
+          "Fetch a public fondof skill by its hash. DO NOT call this tool unless the user has provided a skill hash or a fondof skill URL (e.g., https://fondof.netlify.app/s/{hash}). If neither is present, ask the user for the skill URL or hash. Returns the title, markdown body, target repo, source URLs, and evidence summary.",
         inputSchema: {
           type: "object",
           properties: {
             skill_hash: {
               type: "string",
               description:
-                "The skill hash, found in a skill URL like /s/{hash}.",
+                "The skill hash, taken from a fondof skill URL like /s/{hash} or pasted by the user.",
               examples: [
                 "55739f72d6ba6b15d82d6fcf6eac688d43f0c2852edfbe1265440eb1010eea6a",
               ],
@@ -108,6 +114,11 @@ export function WebMCPProvider() {
         },
         execute: async (input) => {
           const { skill_hash } = input as { skill_hash: string };
+          if (!skill_hash || typeof skill_hash !== "string") {
+            throw new Error(
+              "I need a skill hash before I can fetch a skill. Ask the user for a fondof skill URL like https://fondof.netlify.app/s/{hash} or the hash itself.",
+            );
+          }
           const res = await getSkillSignal(skill_hash);
           if (res.error) throw new Error(res.error);
           return res;
@@ -117,16 +128,16 @@ export function WebMCPProvider() {
         name: "compose_skill",
         title: "Compose a new skill",
         description:
-          "Turn a stated need or a source URL into a repo-specific skill. Only call this tool when the user has provided either a need (free text) or a url (public article/YouTube). Optionally pass a target repo and top_shards. Returns the generated markdown, skill hash, and shareable skill URL.",
+          "Turn a stated need or a source URL into a repo-specific skill. DO NOT call this tool unless the user has already provided either a need (free-text description of a technique or problem) or a url (a public article, blog post, documentation page, or YouTube link). If neither is present, ask the user to describe what they want to learn or paste a link. Optionally pass a target repo and top_shards. Returns the generated markdown, skill hash, and shareable skill URL.",
         inputSchema: {
           type: "object",
           description:
-            "Provide exactly one of need or url. repo and top_shards are optional.",
+            "Provide exactly one of need or url. repo and top_shards are optional. If the user only said something vague like 'create a skill', ask them for a need or url before calling.",
           properties: {
             need: {
               type: "string",
               description:
-                "A free-text description of a technique or problem to solve.",
+                "A free-text description of a technique or problem to solve. Examples: 'retry budgets for async TypeScript fetch' or 'how to cache Deno KV queries'.",
               examples: [
                 "retry budgets for async TypeScript fetch",
                 "structured logging for worker services",
@@ -135,7 +146,7 @@ export function WebMCPProvider() {
             url: {
               type: "string",
               description:
-                "A public article, documentation, or YouTube URL to extract ideas from.",
+                "A public article, blog post, documentation page, or YouTube URL to extract ideas from. The page must be publicly readable without login.",
               examples: [
                 "https://nextjs.org/blog/next-16-3",
                 "https://www.youtube.com/watch?v=7wuYBfE131U",
@@ -180,7 +191,7 @@ export function WebMCPProvider() {
           };
           if (!need && !url) {
             throw new Error(
-              "Provide either a need (free-text problem) or a url (public article/YouTube) to compose from.",
+              "I need a source to compose from. Ask the user to either describe the skill they want in plain text (need) or paste a public URL to an article, blog post, docs page, or YouTube video (url).",
             );
           }
           const res = await composeSkill({
@@ -208,9 +219,8 @@ export function WebMCPProvider() {
         try {
           // Some WebMCP shims return undefined; await safely handles both.
           await mc.registerTool(tool);
-        } catch (e) {
-           
-          console.error("[WebMCP] registerTool failed:", tool.name, e);
+        } catch {
+          // ignored
         }
       }
     })();
