@@ -2,8 +2,7 @@
  * Sources client — fetch skills forged from a given source domain.
  */
 
-import { API_BASE } from "@/lib/api-base";
-import { getToken } from "@/lib/auth";
+import { API_BASE, apiFetch } from "@/lib/api-base";
 import type { EvidenceSummary } from "@/lib/api";
 
 export interface SourceSkillEntry {
@@ -66,7 +65,7 @@ export async function fetchSourceSkills(
   };
 
   try {
-    const res = await fetch(
+    const res = await apiFetch(
       `${API_BASE}/api/sources/${encodeURIComponent(domain)}`,
     );
     if (!res.ok) return empty;
@@ -76,19 +75,14 @@ export async function fetchSourceSkills(
   }
 }
 
-function authHeaders(): Record<string, string> {
-  const token = getToken();
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
-
 export async function claimSource(domain: string): Promise<{
   success?: boolean;
   claim?: SourceClaim;
   error?: string;
 }> {
-  const response = await fetch(
+  const response = await apiFetch(
     `${API_BASE}/api/sources/${encodeURIComponent(domain)}/claim`,
-    { method: "POST", headers: authHeaders() },
+    { method: "POST" },
   );
   return response.json();
 }
@@ -99,9 +93,9 @@ export async function createSourceClaimChallenge(domain: string): Promise<{
   instructions?: string;
   error?: string;
 }> {
-  const response = await fetch(
+  const response = await apiFetch(
     `${API_BASE}/api/sources/${encodeURIComponent(domain)}/claim/challenge`,
-    { method: "POST", headers: authHeaders() },
+    { method: "POST" },
   );
   return response.json();
 }
@@ -110,11 +104,11 @@ export async function verifySourceClaim(
   domain: string,
   proofUrl: string,
 ): Promise<{ success?: boolean; claim?: SourceClaim; note?: string; error?: string }> {
-  const response = await fetch(
+  const response = await apiFetch(
     `${API_BASE}/api/sources/${encodeURIComponent(domain)}/claim/verify`,
     {
       method: "POST",
-      headers: { ...authHeaders(), "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ proofUrl }),
     },
   );

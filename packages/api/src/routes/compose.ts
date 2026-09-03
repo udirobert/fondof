@@ -189,10 +189,7 @@ composeRoute.post("/compose", rateLimit("compose"), async (c) => {
   }
 
   try {
-    const session = await resolveSession(
-      c.req.header("Authorization"),
-      c.env.SESSIONS,
-    );
+    const session = await resolveSession(c);
 
     const metered = await meteredGenerate(
       c.env,

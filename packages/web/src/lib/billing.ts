@@ -2,8 +2,9 @@
  * Billing client — check forge limits, record shares, and initiate Stripe checkout.
  */
 
-import { getToken } from "@/lib/auth";
-import { API_BASE } from "@/lib/api-base";
+import { API_BASE, apiFetch } from "@/lib/api-base";
+
+const API_URL = API_BASE;
 
 export interface ForgeCheck {
   allowed: boolean;
@@ -14,16 +15,10 @@ export interface ForgeCheck {
 
 /** Check if the current user can forge (respects free tier limits). */
 export async function checkForge(): Promise<ForgeCheck> {
-  const token = getToken();
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
-  if (token) headers["Authorization"] = `Bearer ${token}`;
-
   try {
-    const res = await fetch(`${API_BASE}/api/billing/check-forge`, {
+    const res = await apiFetch(`${API_URL}/api/billing/check-forge`, {
       method: "POST",
-      headers,
+      headers: { "Content-Type": "application/json" },
     });
     if (!res.ok) return { allowed: true, remaining: 3, limit: 3, plan: "anonymous" };
     return (await res.json()) as ForgeCheck;
@@ -35,16 +30,10 @@ export async function checkForge(): Promise<ForgeCheck> {
 
 /** Initiate Stripe Checkout for Pro upgrade. Returns checkout URL or null. */
 export async function getCheckoutUrl(): Promise<string | null> {
-  const token = getToken();
-  if (!token) return null;
-
   try {
-    const res = await fetch(`${API_BASE}/api/billing/checkout`, {
+    const res = await apiFetch(`${API_URL}/api/billing/checkout`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { "Content-Type": "application/json" },
     });
     if (!res.ok) return null;
     const data = (await res.json()) as { url?: string };
@@ -54,22 +43,15 @@ export async function getCheckoutUrl(): Promise<string | null> {
   }
 }
 
-
 /** Record that the user shared a skill publicly. Unlocks unlimited forges. */
 export async function recordShare(
   skillHash: string,
   platform: "twitter" | "linkedin" | "github",
 ): Promise<boolean> {
-  const token = getToken();
-  if (!token) return false;
-
   try {
-    const res = await fetch(`${API_BASE}/api/billing/record-share`, {
+    const res = await apiFetch(`${API_URL}/api/billing/record-share`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ skillHash, platform }),
     });
     return res.ok;

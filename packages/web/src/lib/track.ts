@@ -3,8 +3,7 @@
  * Fire-and-forget: never blocks UI, silently swallows failures.
  */
 
-import { getToken } from "@/lib/auth";
-import { API_BASE } from "@/lib/api-base";
+import { API_BASE, apiFetch } from "@/lib/api-base";
 
 type EventName =
   | "ingest_completed"
@@ -26,7 +25,7 @@ type EventName =
 
 /**
  * Track a product event. Non-blocking, fire-and-forget.
- * Attaches auth token if present so the API can attribute to a user.
+ * Auth is sent automatically via the httpOnly session cookie.
  */
 export function track(
   event: EventName,
@@ -34,17 +33,9 @@ export function track(
 ): void {
   if (typeof window === "undefined") return;
 
-  const token = getToken();
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
-
-  fetch(`${API_BASE}/api/events`, {
+  apiFetch(`${API_BASE}/api/events`, {
     method: "POST",
-    headers,
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ event, properties }),
   }).catch(() => {
     // Silent — analytics should never break UX

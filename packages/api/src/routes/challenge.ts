@@ -17,10 +17,7 @@ import { resolveSession } from "./auth.js";
 export const challengeRoute = new Hono<{ Bindings: Env }>();
 
 challengeRoute.post("/challenge", rateLimit("challenge"), async (c) => {
-  const session = await resolveSession(
-    c.req.header("Authorization"),
-    c.env.SESSIONS,
-  );
+  const session = await resolveSession(c);
   if (!session) {
     return c.json({ error: "Sign in to challenge with the relayer" }, 401);
   }
@@ -106,10 +103,7 @@ challengeRoute.post(
   "/challenge/:id/resolve",
   rateLimit("resolve"),
   async (c) => {
-    const session = await resolveSession(
-      c.req.header("Authorization"),
-      c.env.SESSIONS,
-    );
+    const session = await resolveSession(c);
     if (!session) {
       return c.json({ error: "Sign in to resolve challenges" }, 401);
     }

@@ -19,8 +19,7 @@ export const githubPublishRoute = new Hono<{ Bindings: Env }>();
  * - Otherwise creates a public gist.
  */
 githubPublishRoute.post("/publish/github", async (c) => {
-  const auth = c.req.header("Authorization");
-  const session = await resolveSession(auth, c.env.SESSIONS);
+  const session = await resolveSession(c);
 
   if (!session) {
     return c.json({ error: "Sign in with GitHub to publish" }, 401);

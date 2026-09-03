@@ -18,10 +18,7 @@ import { resolveSession } from "./auth.js";
 export const publishRoute = new Hono<{ Bindings: Env }>();
 
 publishRoute.post("/publish", rateLimit("publish"), async (c) => {
-  const session = await resolveSession(
-    c.req.header("Authorization"),
-    c.env.SESSIONS,
-  );
+  const session = await resolveSession(c);
   if (!session) {
     return c.json({ error: "Sign in to attest with the relayer" }, 401);
   }

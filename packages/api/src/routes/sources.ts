@@ -172,10 +172,7 @@ sourcesRoute.get("/sources/:domain/impact", async (c) => {
 sourcesRoute.post("/sources/:domain/claim", async (c) => {
   const domain = normalizeDomain(c.req.param("domain") ?? "");
   if (!domain) return c.json({ error: "domain required" }, 400);
-  const session = await resolveSession(
-    c.req.header("Authorization"),
-    c.env.SESSIONS,
-  );
+  const session = await resolveSession(c);
   if (!session) return c.json({ error: "Sign in with GitHub to claim a source" }, 401);
 
   const existing = (await c.env.SESSIONS.get(claimKey(domain), "json")) as SourceClaim | null;
@@ -198,10 +195,7 @@ sourcesRoute.post("/sources/:domain/claim", async (c) => {
 sourcesRoute.post("/sources/:domain/claim/challenge", async (c) => {
   const domain = normalizeDomain(c.req.param("domain") ?? "");
   if (!domain) return c.json({ error: "domain required" }, 400);
-  const session = await resolveSession(
-    c.req.header("Authorization"),
-    c.env.SESSIONS,
-  );
+  const session = await resolveSession(c);
   if (!session) return c.json({ error: "Sign in with GitHub to verify a source" }, 401);
 
   const claim = (await c.env.SESSIONS.get(claimKey(domain), "json")) as SourceClaim | null;
@@ -233,10 +227,7 @@ sourcesRoute.post("/sources/:domain/claim/challenge", async (c) => {
 sourcesRoute.post("/sources/:domain/claim/verify", async (c) => {
   const domain = normalizeDomain(c.req.param("domain") ?? "");
   if (!domain) return c.json({ error: "domain required" }, 400);
-  const session = await resolveSession(
-    c.req.header("Authorization"),
-    c.env.SESSIONS,
-  );
+  const session = await resolveSession(c);
   if (!session) return c.json({ error: "Sign in with GitHub to verify a source" }, 401);
   const body = (await c.req
     .json<{ proofUrl?: string }>()

@@ -179,7 +179,10 @@ describe("POST /auth/exchange", () => {
       env,
     );
     expect(first.status).toBe(200);
-    expect(await first.json()).toEqual({ token: "session-token" });
+    expect(await first.json()).toEqual({ ok: true });
+    const setCookie = first.headers.get("Set-Cookie") ?? "";
+    expect(setCookie).toContain("fondof_session=");
+    expect(setCookie.toLowerCase()).toContain("httponly");
 
     const replay = await authRoute.request(
       "/auth/exchange",
@@ -219,7 +222,10 @@ describe("POST /auth/exchange", () => {
       env,
     );
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ token: "session-token" });
+    expect(await res.json()).toEqual({ ok: true });
+    const setCookie = res.headers.get("Set-Cookie") ?? "";
+    expect(setCookie).toContain("fondof_session=");
+    expect(setCookie.toLowerCase()).toContain("httponly");
   });
 
   it("rejects a mismatched browser cookie even from the frontend origin", async () => {
@@ -301,9 +307,12 @@ describe("POST /auth/exchange", () => {
     const statuses = [a.status, b.status].sort();
     expect(statuses).toEqual([200, 401]);
     const bodies = await Promise.all([a.json(), b.json()]);
-    const tokens = bodies
-      .map((body) => (body as { token?: string }).token)
+    const oks = bodies
+      .map((body) => (body as { ok?: boolean }).ok)
       .filter(Boolean);
-    expect(tokens).toEqual(["session-token"]);
+    expect(oks).toEqual([true]);
+    const okRes = a.status === 200 ? a : b;
+    const setCookie = okRes.headers.get("Set-Cookie") ?? "";
+    expect(setCookie).toContain("fondof_session=");
   });
 });

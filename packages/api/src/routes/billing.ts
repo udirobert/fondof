@@ -23,10 +23,7 @@ export const billingRoute = new Hono<{ Bindings: Env }>();
  * Enforcement lives in /forge and /compose; this must not grant capacity.
  */
 billingRoute.post("/billing/check-forge", async (c) => {
-  const session = await resolveSession(
-    c.req.header("Authorization"),
-    c.env.SESSIONS,
-  );
+  const session = await resolveSession(c);
   const entitlement = await inspectForgeEntitlement(
     c.env,
     session,
@@ -42,10 +39,7 @@ billingRoute.post("/billing/check-forge", async (c) => {
  * Body: { skillHash, platform?: "twitter" | "linkedin" | "github" }
  */
 billingRoute.post("/billing/record-share", async (c) => {
-  const session = await resolveSession(
-    c.req.header("Authorization"),
-    c.env.SESSIONS,
-  );
+  const session = await resolveSession(c);
 
   if (!session) {
     return c.json({ error: "Sign in to unlock sharing benefits" }, 401);
@@ -99,8 +93,7 @@ billingRoute.post("/billing/record-forge", (c) =>
  * Returns { url } for the frontend to redirect to.
  */
 billingRoute.post("/billing/checkout", async (c) => {
-  const auth = c.req.header("Authorization");
-  const session = await resolveSession(auth, c.env.SESSIONS);
+  const session = await resolveSession(c);
 
   if (!session) {
     return c.json({ error: "Sign in to upgrade" }, 401);

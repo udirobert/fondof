@@ -1,4 +1,4 @@
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import { getCookie, setCookie, deleteCookie } from "hono/cookie";
 import type { Env } from "../index.js";
 import { inspectForgeEntitlement } from "../lib/forge-quota.js";
@@ -27,6 +27,7 @@ const SESSION_TTL = 60 * 60 * 24 * 30; // 30 days
 const STATE_TTL = 60 * 10; // OAuth state nonce: 10 minutes
 const EXCHANGE_TTL = 60; // One-time token exchange code: 60 seconds
 const OAUTH_COOKIE = "fondof_oauth";
+const SESSION_COOKIE = "fondof_session";
 
 function generateToken(): string {
   const buf = new Uint8Array(32);
@@ -83,6 +84,17 @@ function oauthCookieOpts(frontendUrl: string) {
     secure: https,
     sameSite: (https ? "None" : "Lax") as "None" | "Lax",
     maxAge: STATE_TTL,
+  };
+}
+
+function sessionCookieOpts(frontendUrl: string) {
+  const https = frontendUrl.startsWith("https:");
+  return {
+    path: "/api",
+    httpOnly: true,
+    secure: https,
+    sameSite: (https ? "None" : "Lax") as "None" | "Lax",
+    maxAge: SESSION_TTL,
   };
 }
 
@@ -296,7 +308,10 @@ authRoute.post("/auth/exchange", async (c) => {
     return c.json({ error: "Code expired or already used" }, 401);
   }
   deleteCookie(c, OAUTH_COOKIE, { path: "/api/auth" });
-  return c.json({ token: taken.token });
+  // Keep the token out of the response body; browsers only get it via
+  // the httpOnly cookie, so a future XSS cannot exfiltrate it.
+  setCookie(c, SESSION_COOKIE, taken.token, sessionCookieOpts(frontendUrl));
+  return c.json({ ok: true });
 });
 
 /**
@@ -304,18 +319,10 @@ authRoute.post("/auth/exchange", async (c) => {
  * Expects Authorization: Bearer <token> header.
  */
 authRoute.get("/auth/me", async (c) => {
-  const auth = c.req.header("Authorization");
-  if (!auth?.startsWith("Bearer ")) {
+  const session = await resolveSession(c);
+  if (!session) {
     return c.json({ authenticated: false }, 401);
   }
-
-  const token = auth.slice(7);
-  const raw = await c.env.SESSIONS.get(`session:${token}`);
-  if (!raw) {
-    return c.json({ authenticated: false }, 401);
-  }
-
-  const session: Session = JSON.parse(raw);
 
   const entitlement = await inspectForgeEntitlement(
     c.env,
@@ -348,11 +355,14 @@ authRoute.get("/auth/me", async (c) => {
  * POST /auth/logout — invalidates the session.
  */
 authRoute.post("/auth/logout", async (c) => {
-  const auth = c.req.header("Authorization");
-  if (auth?.startsWith("Bearer ")) {
-    const token = auth.slice(7);
-    await c.env.SESSIONS.delete(`session:${token}`);
+  const session = await resolveSession(c);
+  if (session) {
+    const token = getTokenFromContext(c);
+    if (token) {
+      await c.env.SESSIONS.delete(`session:${token}`);
+    }
   }
+  deleteCookie(c, SESSION_COOKIE, { path: "/api" });
   return c.json({ ok: true });
 });
 
@@ -360,15 +370,22 @@ authRoute.post("/auth/logout", async (c) => {
 export { billingMonth } from "../lib/forge-quota.js";
 
 /**
- * Helper: resolve session from Authorization header.
+ * Helper: resolve session from cookie (preferred) or Authorization header.
  * Returns null if unauthenticated.
  */
-export async function resolveSession(
-  authHeader: string | undefined,
+function getTokenFromContext(c: Context<{ Bindings: Env }>): string | null {
+  const auth = c.req.header("Authorization");
+  if (auth?.startsWith("Bearer ")) return auth.slice(7);
+  const cookie = getCookie(c, SESSION_COOKIE);
+  if (cookie) return cookie;
+  return null;
+}
+
+async function resolveByToken(
+  token: string | null,
   kv: KVNamespace,
 ): Promise<Session | null> {
-  if (!authHeader?.startsWith("Bearer ")) return null;
-  const token = authHeader.slice(7);
+  if (!token) return null;
   const raw = await kv.get(`session:${token}`);
   if (!raw) return null;
   try {
@@ -376,4 +393,16 @@ export async function resolveSession(
   } catch {
     return null;
   }
+}
+
+/**
+ * Resolve a session from the current request context.
+ * The web sends the session token as an httpOnly cookie; CLI/agents may
+ * still use the Authorization header.
+ */
+export async function resolveSession(
+  c: Context<{ Bindings: Env }>,
+): Promise<Session | null> {
+  const token = getTokenFromContext(c);
+  return resolveByToken(token, c.env.SESSIONS);
 }

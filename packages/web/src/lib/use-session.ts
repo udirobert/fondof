@@ -6,7 +6,6 @@ import {
   fetchSession,
   loginWithGitHub,
   logout as logoutApi,
-  setToken,
   type AuthSession,
   type AuthUser,
 } from "@/lib/auth";
@@ -50,9 +49,8 @@ export function useSession(): UseSessionReturn {
     if (codeParam) {
       url.searchParams.delete("code");
       window.history.replaceState({}, "", url.toString());
-      void exchangeAuthCode(codeParam).then((token) => {
-        if (token) {
-          setToken(token);
+      void exchangeAuthCode(codeParam).then((ok) => {
+        if (ok) {
           void load();
         }
       });

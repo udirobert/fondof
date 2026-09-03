@@ -1,5 +1,4 @@
-import { API_BASE } from "@/lib/api-base";
-import { getToken } from "@/lib/auth";
+import { API_BASE, apiFetch } from "@/lib/api-base";
 
 const API_URL = API_BASE;
 
@@ -197,7 +196,7 @@ export async function ingestURL(
   input: { url: string } | { need: string },
   signal?: AbortSignal,
 ): Promise<IngestResponse> {
-  const res = await fetch(`${API_URL}/api/ingest`, {
+  const res = await apiFetch(`${API_URL}/api/ingest`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),
@@ -243,7 +242,7 @@ export async function ingestURLStream(
   onEvent: (event: IngestStreamEvent) => void,
   signal?: AbortSignal,
 ): Promise<void> {
-  const res = await fetch(`${API_URL}/api/ingest/stream`, {
+  const res = await apiFetch(`${API_URL}/api/ingest/stream`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),
@@ -300,12 +299,12 @@ export async function forgeSkill(
   gapAgainst?: { title: string; url: string; snippet?: string },
   options?: { private?: boolean; derivedFromSkillHash?: string },
 ): Promise<ForgeResponse> {
-  const token = getToken();
+
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };
-  if (token) headers.Authorization = `Bearer ${token}`;
-  const res = await fetch(`${API_URL}/api/forge`, {
+
+  const res = await apiFetch(`${API_URL}/api/forge`, {
     method: "POST",
     headers,
     body: JSON.stringify({
@@ -331,12 +330,12 @@ export async function publishSkill(
     frameworks?: string[];
   },
 ): Promise<PublishResponse> {
-  const token = getToken();
+
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };
-  if (token) headers.Authorization = `Bearer ${token}`;
-  const res = await fetch(`${API_URL}/api/publish`, {
+
+  const res = await apiFetch(`${API_URL}/api/publish`, {
     method: "POST",
     headers,
     body: JSON.stringify({ skillHash, sourceHashes, ...meta }),
@@ -363,12 +362,12 @@ export async function publishSkillMeta(
   meta?: unknown;
   evidence?: SkillEvidence;
 }> {
-  const token = getToken();
+
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };
-  if (token) headers.Authorization = `Bearer ${token}`;
-  const res = await fetch(
+
+  const res = await apiFetch(
     `${API_URL}/api/skills/${encodeURIComponent(skillHash)}/meta`,
     {
       method: "POST",
@@ -396,12 +395,12 @@ export async function shareSkill(
     composedAt?: string;
   },
 ): Promise<{ success?: boolean; skillHash?: string; visibility?: string; error?: string }> {
-  const token = getToken();
+
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };
-  if (token) headers.Authorization = `Bearer ${token}`;
-  const res = await fetch(`${API_URL}/api/skills/${encodeURIComponent(skillHash)}/share`, {
+
+  const res = await apiFetch(`${API_URL}/api/skills/${encodeURIComponent(skillHash)}/share`, {
     method: "POST",
     headers,
     body: JSON.stringify(meta),
@@ -412,10 +411,10 @@ export async function shareSkill(
 export async function unlistSkill(
   skillHash: string,
 ): Promise<{ success?: boolean; visibility?: string; error?: string }> {
-  const token = getToken();
+
   const headers: Record<string, string> = {};
-  if (token) headers.Authorization = `Bearer ${token}`;
-  const res = await fetch(
+
+  const res = await apiFetch(
     `${API_URL}/api/skills/${encodeURIComponent(skillHash)}/visibility`,
     { method: "DELETE", headers },
   );
@@ -427,7 +426,7 @@ export async function getCreatorImpact(login: string): Promise<{
   impact: ImpactSummary;
   error?: string;
 }> {
-  const res = await fetch(
+  const res = await apiFetch(
     `${API_URL}/api/skills/creator/${encodeURIComponent(login)}`,
   );
   return res.json();
@@ -453,14 +452,14 @@ export async function getSkillLineage(hash: string): Promise<{
   note?: string;
   error?: string;
 }> {
-  const res = await fetch(
+  const res = await apiFetch(
     `${API_URL}/api/skills/${encodeURIComponent(hash)}/lineage`,
   );
   return res.json();
 }
 
 export async function getSkillSignal(hash: string): Promise<SkillOnChainResponse> {
-  const res = await fetch(`${API_URL}/api/skills/${hash}`);
+  const res = await apiFetch(`${API_URL}/api/skills/${hash}`);
   return res.json();
 }
 
@@ -473,7 +472,7 @@ export async function getTopSkills(
   facets?: { genres?: GenreFacet[] };
   error?: string;
 }> {
-  const res = await fetch(`${API_URL}/api/skills?limit=${limit}&sort=${sort}`);
+  const res = await apiFetch(`${API_URL}/api/skills?limit=${limit}&sort=${sort}`);
   return res.json();
 }
 
@@ -489,7 +488,7 @@ export async function searchPublicSkills(
     limit: String(limit),
     sort: "impact",
   });
-  const res = await fetch(`${API_URL}/api/skills?${params.toString()}`);
+  const res = await apiFetch(`${API_URL}/api/skills?${params.toString()}`);
   return res.json() as Promise<{ skills: SkillOnChainResponse[]; error?: string }>;
 }
 
@@ -506,12 +505,12 @@ export async function recordUsage(
   note?: string;
   error?: string;
 }> {
-  const token = getToken();
+
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };
-  if (token) headers.Authorization = `Bearer ${token}`;
-  const res = await fetch(`${API_URL}/api/skills/${encodeURIComponent(hash)}/use`, {
+
+  const res = await apiFetch(`${API_URL}/api/skills/${encodeURIComponent(hash)}/use`, {
     method: "POST",
     headers,
     body: JSON.stringify(options ?? {}),
@@ -527,10 +526,10 @@ export async function verifySkillPr(
   note?: string;
   error?: string;
 }> {
-  const token = getToken();
+
   const headers: Record<string, string> = {};
-  if (token) headers.Authorization = `Bearer ${token}`;
-  const res = await fetch(
+
+  const res = await apiFetch(
     `${API_URL}/api/skills/${encodeURIComponent(hash)}/verify-pr`,
     { method: "POST", headers },
   );
@@ -552,12 +551,12 @@ export async function stormUsage(
   note?: string;
   error?: string;
 }> {
-  const token = getToken();
+
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };
-  if (token) headers.Authorization = `Bearer ${token}`;
-  const res = await fetch(`${API_URL}/api/skills/${encodeURIComponent(hash)}/storm`, {
+
+  const res = await apiFetch(`${API_URL}/api/skills/${encodeURIComponent(hash)}/storm`, {
     method: "POST",
     headers,
     body: JSON.stringify({ count }),
@@ -574,12 +573,12 @@ export async function challengeSkill(
   challengeId?: number;
   error?: string;
 }> {
-  const token = getToken();
+
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };
-  if (token) headers.Authorization = `Bearer ${token}`;
-  const res = await fetch(`${API_URL}/api/challenge`, {
+
+  const res = await apiFetch(`${API_URL}/api/challenge`, {
     method: "POST",
     headers,
     body: JSON.stringify({ skillHash }),
@@ -603,7 +602,7 @@ export async function acquireSkill(seed?: string): Promise<{
   skill?: SkillOnChainResponse;
   error?: string;
 }> {
-  const res = await fetch(`${API_URL}/api/skills/acquire`, {
+  const res = await apiFetch(`${API_URL}/api/skills/acquire`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ seed }),
@@ -617,7 +616,7 @@ export async function listOpenChallenges(
   const q = skillHash
     ? `?skillHash=${encodeURIComponent(skillHash)}`
     : "";
-  const res = await fetch(`${API_URL}/api/challenges${q}`);
+  const res = await apiFetch(`${API_URL}/api/challenges${q}`);
   return res.json();
 }
 
@@ -632,12 +631,12 @@ export async function resolveChallenge(
   challengerWon?: boolean;
   error?: string;
 }> {
-  const token = getToken();
+
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };
-  if (token) headers.Authorization = `Bearer ${token}`;
-  const res = await fetch(`${API_URL}/api/challenge/${challengeId}/resolve`, {
+
+  const res = await apiFetch(`${API_URL}/api/challenge/${challengeId}/resolve`, {
     method: "POST",
     headers,
     body: JSON.stringify({ challengerWon }),
@@ -689,12 +688,12 @@ export interface ForgeEntitlementResponse {
 }
 
 export async function checkForgeEntitlement(): Promise<ForgeEntitlementResponse> {
-  const token = getToken();
+
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };
-  if (token) headers.Authorization = `Bearer ${token}`;
-  const res = await fetch(`${API_URL}/api/billing/check-forge`, {
+
+  const res = await apiFetch(`${API_URL}/api/billing/check-forge`, {
     method: "POST",
     headers,
   });
@@ -709,12 +708,12 @@ export async function composeSkill(body: {
   topShards?: number;
   private?: boolean;
 }): Promise<ComposeResponse> {
-  const token = getToken();
+
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };
-  if (token) headers.Authorization = `Bearer ${token}`;
-  const res = await fetch(`${API_URL}/api/compose`, {
+
+  const res = await apiFetch(`${API_URL}/api/compose`, {
     method: "POST",
     headers,
     body: JSON.stringify(body),
@@ -736,7 +735,7 @@ export async function searchExistingSkills(
   embedScored?: boolean;
   error?: string;
 }> {
-  const res = await fetch(`${API_URL}/api/search/skills`, {
+  const res = await apiFetch(`${API_URL}/api/search/skills`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ query, ideas }),

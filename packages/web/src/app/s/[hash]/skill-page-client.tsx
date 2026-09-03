@@ -64,7 +64,8 @@ import { SkillOutcomePanel } from "@/components/skill-outcome";
 import { getSkillMeta } from "@/lib/skill-meta";
 import { whereItLands } from "@/lib/where-it-lands";
 import { track } from "@/lib/track";
-import { fetchSession, getToken } from "@/lib/auth";
+import { useSession } from "@/lib/use-session";
+import { fetchSession } from "@/lib/auth";
 import { formatTalkToSkillPrompt } from "@/lib/agent-export";
 import { SkillAgentPanel } from "@/components/skill-agent-panel";
 
@@ -248,6 +249,7 @@ function ProvenanceDisclosure({
 export default function SkillPublicPage() {
   const params = useParams<{ hash: string }>();
   const router = useRouter();
+  const { user } = useSession();
   const hash = decodeURIComponent(params.hash ?? "");
   const [skill, setSkill] = useState<SkillOnChainResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -438,7 +440,7 @@ export default function SkillPublicPage() {
   };
 
   const onUse = async (afterConsent = false) => {
-    const signedIn = Boolean(getToken());
+    const signedIn = Boolean(user);
     if (!signedIn && !receiptConsent && !afterConsent) {
       setReceiptPrompt(true);
       return;
@@ -869,7 +871,7 @@ export default function SkillPublicPage() {
             {activeTab === "prove" && (
               <div className="space-y-3 rounded-xl border border-ink/8 bg-paper/70 px-4 py-4">
                 {/* Receipt consent */}
-                {receiptPrompt && !getToken() ? (
+                {receiptPrompt && !user ? (
                   <div className="space-y-2">
                     <p className="text-[11px] leading-snug text-foreground-secondary">
                       To avoid counting the same browser twice, fondof can store a random receipt key here. No IP or repo contents stored.

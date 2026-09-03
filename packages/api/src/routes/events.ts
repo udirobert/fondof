@@ -46,8 +46,7 @@ eventsRoute.post("/events", rateLimit("events"), async (c) => {
     return c.json({ error: "Invalid event" }, 400);
   }
 
-  const auth = c.req.header("Authorization");
-  const session = await resolveSession(auth, c.env.SESSIONS);
+  const session = await resolveSession(c);
 
   const entry = {
     event: body.event,

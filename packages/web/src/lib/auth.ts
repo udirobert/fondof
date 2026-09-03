@@ -1,11 +1,10 @@
 /**
  * Auth client — talks to the fondof API /auth/* endpoints.
- * Stores session token in localStorage; exposes reactive hook via Zustand.
+ * Session token is now stored in an httpOnly cookie set by the API;
+ * this file no longer touches localStorage.
  */
 
 import { API_BASE } from "@/lib/api-base";
-
-const TOKEN_KEY = "fondof_token";
 
 export interface AuthUser {
   id: number;
@@ -23,22 +22,6 @@ export interface AuthSession {
     forgesThisMonth: number;
     limit: number | null;
   } | null;
-}
-
-/** Get stored token (if any). */
-export function getToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem(TOKEN_KEY);
-}
-
-/** Store token after OAuth callback. */
-export function setToken(token: string): void {
-  localStorage.setItem(TOKEN_KEY, token);
-}
-
-/** Clear stored token. */
-export function clearToken(): void {
-  localStorage.removeItem(TOKEN_KEY);
 }
 
 /** Redirect to GitHub OAuth via the API. */
@@ -74,13 +57,12 @@ function safeClientRedirect(redirect?: string): string {
 }
 
 /**
- * Exchange a one-time OAuth code (from the callback redirect) for the session
- * token. The code is single-use and short-lived; the token itself never
- * appears in a URL.
+ * Exchange a one-time OAuth code (from the callback redirect) for a session.
+ * The API sets the httpOnly cookie; we just report success.
  */
 export async function exchangeAuthCode(
   code: string,
-): Promise<string | null> {
+): Promise<boolean> {
   try {
     const res = await fetch(`${API_BASE}/api/auth/exchange`, {
       method: "POST",
@@ -88,25 +70,21 @@ export async function exchangeAuthCode(
       credentials: "include",
       body: JSON.stringify({ code }),
     });
-    if (!res.ok) return null;
-    const data = (await res.json()) as { token?: string };
-    return data.token ?? null;
+    if (!res.ok) return false;
+    const data = (await res.json()) as { ok?: boolean };
+    return data.ok ?? false;
   } catch {
-    return null;
+    return false;
   }
 }
 
 /** Fetch current session from the API. Returns null if not authenticated. */
 export async function fetchSession(): Promise<AuthSession | null> {
-  const token = getToken();
-  if (!token) return null;
-
   try {
     const res = await fetch(`${API_BASE}/api/auth/me`, {
-      headers: { Authorization: `Bearer ${token}` },
+      credentials: "include",
     });
     if (!res.ok) {
-      if (res.status === 401) clearToken();
       return null;
     }
     return (await res.json()) as AuthSession;
@@ -115,14 +93,14 @@ export async function fetchSession(): Promise<AuthSession | null> {
   }
 }
 
-/** Logout — invalidate session on API and clear local token. */
+/** Logout — invalidates session on API and clears the httpOnly cookie. */
 export async function logout(): Promise<void> {
-  const token = getToken();
-  if (token) {
+  try {
     await fetch(`${API_BASE}/api/auth/logout`, {
       method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
-    }).catch(() => {});
+      credentials: "include",
+    });
+  } catch {
+    // ignore
   }
-  clearToken();
 }

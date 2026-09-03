@@ -26,10 +26,7 @@ const OPS = new Set<RelayerOp>([
  * Execute endpoints accept the returned id, or issue one themselves.
  */
 relayerRoute.post("/relayer/intent", rateLimit("publish"), async (c) => {
-  const session = await resolveSession(
-    c.req.header("Authorization"),
-    c.env.SESSIONS,
-  );
+  const session = await resolveSession(c);
   if (!session) {
     return c.json({ error: "Sign in to request a relayer intent" }, 401);
   }
@@ -85,10 +82,7 @@ relayerRoute.post("/relayer/intent", rateLimit("publish"), async (c) => {
 });
 
 relayerRoute.get("/relayer/status", async (c) => {
-  const session = await resolveSession(
-    c.req.header("Authorization"),
-    c.env.SESSIONS,
-  );
+  const session = await resolveSession(c);
   if (!session) {
     return c.json({ error: "Sign in to view relayer status" }, 401);
   }
@@ -103,10 +97,7 @@ relayerRoute.get("/relayer/status", async (c) => {
 });
 
 relayerRoute.post("/relayer/halt", async (c) => {
-  const session = await resolveSession(
-    c.req.header("Authorization"),
-    c.env.SESSIONS,
-  );
+  const session = await resolveSession(c);
   if (!session || !isResolverLogin(session.login, c.env.RESOLVER_LOGINS)) {
     return c.json({ error: "Not an authorized resolver" }, 403);
   }

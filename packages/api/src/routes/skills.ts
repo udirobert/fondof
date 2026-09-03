@@ -153,10 +153,7 @@ skillsRoute.post("/skills/:hash/meta", rateLimit("publish"), async (c) => {
   // Authorization: artifact identity and the agent link are owner-only once a
   // public record exists. Ownerless legacy records are immutable. Outcome
   // evidence stays open because it is the visitor "I used this" loop.
-  const session = await resolveSession(
-    c.req.header("Authorization"),
-    c.env.SESSIONS,
-  );
+  const session = await resolveSession(c);
   const existingRecord = await getSkillRecord(c.env, hash);
 
   if (hasAgentUrlPatch) {
@@ -302,10 +299,7 @@ skillsRoute.post("/skills/:hash/share", rateLimit("publish"), async (c) => {
     return c.json({ error: "markdown does not match skillHash" }, 409);
   }
 
-  const session = await resolveSession(
-    c.req.header("Authorization"),
-    c.env.SESSIONS,
-  );
+  const session = await resolveSession(c);
   const existing = await getSkillRecord(c.env, hash);
   const access = publicSkillMutationAccess(existing, session?.userId);
   if (access === "immutable") {
@@ -383,10 +377,7 @@ skillsRoute.delete(
   "/skills/:hash/visibility",
   rateLimit("publish"),
   async (c) => {
-    const session = await resolveSession(
-      c.req.header("Authorization"),
-      c.env.SESSIONS,
-    );
+    const session = await resolveSession(c);
     if (!session) return c.json({ error: "Sign in to manage visibility" }, 401);
 
     const result = await unlistPublicSkill(
@@ -884,10 +875,7 @@ skillsRoute.post("/skills/:hash/use", rateLimit("use"), async (c) => {
     .catch(
       () => ({}) as { receiptKey?: string; consented?: boolean },
     );
-  const session = await resolveSession(
-    c.req.header("Authorization"),
-    c.env.SESSIONS,
-  );
+  const session = await resolveSession(c);
   const browserReceiptKey =
     body.consented && body.receiptKey && /^[a-zA-Z0-9_-]{16,128}$/.test(body.receiptKey)
       ? `browser:${body.receiptKey}`
@@ -1016,10 +1004,7 @@ skillsRoute.post(
   "/skills/:hash/verify-pr",
   rateLimit("publish"),
   async (c) => {
-    const session = await resolveSession(
-      c.req.header("Authorization"),
-      c.env.SESSIONS,
-    );
+    const session = await resolveSession(c);
     const result = await verifyLinkedPr(
       c.env,
       c.req.param("hash"),
@@ -1054,10 +1039,7 @@ skillsRoute.post(
  * Demo: quality signals at Monad speed (not viable as per-use receipts on L1).
  */
 skillsRoute.post("/skills/:hash/storm", rateLimit("storm"), async (c) => {
-  const session = await resolveSession(
-    c.req.header("Authorization"),
-    c.env.SESSIONS,
-  );
+  const session = await resolveSession(c);
   if (!session) {
     return c.json({ error: "Sign in to run a relayer receipt storm" }, 401);
   }

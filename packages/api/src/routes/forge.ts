@@ -275,10 +275,7 @@ forgeRoute.post("/forge", rateLimit("forge"), async (c) => {
 
   if (!body.ideas?.length) return c.json({ error: "ideas array is required" }, 400);
 
-  const session = await resolveSession(
-    c.req.header("Authorization"),
-    c.env.SESSIONS,
-  );
+  const session = await resolveSession(c);
 
   try {
     const metered = await meteredGenerate(
