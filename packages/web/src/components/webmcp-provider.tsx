@@ -215,7 +215,7 @@ export function WebMCPProvider() {
             private: {
               type: "boolean",
               description:
-                "When false, the skill is shared publicly and can unlock unlimited forges for signed-in users. Default true. Only set false if the user explicitly asks to share.",
+                "When false, the skill is shared publicly and can unlock unlimited forges for signed-in users. Default is true for signed-in users (a private draft) and false for anonymous users (so the link is viewable). Only set false if a signed-in user explicitly asks to share.",
             },
           },
         },

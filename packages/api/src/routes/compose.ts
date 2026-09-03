@@ -277,8 +277,11 @@ composeRoute.post("/compose", rateLimit("compose"), async (c) => {
         const topShards = rankedIdeas.slice(0, topN);
 
         // 4. Forge via the shared core (same caching as /api/forge).
-        //    A compose is private unless public sharing is explicit.
-        const isPrivate = body.private !== false;
+        //    A compose is private by default for signed-in users (they can
+        //    view it later). Anonymous users cannot own private drafts, so
+        //    their compose is public by default so the shareable link works.
+        let isPrivate = body.private !== false;
+        if (!session) isPrivate = false;
         const { payload, cacheHit } = await forgeSkillCore(c.env, {
           ideas: topShards.map((i) => ({
             title: i.title,
