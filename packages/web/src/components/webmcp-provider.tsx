@@ -128,16 +128,16 @@ export function WebMCPProvider() {
         name: "compose_skill",
         title: "Compose a new skill",
         description:
-          "Turn a stated need or a source URL into a repo-specific skill. DO NOT call this tool unless the user has already provided either a need (free-text description of a technique or problem) or a url (a public article, blog post, documentation page, or YouTube link). If neither is present, ask the user to describe what they want to learn or paste a link. Optionally pass a target repo and top_shards. Returns the generated markdown, skill hash, and shareable skill URL.",
+          "Turn a stated need or one or more source URLs into a single repo-specific skill. DO NOT call this tool unless the user has already provided either a need (free-text description of a technique or problem) or one or more urls (public articles, blog posts, documentation pages, or YouTube links). If the user gives multiple links, pass them all in the urls array so they are combined into one skill. Do not call compose_skill once per URL. If neither need nor urls are present, ask the user to describe what they want to learn or paste a link. Optionally pass a target repo and top_shards. Returns the generated markdown, skill hash, shareable URL, and source attribution.",
         inputSchema: {
           type: "object",
           description:
-            "Provide exactly one of need or url. repo and top_shards are optional. If the user only said something vague like 'create a skill', ask them for a need or url before calling.",
+            "Provide exactly one of need or urls/url. repo and top_shards are optional. If the user provides multiple links, pass them all in urls. Do not pass need and urls together. If the user only said something vague like 'create a skill', ask them for a need or urls before calling.",
           properties: {
             need: {
               type: "string",
               description:
-                "A free-text description of a technique or problem to solve. Examples: 'retry budgets for async TypeScript fetch' or 'how to cache Deno KV queries'.",
+                "A free-text description of a technique or problem to solve. Use this when the user describes a topic, not when they paste URLs. Examples: 'retry budgets for async TypeScript fetch' or 'how to cache Deno KV queries'.",
               examples: [
                 "retry budgets for async TypeScript fetch",
                 "structured logging for worker services",
@@ -146,10 +146,23 @@ export function WebMCPProvider() {
             url: {
               type: "string",
               description:
-                "A public article, blog post, documentation page, or YouTube URL to extract ideas from. The page must be publicly readable without login.",
+                "A single public article, blog post, documentation page, or YouTube URL. Prefer the urls array if the user provided multiple links.",
               examples: [
                 "https://nextjs.org/blog/next-16-3",
                 "https://www.youtube.com/watch?v=7wuYBfE131U",
+              ],
+            },
+            urls: {
+              type: "array",
+              description:
+                "One or more public article, blog post, documentation page, or YouTube URLs to combine into a single skill. Use this when the user gives multiple sources. Max 4 URLs.",
+              items: { type: "string" },
+              maxItems: 4,
+              examples: [
+                [
+                  "https://www.youtube.com/watch?v=b9tB9Q1XOM0",
+                  "https://paulgraham.com/brandage.html",
+                ],
               ],
             },
             repo: {
@@ -161,7 +174,7 @@ export function WebMCPProvider() {
             top_shards: {
               type: "number",
               description:
-                "Number of extracted ideas to include in the skill (1-6, default 2).",
+                "Number of extracted ideas to include in the skill (1-6, default 2 for single source, 3 for multi-source).",
               minimum: 1,
               maximum: 6,
               examples: [2, 3],
@@ -171,32 +184,62 @@ export function WebMCPProvider() {
         outputSchema: {
           type: "object",
           description:
-            "The composed skill with title, hash, markdown, source info, and public share URL.",
+            "The composed skill with title, hash, markdown, source attribution, and public share URL.",
           properties: {
             title: { type: "string" },
             skill_hash: { type: "string" },
             skill_url: { type: ["string", "null"] },
             markdown: { type: "string" },
             source_title: { type: ["string", "null"] },
+            source_urls: {
+              type: "array",
+              description: "All source URLs that contributed to the skill.",
+              items: { type: "string" },
+            },
             fitted_to: { type: ["string", "null"] },
             private: { type: "boolean" },
           },
         },
         execute: async (input) => {
-          const { need, url, repo, top_shards } = input as {
+          const { need, url, urls, repo, top_shards } = input as {
             need?: string;
             url?: string;
+            urls?: string[];
             repo?: string;
             top_shards?: number;
           };
-          if (!need && !url) {
+
+          const sourceUrls: string[] = [];
+          if (typeof url === "string" && url.trim()) sourceUrls.push(url.trim());
+          if (Array.isArray(urls)) {
+            for (const u of urls) {
+              if (typeof u === "string" && u.trim()) sourceUrls.push(u.trim());
+            }
+          }
+          const deduped = [...new Set(sourceUrls)];
+
+          const hasNeed = typeof need === "string" && need.trim().length > 0;
+          const hasUrls = deduped.length > 0;
+
+          if (!hasNeed && !hasUrls) {
             throw new Error(
-              "I need a source to compose from. Ask the user to either describe the skill they want in plain text (need) or paste a public URL to an article, blog post, docs page, or YouTube video (url).",
+              "I need a source to compose from. Ask the user to either describe the skill they want in plain text (need) or paste one or more public URLs to articles, blog posts, docs pages, or YouTube videos (urls).",
             );
           }
+          if (hasNeed && hasUrls) {
+            throw new Error(
+              "Provide exactly one of need or url(s), not both. If the user gave URLs, use urls. If they described a topic in words, use need.",
+            );
+          }
+          if (deduped.length > 4) {
+            throw new Error(
+              "You can combine at most 4 URLs in one compose call. Ask the user to pick the most relevant 4.",
+            );
+          }
+
           const res = await composeSkill({
-            ...(need ? { need } : {}),
-            ...(url ? { url } : {}),
+            ...(hasNeed ? { need: need.trim() } : {}),
+            ...(hasUrls ? { urls: deduped } : {}),
             ...(repo ? { repo } : {}),
             ...(typeof top_shards === "number" ? { topShards: top_shards } : {}),
           });
@@ -207,6 +250,7 @@ export function WebMCPProvider() {
             skill_url: res.skillUrl ?? null,
             markdown: res.markdown,
             source_title: res.sourceTitle,
+            source_urls: res.sourceUrls ?? [],
             fitted_to: res.fittedTo,
             private: res.private,
           };
