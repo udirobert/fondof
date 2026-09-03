@@ -150,6 +150,20 @@ Parallel product vs video split: [`docs/parallel-split.md`](docs/parallel-split.
 Video production stack: [`docs/video-pipeline.md`](docs/video-pipeline.md).  
 Package roles: [`docs/architecture.md`](docs/architecture.md).
 
+### WebMCP agent path (judges — ChatGPT / Chrome)
+
+When you open [fondof.netlify.app](https://fondof.netlify.app) in an agentic browser, the page exposes three WebMCP tools:
+
+- **`search_skills`** — find existing public skills by topic.
+- **`get_skill`** — read a public skill by hash (e.g. `7a3f...9d2`).
+- **`compose_skill`** — turn a need or URL into a repo-specific skill.
+
+Try it in ChatGPT's in-app browser:
+
+> "Search fondof for skills about React performance, then compose a new skill from https://youtu.be/7wuYBfE131U for udirobert/fondof."
+
+Or in Google Chrome 149+ with `chrome://flags/#enable-webmcp-testing` enabled, install the [Model Context Tool Inspector](https://chromewebstore.google.com/detail/model-context-tool-inspec/gbpdfapgefenggkahomfgkhfehlcenpd) and trigger the tools manually.
+
 ### Verification / testing instructions
 
 From a fresh clone:
@@ -179,10 +193,10 @@ curl -s -X POST https://fondof-api.trustfall.workers.dev/api/ingest \
   -d '{"need":"idempotency keys for webhook consumers"}' | head -c 400
 
 # One-shot compose: ingest + top shards + forge in a single call.
-# repo accepts "owner/name" or a GitHub URL (stack auto-detected) — private draft by default; pass `"private": false` for explicit share.
+# `urls` merges multiple sources (max 4); `url` / `need` still work. repo accepts "owner/name" or a GitHub URL (stack auto-detected) — private draft by default; pass `"private": false` for explicit share.
 curl -s -X POST https://fondof-api.trustfall.workers.dev/api/compose \
   -H 'content-type: application/json' \
-  -d '{"url":"https://www.youtube.com/watch?v=7wuYBfE131U","repo":"udirobert/fondof"}' | head -c 600
+  -d '{"urls":["https://www.youtube.com/watch?v=7wuYBfE131U","https://www.remotion.dev/docs"],"repo":"udirobert/fondof"}' | head -c 600
 # Response includes skillUrl only after the public record is stored — otherwise private: true and skillUrl: null.
 ```
 
@@ -192,10 +206,14 @@ curl -s -X POST https://fondof-api.trustfall.workers.dev/api/compose \
 
 ```bash
 pnpm --filter @fondof/cli build
-# fondof ingest | forge | publish | challenge | status
+# Agent path:
+fondof login                          # browser GitHub → fondof session
+fondof compose <url> [<url2>] -o .cursor/rules/skill.md
+fondof compose <url> --share          # public share unlocks unlimited when signed in
+# Also: fondof ingest | forge | publish | challenge | status | connect
 ```
 
-GitHub login for the CLI is stored in the OS credential vault (macOS Keychain / Linux Secret Service) when available, otherwise in `~/.fondof/config.json` with directory mode `0700` and file mode `0600`. If that file was created before this change, revoke the token at GitHub and run `fondof connect` again — a typical umask left it readable by other local users.
+GitHub login for the CLI (`fondof connect`) is stored in the OS credential vault (macOS Keychain / Linux Secret Service) when available, otherwise in `~/.fondof/config.json` with directory mode `0700` and file mode `0600`. **Fondof API sessions** from `fondof login` use the same vault under a separate key (`fondof.session`) or `sessionToken` in that config file. Set `FONDOF_TOKEN` to override. If the config file was created before owner-only hardening, revoke the old GitHub token at GitHub and run `fondof connect` again — a typical umask left it readable by other local users.
 
 The **web floor** is the primary product for demos and Ready Spec Ship judging.
 
