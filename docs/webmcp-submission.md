@@ -54,9 +54,10 @@ The code is at:
 ### Option A — ChatGPT in-app browser (no flags)
 
 1. Open https://fondof.netlify.app inside ChatGPT's in-app browser.
-2. Ask:
+2. Optional: click **Sign in** and connect GitHub to unlock unlimited forges after sharing. Anonymous users have **10 free forges per month**.
+3. Ask:
    > "Search fondof for skills about React performance, then compose a new skill from https://nextjs.org/blog/next-16-3 for udirobert/fondof."
-3. ChatGPT should call `search_skills` and `compose_skill`.
+4. ChatGPT should call `search_skills` and `compose_skill`.
 
 ### Option B — Google Chrome with WebMCP enabled
 
@@ -75,8 +76,65 @@ curl -s 'https://fondof-api.trustfall.workers.dev/api/skills?q=React%20performan
 
 ## Suggested 3-minute demo script
 
-1. **0:00–0:20** — Hook: "Generic agents have to guess at forms. WebMCP lets a website tell the agent exactly what it can do."
-2. **0:20–0:50** — Open fondof in ChatGPT's in-app browser. Ask it to search the pool for "React performance." Show `search_skills` being called.
-3. **0:50–2:00** — Ask the agent to compose a skill from a source URL for `udirobert/fondof`. Show `compose_skill` returning the markdown and skill URL.
-4. **2:00–2:30** — Show the generated skill page and copy the markdown for Cursor/Claude/Kiro.
-5. **2:30–3:00** — Close: the agent did the extraction and formatting; the human chose, verified, and used the result. That's the agent-native web.
+Record this inside the ChatGPT in-app browser so tool calls are visible.
+
+### 0:00–0:20 — Hook: before vs. after WebMCP
+
+**Say:**
+> When an agent visits a normal website, it has to guess: click this, fill that, wait for this div. With WebMCP, the website tells the agent exactly what it can do. I'm going to show you fondof — a skill forge — where an agent and I build a repo-specific skill together, inside ChatGPT's browser, in one sentence.
+
+**Show:**
+- Open `https://fondof.netlify.app` in the ChatGPT in-app browser.
+- Quick shot of the homepage, then cut to the ChatGPT conversation with the site loaded.
+
+### 0:20–0:45 — Set up the task
+
+**Say:**
+> I want a skill that teaches my team how to add WebMCP tools to our own Next.js app. I don't want a generic blog post. I want it fitted to the fondof codebase.
+
+**Show:**
+- In ChatGPT, type or say:
+  > "Search fondof for any existing skills about WebMCP or MCP."
+- ChatGPT calls `search_skills`. Capture the tool-call card if ChatGPT renders one.
+- Briefly glance at the results.
+
+### 0:45–1:40 — The WebMCP moment: compose a skill
+
+**Say:**
+> Good — nothing exactly right yet. Now I'll ask the agent to compose a new skill from the WebMCP spec and the Next.js docs, fitted to the fondof repo. This would normally mean copy-pasting URLs, picking shards, choosing a repo, and clicking forge. With WebMCP, I just ask.
+
+**Show:**
+- In ChatGPT, type:
+  > "Compose a new skill from https://webmcp.dev and https://nextjs.org/docs/app/building-your-application/rendering for udirobert/fondof. Make it about adding WebMCP tools to a Next.js app."
+- ChatGPT calls `compose_skill`. Capture the tool call.
+- Show the response: `markdown`, `source_urls`, and `skill_url`.
+- Highlight `source_urls` — "it still attributes the original sources."
+
+### 1:40–2:20 — Human verifies and uses it
+
+**Say:**
+> The agent did the extraction and formatting. I stay in control: I can read the skill, copy it, or change the target repo. Here it is fitted to our stack — it even names where the code should land. I'm copying it into Claude Code.
+
+**Show:**
+- Open the returned `skill_url` on fondof.
+- Scroll the generated skill markdown for 5–10 seconds to prove it is real and repo-specific.
+- Click **Copy for Claude / Cursor / Kiro**.
+- Cut to a code editor or terminal where the skill is pasted and applied — even a brief terminal/Claude Code window is enough.
+
+### 2:20–2:50 — What changed
+
+**Say:**
+> Before WebMCP, this loop meant leaving ChatGPT, opening fondof, filling forms, and copy-pasting back. Now the site advertises its own tools, the agent calls them, and I just confirm and use the result. That's the agent-native web: humans and agents doing what each is good at.
+
+**Show:**
+- Quick before/after side-by-side or cut: old UI-clicking loop vs. one ChatGPT sentence.
+- End on the fondof skill page with the public `/s/{hash}` URL visible.
+
+### 2:50–3:00 — Close
+
+**Say:**
+> fondof: from what you learn, to what your agent does. Try it at fondof.netlify.app — the repo is open source.
+
+**Show:**
+- End card: `fondof.netlify.app` + `github.com/udirobert/fondof`.
+- Hold for 5 seconds.
