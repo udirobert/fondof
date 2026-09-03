@@ -138,6 +138,18 @@ skillsRoute.post("/skills/:hash/meta", rateLimit("publish"), async (c) => {
     }
   }
 
+  // A skill URL is content-addressed by the SHA-256 of its markdown.
+  // Reject any markdown edit that would break that identity.
+  if (body.markdown?.trim()) {
+    const contentHash = (await sha256Hex(body.markdown.trim())).toLowerCase();
+    if (contentHash !== hash.toLowerCase()) {
+      return c.json(
+        { error: "Markdown hash does not match the skill URL" },
+        400,
+      );
+    }
+  }
+
   // Authorization: artifact identity and the agent link are owner-only once a
   // public record exists. Ownerless legacy records are immutable. Outcome
   // evidence stays open because it is the visitor "I used this" loop.

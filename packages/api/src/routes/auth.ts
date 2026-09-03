@@ -371,5 +371,9 @@ export async function resolveSession(
   const token = authHeader.slice(7);
   const raw = await kv.get(`session:${token}`);
   if (!raw) return null;
-  return JSON.parse(raw) as Session;
+  try {
+    return JSON.parse(raw) as Session;
+  } catch {
+    return null;
+  }
 }

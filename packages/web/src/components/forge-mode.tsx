@@ -56,6 +56,7 @@ import { track } from "@/lib/track";
 import { publicSkillHashFromUrl } from "@/lib/skill-share";
 import { checkForge, type ForgeCheck } from "@/lib/billing";
 import { loginWithGitHub } from "@/lib/auth";
+import { useSession } from "@/lib/use-session";
 
 type Phase = "ritual" | "compose" | "attested";
 
@@ -88,6 +89,7 @@ const RITUAL_MS = 700;
  * is often ready when the fold ends.
  */
 export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
+  const { user } = useSession();
   const activeRepo = useAppStore((s) => s.activeRepo);
   const setActiveRepo = useAppStore((s) => s.setActiveRepo);
   const gapByIdeaId = useAppStore((s) => s.gapByIdeaId);
@@ -110,7 +112,7 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
   const [attestKey, setAttestKey] = useState(0);
   const [forgeTitle, setForgeTitle] = useState<string | null>(null);
   const [forgeBlocked, setForgeBlocked] = useState<ForgeQuotaBlock | null>(null);
-  const [forgePrivate, setForgePrivate] = useState(true);
+  const [forgePrivate, setForgePrivate] = useState(false);
   const { address, isConnected, chainId } = useConnection();
   const { switchChainAsync } = useSwitchChain();
   const { writeContractAsync } = useWriteContract();
@@ -130,6 +132,12 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
     setRepo(next);
     prevRepo.current = next;
   }, [open, activeRepo, repos]);
+
+  // Default visibility: signed-in users keep private drafts; anonymous users
+  // must be public, otherwise their shareable link would be a 404.
+  useEffect(() => {
+    setForgePrivate(user !== null);
+  }, [user]);
 
   const runForge = async (targetRepo: string, signal: { cancelled: boolean }) => {
     // Read latest gaps (Forge the gap may set them in the same tick as open)
@@ -238,7 +246,7 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
         setCelebrate(false);
         setWalletTxHash(undefined);
         setForgeTitle(null);
-        setForgePrivate(true);
+        setForgePrivate(user === null ? false : true);
         pendingMarkdown.current = null;
         streamCancel.current?.();
         streamCancel.current = null;

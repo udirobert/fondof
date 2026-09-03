@@ -2,12 +2,25 @@
  * URL/need detection helpers shared by the quick and studio input pads.
  */
 
+const NON_URL_FILE_EXTS = new Set([
+  ".md", ".txt", ".json", ".ts", ".tsx", ".js", ".jsx", ".css", ".html",
+  ".yaml", ".yml", ".log", ".svg", ".png", ".jpg", ".jpeg", ".gif", ".pdf",
+  ".zip", ".tar", ".gz", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",
+]);
+
 export function isUrlLike(value: string): boolean {
   const trimmed = value.trim();
   if (!trimmed) return false;
   if (/^https?:\/\//i.test(trimmed) || /^www\./i.test(trimmed)) return true;
-  // Bare domain-ish: e.g. "nextjs.org/blog/next-16-3" with no spaces
-  if (!/\s/.test(trimmed) && /\.[a-z]{2,}(\/|$)/i.test(trimmed)) return true;
+  if (/\s/.test(trimmed)) return false;
+  const lower = trimmed.toLowerCase();
+  const lastDot = lower.lastIndexOf(".");
+  if (lastDot > 0) {
+    const ext = lower.slice(lastDot);
+    if (NON_URL_FILE_EXTS.has(ext)) return false;
+  }
+  // Bare domain-ish: e.g. "nextjs.org/blog/next-16-3"
+  if (/\.[a-z]{2,}(\/|$)/i.test(trimmed)) return true;
   return false;
 }
 

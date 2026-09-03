@@ -246,7 +246,7 @@ export function RecentPublicSkills({
                   <span>off-chain</span>
                 )}
                 {source && (
-                  <Link
+                  <a
                     href={source}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -255,7 +255,7 @@ export function RecentPublicSkills({
                     title={source}
                   >
                     source
-                  </Link>
+                  </a>
                 )}
               </span>
             </Link>

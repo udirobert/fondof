@@ -98,9 +98,13 @@ export function WebMCPProvider() {
           }
           const res = await searchPublicSkills(query, 10);
           if (res.error) throw new Error(res.error);
+          const origin =
+            typeof window !== "undefined"
+              ? window.location.origin
+              : "https://fondof.netlify.app";
           return (res.skills ?? []).slice(0, 10).map((skill) => ({
             title: skill.title || "Untitled skill",
-            url: `https://fondof.netlify.app${skillPublicPath(skill.skillHash)}`,
+            url: `${origin}${skillPublicPath(skill.skillHash)}`,
             snippet:
               skill.blurb ||
               skill.sourceUrls?.[0] ||

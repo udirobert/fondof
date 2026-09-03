@@ -229,17 +229,20 @@ Write markdown with # title then ## Context, ## Guidance (one code example), ## 
     .join("");
 
   // Prefer the ingestion pipeline's content hash. Local/demo inputs fall back
-  // to a deterministic URL commitment until a real source snapshot exists.
-  const sourceHashes = [...new Set(body.ideas.map((idea) => {
-    const contentHash = idea.sourceHash?.trim();
-    if (contentHash && /^[0-9a-f]{64}$/i.test(contentHash)) return contentHash.toLowerCase();
-
-    let hash = 0;
-    for (let i = 0; i < idea.sourceUrl.length; i++) {
-      hash = ((hash << 5) - hash + idea.sourceUrl.charCodeAt(i)) | 0;
-    }
-    return Math.abs(hash).toString(16).padStart(64, "0");
-  }))];
+  // to a SHA-256 of the source URL so the commitment is collision-resistant.
+  const sourceHashes = [
+    ...new Set(
+      await Promise.all(
+        body.ideas.map(async (idea) => {
+          const contentHash = idea.sourceHash?.trim();
+          if (contentHash && /^[0-9a-f]{64}$/i.test(contentHash)) {
+            return contentHash.toLowerCase();
+          }
+          return sha256Hex(idea.sourceUrl);
+        }),
+      ),
+    ),
+  ];
 
   const payload: ForgePayload = {
     title,

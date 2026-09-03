@@ -6,7 +6,6 @@ import {
 } from "@/lib/api";
 import {
   hostnameTitle,
-  seededIngestIdeas,
   seededNeedIdeas,
   type DemoIdea,
   type DemoSource,
@@ -295,109 +294,56 @@ export async function resolveIngestStream(
 
     if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
 
-    if (!res.error && res.ideas?.length) {
-      const mapped = res.ideas.map(mapApiIdea);
-      onEvent?.({
-        type: "kind",
-        contentType: res.contentType,
-        fondObject:
-          res.contentType === "youtube"
-            ? "the talk"
-            : res.contentType === "podcast" || res.contentType === "audio"
-              ? "the pod"
-              : "the piece",
-      });
-      onEvent?.({ type: "meta", title: res.title || hostnameTitle(value) });
-      for (const idea of mapped) {
-        onEvent?.({
-          type: "idea",
-          idea: toApiIdea(idea, value, res.sourceHash),
-        });
-      }
-      onEvent?.({
-        type: "done",
-        sourceHash: res.sourceHash,
-        contentType: res.contentType,
-        title: res.title,
-        textLength: res.textLength,
-        ideaCount: mapped.length,
-      });
-      return {
-        source: {
-          type:
-            detectSourceKind(value, "content") === "podcast" ? "podcast" : "blog",
-          title: res.title || hostnameTitle(value),
-          url: value,
-          ideasCount: mapped.length,
-        },
-        ideas: mapped,
-        fromApi: true,
-        textLength: res.textLength,
-        contentType: res.contentType,
-      };
+    if (res.error) {
+      throw new Error(res.error);
     }
+    if (!res.ideas?.length) {
+      throw new Error("No ideas could be extracted from the source.");
+    }
+
+    const mapped = res.ideas.map(mapApiIdea);
+    onEvent?.({
+      type: "kind",
+      contentType: res.contentType,
+      fondObject:
+        res.contentType === "youtube"
+          ? "the talk"
+          : res.contentType === "podcast" || res.contentType === "audio"
+            ? "the pod"
+            : "the piece",
+    });
+    onEvent?.({ type: "meta", title: res.title || hostnameTitle(value) });
+    for (const idea of mapped) {
+      onEvent?.({
+        type: "idea",
+        idea: toApiIdea(idea, value, res.sourceHash),
+      });
+    }
+    onEvent?.({
+      type: "done",
+      sourceHash: res.sourceHash,
+      contentType: res.contentType,
+      title: res.title,
+      textLength: res.textLength,
+      ideaCount: mapped.length,
+    });
+    return {
+      source: {
+        type:
+          detectSourceKind(value, "content") === "podcast" ? "podcast" : "blog",
+        title: res.title || hostnameTitle(value),
+        url: value,
+        ideasCount: mapped.length,
+      },
+      ideas: mapped,
+      fromApi: true,
+      textLength: res.textLength,
+      contentType: res.contentType,
+    };
   } catch (err) {
     if (isAbort(err)) throw err;
+    throw err;
   }
-
-  if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
-
-  // Seeded fallback
-  const url = value.startsWith("http")
-    ? value
-    : `https://example.com/${encodeURIComponent(value)}`;
-  const fallback = seededIngestIdeas.map((idea, i) => ({
-    ...idea,
-    id: `${idea.id}-${Date.now()}-${i}`,
-  }));
-
-  onEvent?.({
-    type: "kind",
-    contentType: guessType(value),
-    fondObject: guessType(value) === "podcast" ? "the pod" : "the piece",
-  });
-  onEvent?.({
-    type: "phase",
-    phase: "extract",
-    label: "Using local shards…",
-  });
-  onEvent?.({ type: "meta", title: hostnameTitle(url) });
-  for (const idea of fallback) {
-    onEvent?.({ type: "idea", idea: toApiIdea(idea, url, "demo") });
-  }
-  onEvent?.({
-    type: "value",
-    value: {
-      providers: ["cache"],
-      cacheHit: true,
-      sourceHash: "demo",
-      textLength: 0,
-      ideaCount: fallback.length,
-      deferred: ["exa", "forge", "publish"],
-    },
-  });
-  onEvent?.({
-    type: "done",
-    sourceHash: "demo",
-    contentType: guessType(value),
-    title: hostnameTitle(url),
-    textLength: 0,
-    ideaCount: fallback.length,
-    cacheHit: true,
-    providers: ["cache"],
-  });
-
-  return {
-    source: {
-      type: guessType(value),
-      title: hostnameTitle(url),
-      author: "Ingested",
-      url,
-      ideasCount: fallback.length,
-    },
-    ideas: fallback,
-    fromApi: false,
-  };
 }
 
 /** @deprecated prefer resolveIngestStream */
@@ -407,13 +353,6 @@ export async function resolveIngest(
   signal?: AbortSignal,
 ): Promise<IngestResult> {
   return resolveIngestStream(value, mode, {}, signal);
-}
-
-function guessType(value: string): DemoSource["type"] {
-  if (/\.(mp3|m4a|wav)(\?|$)/i.test(value) || /podcast/i.test(value)) {
-    return "podcast";
-  }
-  return "blog";
 }
 
 function isAbort(err: unknown) {

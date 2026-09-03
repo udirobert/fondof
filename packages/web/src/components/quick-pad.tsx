@@ -25,6 +25,7 @@ import {
 } from "@/lib/api";
 import { liveExamples } from "@/lib/demo-data";
 import { looksLikeUrlList, parseUrlList } from "@/lib/url-input";
+import { useSession } from "@/lib/use-session";
 
 export type QuickComposeInput =
   | { urls: string[]; repo?: string; shards: number; isPrivate: boolean }
@@ -74,13 +75,14 @@ export function QuickPad({
   onGoDeeper,
   onNewSource,
 }: QuickPadProps) {
+  const { user } = useSession();
   const [isNeed, setIsNeed] = useState(false);
   const [modeLocked, setModeLocked] = useState(false);
   const [source, setSource] = useState("");
   const [manual, setManual] = useState(false);
   const [manualRepo, setManualRepo] = useState("");
   const [shards, setShards] = useState(2);
-  const [isPrivate, setIsPrivate] = useState(true);
+  const [isPrivate, setIsPrivate] = useState(false);
   const [copied, setCopied] = useState(false);
   const [labelIdx, setLabelIdx] = useState(0);
   const [submitted, setSubmitted] = useState<{ source: string; isNeed: boolean } | null>(null);
@@ -105,6 +107,12 @@ export function QuickPad({
       cancelled = true;
     };
   }, [result]);
+
+  // Default visibility: signed-in users keep private drafts; anonymous users
+  // must be public, otherwise their shareable link would be a 404.
+  useEffect(() => {
+    setIsPrivate(user !== null);
+  }, [user]);
 
   // Live from props: connected repo selection, or manual text when none picked.
   const composedRepo =
@@ -357,11 +365,11 @@ export function QuickPad({
                   </div>
                 </Tip>
 
-                <Tip tip="Private drafts stay local to this flow. Share publicly only when you want attribution and re-forging.">
+                <Tip tip={user ? "Private drafts stay local to this flow. Share publicly only when you want attribution and re-forging." : "Anonymous forges are public so the shareable link works. Sign in to keep drafts private."}>
                   <button
                     type="button"
                     onClick={() => setIsPrivate((p) => !p)}
-                    disabled={busy}
+                    disabled={busy || !user}
                     className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1.5 text-[11px] transition-colors disabled:opacity-50 ${
                       isPrivate
                         ? "border-ink/20 bg-mist text-ink"
@@ -369,7 +377,11 @@ export function QuickPad({
                     }`}
                   >
                     {isPrivate ? <Lock size={11} /> : <Unlock size={11} />}
-                    {isPrivate ? "Private draft" : "Share publicly"}
+                    {isPrivate
+                      ? "Private draft"
+                      : user
+                        ? "Share publicly"
+                        : "Public (anonymous)"}
                   </button>
                 </Tip>
               </div>
