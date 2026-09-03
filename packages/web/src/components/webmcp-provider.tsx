@@ -122,7 +122,6 @@ export function WebMCPProvider() {
         },
         outputSchema: {
           type: "object",
-          additionalProperties: false,
           description: "The public skill record with metadata and markdown.",
           properties: {
             title: { type: ["string", "null"] },
