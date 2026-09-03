@@ -8,6 +8,7 @@ declare global {
     name: string;
     description: string;
     inputSchema: Record<string, unknown>;
+    outputSchema?: Record<string, unknown>;
     execute: (input: Record<string, unknown>) => Promise<unknown>;
   }
 
@@ -41,7 +42,7 @@ export function WebMCPProvider() {
       {
         name: "search_skills",
         description:
-          "Search the public fondof skill pool for existing skills that match a topic or query. Returns a list of skills with title, snippet, and URL.",
+          "Search the public fondof skill pool for existing skills that match a topic or query. Returns a list of skills with title, URL, and snippet.",
         inputSchema: {
           type: "object",
           properties: {
@@ -52,11 +53,24 @@ export function WebMCPProvider() {
           },
           required: ["query"],
         },
+        outputSchema: {
+          type: "array",
+          description:
+            "A list of matching public skills, each with title, URL, and snippet.",
+          items: {
+            type: "object",
+            properties: {
+              title: { type: "string" },
+              url: { type: "string" },
+              snippet: { type: "string" },
+            },
+          },
+        },
         execute: async (input) => {
           const { query } = input as { query: string };
           const res = await searchExistingSkills(query);
           if (res.error) throw new Error(res.error);
-          return JSON.stringify(res.results);
+          return res.results;
         },
       },
       {
@@ -74,11 +88,15 @@ export function WebMCPProvider() {
           },
           required: ["skill_hash"],
         },
+        outputSchema: {
+          type: "object",
+          description: "The public skill record with metadata and markdown.",
+        },
         execute: async (input) => {
           const { skill_hash } = input as { skill_hash: string };
           const res = await getSkillSignal(skill_hash);
           if (res.error) throw new Error(res.error);
-          return JSON.stringify(res);
+          return res;
         },
       },
       {
@@ -112,6 +130,20 @@ export function WebMCPProvider() {
             },
           },
         },
+        outputSchema: {
+          type: "object",
+          description:
+            "The composed skill with title, hash, markdown, source info, and public share URL.",
+          properties: {
+            title: { type: "string" },
+            skill_hash: { type: "string" },
+            skill_url: { type: ["string", "null"] },
+            markdown: { type: "string" },
+            source_title: { type: ["string", "null"] },
+            fitted_to: { type: ["string", "null"] },
+            private: { type: "boolean" },
+          },
+        },
         execute: async (input) => {
           const { need, url, repo, top_shards } = input as {
             need?: string;
@@ -129,15 +161,15 @@ export function WebMCPProvider() {
             ...(typeof top_shards === "number" ? { topShards: top_shards } : {}),
           });
           if (res.error) throw new Error(res.error);
-          return JSON.stringify({
+          return {
             title: res.title,
             skill_hash: res.skillHash,
-            skill_url: res.skillUrl,
+            skill_url: res.skillUrl ?? null,
             markdown: res.markdown,
             source_title: res.sourceTitle,
             fitted_to: res.fittedTo,
             private: res.private,
-          });
+          };
         },
       },
     ];
