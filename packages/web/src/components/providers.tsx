@@ -2,6 +2,7 @@
 
 import { lazy, Suspense, useState, type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { WebMCPProvider } from "@/components/webmcp-provider";
 
 /**
  * Lazy-load WagmiProvider — wagmi + viem are heavy (~100KB+) and only needed
@@ -25,6 +26,7 @@ export function Providers({ children }: { children: ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <WebMCPProvider />
       <Suspense fallback={children}>
         <WagmiWrapper>{children}</WagmiWrapper>
       </Suspense>

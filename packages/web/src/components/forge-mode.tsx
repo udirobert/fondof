@@ -222,7 +222,6 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
         setSharing(false);
         setCelebrate(false);
         setWalletTxHash(undefined);
-        setShowFullDraft(false);
         setForgeTitle(null);
         setForgePrivate(true);
         pendingMarkdown.current = null;

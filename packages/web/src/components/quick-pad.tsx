@@ -380,7 +380,7 @@ export function QuickPad({
                 {result.markdown && (
                   <button
                     type="button"
-                    onClick={() => downloadSkillMarkdown(result.title, result.markdown!)}
+                    onClick={() => downloadSkillMarkdown(result.title ?? "skill", result.markdown!)}
                     className="flex min-h-10 items-center justify-center gap-2 rounded-full border border-ink/12 bg-paper px-4 text-sm font-medium text-ink hover:border-ember/40 hover:bg-mist/60 transition-colors"
                   >
                     <Download size={14} className="text-muted" />
