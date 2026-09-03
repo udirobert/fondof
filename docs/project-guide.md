@@ -1,0 +1,311 @@
+# fondof project guide
+
+This is the long-form guide for judges, contributors, and operators. For a quick start, see the [README](../README.md).
+
+## Built with Kiro
+
+fondof was specified and steered in [Kiro](https://kiro.dev), then shipped as a working web + API + on-chain loop. Judges and contributors can read the agent trail in this repo:
+
+| Artifact | Path |
+|----------|------|
+| Requirements | [`.kiro/specs/fondof/requirements.md`](../.kiro/specs/fondof/requirements.md) |
+| Design | [`.kiro/specs/fondof/design.md`](../.kiro/specs/fondof/design.md) |
+| Tasks | [`.kiro/specs/fondof/tasks.md`](../.kiro/specs/fondof/tasks.md) |
+| Project steering | [`.kiro/steering/project.md`](../.kiro/steering/project.md) |
+| Example forged skill | [`.kiro/steering/optimizing-next-js-performance-with-turbopack-and-.md`](../.kiro/steering/optimizing-next-js-performance-with-turbopack-and-.md) |
+
+**Spec → ship:** the live product is the web floor (extract → fit/forge → hand-off → outcome) backed by a Cloudflare Worker API. SkillPool on Monad is the optional downstream proof/discovery layer — built under that Kiro spec, not a separate rewrite.
+
+## ElevenLabs MCP challenge: Talk to a Skill
+
+The reusable [Talk to a Skill pipeline](../skills/talk-to-a-skill.md) turns a public fondof skill into a grounded ElevenAgent: source → extracted ideas → fitted skill → spoken exploration. A public skill page includes **Copy Talk to a Skill prompt** (Copy tab) so an MCP-capable agent can reproduce the handoff, and owners can attach the resulting agent link so visitors get a **Talk to this skill** button. Skills with an attached agent show a small mic indicator on the pool cards and shelf — it only appears where the capability actually exists. See the [challenge demo plan](talk-to-a-skill.md) for the grounding checks and Hosted MCP/local MCP disclosure.
+
+## Product hierarchy
+
+```text
+Need or source → Extract → Fit / Forge → Copy / Use → Outcome → Share / Attribute → SkillPool proof
+```
+
+1. **Craft (primary)** — A short skill fitted to the target repo's stack, conventions, and paths.
+2. **Hand-off** — Copy it into Cursor / Claude / Kiro and apply it to real work.
+3. **Outcomes** — Attach what it resulted in: a PR, UI delta, screenshot, or repo improvement.
+4. **Attribution and discovery** — Let useful skills, sources, and outcomes travel.
+5. **SkillPool proof (downstream)** — Optional public signal through backing, usage receipts, and challenges.
+
+**Offchain for usefulness. Onchain for public trust.** Most skills are useful without crypto. Attestation matters when an artifact's identity, provenance, or quality signal needs to travel beyond fondof.
+
+## What fondof does
+
+1. **Extract** — Paste a source URL or state a need; fondof finds discrete, forge-worthy ideas.
+2. **Fit** — Connect those ideas to a target repository, stack, and conventions.
+3. **Forge** — Compose a short skill that an agent can actually use.
+4. **Hand off** — Copy it into Cursor / Claude / Kiro and apply it to real work.
+5. **Prove and attribute** — Attach outcomes, share the skill, credit the source, and optionally add SkillPool proof.
+
+## For content creators (supply-side)
+
+Your podcast / blog / talk is being turned into actionable skills by developers. fondof gives you:
+
+- **`/from/[your-domain]`** — a public page showing all skills forged from your content, who forged them, and where they landed
+- **Attribution** — every skill can credit your content as its source
+- **Embeddable badge** — show how developers adapted your content in your show notes or README
+- **Impact surface** — over time, see which ideas were re-forged, used, and attached to outcomes — not just viewed or downloaded
+
+Creators don't need an account. Pages auto-populate from forge data. Optionally verify your domain for analytics.
+
+## Two entry points
+
+**Content-first:** "I just listened to a great podcast — where do these ideas apply across my projects?"
+
+**Need-first (OAuth-free):** "I have a problem in my code — extract shards, forge a fitted skill, and use it." Use the **Need** tab on the start pad — no GitHub login required for the happy path.
+
+## What fondof is NOT
+
+fondof occupies a specific position in the agent skills ecosystem. If you're looking for something else, here's where to go:
+
+### Not a skill marketplace
+
+We don't host, list, or sell pre-made skills. If you want to browse and install existing skills:
+- [ClawHub / OpenClaw](https://github.com/topics/openclaw-skills) — The "npm for skills" with certified and community collections
+- [LobeHub Skills](https://lobehub.com/skills) — Curated one-click install skills
+- [skills.sh](https://skills.sh) — CLI installer for cross-agent skills
+- [SkillsMP](https://skillsmp.com) — Searchable marketplace
+
+### Not a skill aggregator
+
+We don't index or deduplicate the existing skill ecosystem. If you want a catalog:
+- [VoltAgent/awesome-agent-skills](https://github.com/VoltAgent/awesome-agent-skills) — Broad cross-agent collection
+- [AmazingAng/skilldb](https://github.com/AmazingAng/skilldb) — Large searchable aggregation
+- [anthropics/skills](https://github.com/anthropics/skills) — Official Anthropic examples
+- [openai/skills](https://github.com/openai/skills) — Official OpenAI Codex skills
+
+### Not a blockchain product
+
+Most fondof value is offchain. We don't require wallets, gas, tokens, or onchain storage for ordinary forging and use. SkillPool staking is an optional **quality signal / expensive policing layer**, not yield or a reason to tokenize skills. If you want skill economics:
+- [x402 Protocol / Coinbase Bazaar](https://x402.org) — Pay-per-call in USDC on Base
+- [ERC-8239 Skill Registry](https://eips.ethereum.org/EIPS/eip-8239) — On-chain skill identity as NFTs
+- [Torch Market](https://torch.market) — Bonding curves for agent tokens
+
+### Not a domain-specific skill suite
+
+We're domain-agnostic. If you need pre-built DeFi/crypto agent capabilities:
+- [OKX OnchainOS](https://www.okx.com) — 16+ specialized on-chain skills
+- [Allium AgentHub](https://allium.so) — On-chain data across 150+ chains
+- [CoinMarketCap AI Agent Hub](https://coinmarketcap.com) — Market reports and token research
+- [Binance AI Agent Skills](https://binance.com) — Market discovery and execution
+
+### Not an AI security / malware scanner
+
+We don’t claim prompt-injection detection, sandboxing, or audited skill binaries. Contestable reputation (backing, uses, challenges) is social/economic filter — not a guarantee that a skill is safe. Treat agent skills like untrusted software; forge ones you understand for *your* repo.
+
+### fondof IS for when you...
+
+- Want a **personalised** skill for YOUR repo — not a directory clone
+- Listen to a podcast (or state a need) and want insights turned into something **specifically useful**
+- Want **provenance** — know where a skill’s thinking came from
+- Want to **compose** from multiple sources, then copy into your agent
+- Want a **quality loop** — uses raise score; disputes police slop and bad actors
+- Want to **show outcomes** — better UI, cleaner PR, measurable repo delta attached to the skill
+
+## Quick start (judges — hosted first)
+
+**Live app:** [https://fondof.netlify.app](https://fondof.netlify.app)  
+**API:** [https://fondof-api.trustfall.workers.dev](https://fondof-api.trustfall.workers.dev)  
+**Contract:** SkillPool on Monad testnet — `0x75545e2C450897914df416d0D24aeB33a89a8b19`
+
+### Judges: 5-minute click path (live, no install)
+
+Open [https://fondof.netlify.app](https://fondof.netlify.app). Every step below is live — the shards you see are extracted by an LLM from **your** input at click time, not pre-baked.
+
+The nav is **Fond | Pool**, and the floor has two depths on one page via a **Quick / Studio** toggle:
+- **Quick** — paste a URL or state a need, pick a repo (or type any `owner/name`), hit **Forge skill** and get a ready-to-copy fitted skill in one shot, right under the pad.
+- **Studio** — the guided theater below: extract → pick shards → forge.
+
+The numbered **Source → Ideas → Skill** path below walks the **Studio** depth:
+
+1. **Extract from a need (no account, no GitHub).** **Need** tab → type `retry budgets for async TypeScript fetch` → click **Extract**. The API extracts discrete ideas from your exact text (~5–15 s). Type something else (e.g. `structured logging for worker services`) and you'll get different ideas — it's a live call, not a canned list.
+2. **Or extract from a URL.** **URL** tab → click a sample (talk / docs / blog) or paste any public article URL → **Extract**. YouTube pulls real captions; articles are read + LLM-extracted.
+3. **Compose a skill.** Select 1–2 shards → open the **Forge** panel → **Skill for {repo}**. The draft is LLM-composed against the repo's stack: Fit check (structural heuristics — not a live agent eval), **Where it lands**, expandable sections. Copy it for **Cursor / Claude / Kiro** — the primary hand-off.
+4. **Proof (optional).** Share the skill and attach an outcome. If public provenance or contestable quality matters, attest it through SkillPool — your wallet, or the relayer after GitHub sign-in. Challenge resolve is a disclosed demo oracle (allowlisted resolver login + dedicated key), not decentralized adjudication.
+5. **Pool.** [**/pool**](https://fondof.netlify.app/pool) → Pick a proven skill or browse paper cards with live signal.
+
+Each step degrades **honestly** if a dependency is down: need-extract shows “API unreachable — local shards” (labeled, not silent); forge failure shows a local template draft with a visible notice, never passed off as LLM output; chain/relayer unreachable keeps publish a local draft — we do not fake “published.” Happy-path extraction and forge are live; dispute resolve stays a disclosed demo oracle.
+
+Demo video script: [`docs/demo-video.md`](demo-video.md).  
+Submission & 3-day content plan: [`docs/submission-plan.md`](submission-plan.md).  
+Parallel product vs video split: [`docs/parallel-split.md`](parallel-split.md).  
+Video production stack: [`docs/video-pipeline.md`](video-pipeline.md).  
+Package roles: [`docs/architecture.md`](architecture.md).
+
+### WebMCP agent path (judges — ChatGPT / Chrome)
+
+When you open [fondof.netlify.app](https://fondof.netlify.app) in an agentic browser, the page exposes three WebMCP tools:
+
+- **`search_skills`** — find existing public skills by topic.
+- **`get_skill`** — read a public skill by hash (e.g. `7a3f...9d2`).
+- **`compose_skill`** — turn a need or URL into a repo-specific skill.
+
+Try it in ChatGPT's in-app browser:
+
+> "Search fondof for skills about React performance, then compose a new skill from https://youtu.be/7wuYBfE131U for udirobert/fondof."
+
+Or in Google Chrome 149+ with `chrome://flags/#enable-webmcp-testing` enabled, install the [Model Context Tool Inspector](https://chromewebstore.google.com/detail/model-context-tool-inspec/gbpdfapgefenggkahomfgkhfehlcenpd) and trigger the tools manually.
+
+### Verification / testing instructions
+
+From a fresh clone:
+
+```bash
+git clone https://github.com/udirobert/fondof.git
+cd fondof
+pnpm install
+pnpm typecheck        # all packages
+pnpm test             # vitest: LLM parse, fit heuristics, section parsing, meta/outcome sanitization
+pnpm build            # web + api + core + cli
+
+# Contracts (needs Foundry):
+cd packages/contracts && forge build && forge test
+```
+
+**Live stack checks (no keys needed):**
+
+```bash
+# API up + pool has skills
+curl -s https://fondof-api.trustfall.workers.dev/ | head -c 200
+curl -s https://fondof-api.trustfall.workers.dev/api/skills | head -c 300
+
+# Need extraction is live (different text → different shards)
+curl -s -X POST https://fondof-api.trustfall.workers.dev/api/ingest \
+  -H 'content-type: application/json' \
+  -d '{"need":"idempotency keys for webhook consumers"}' | head -c 400
+
+# One-shot compose: ingest + top shards + forge in a single call.
+# `urls` merges multiple sources (max 4); `url` / `need` still work. repo accepts "owner/name" or a GitHub URL (stack auto-detected) — private draft by default; pass `"private": false` for explicit share.
+curl -s -X POST https://fondof-api.trustfall.workers.dev/api/compose \
+  -H 'content-type: application/json' \
+  -d '{"urls":["https://www.youtube.com/watch?v=7wuYBfE131U","https://www.remotion.dev/docs"],"repo":"udirobert/fondof"}' | head -c 600
+# Response includes skillUrl only after the public record is stored — otherwise private: true and skillUrl: null.
+```
+
+**Local dev (optional):** `pnpm install`, then `cd packages/api && pnpm dev` and `cd packages/web && pnpm dev` (set `NEXT_PUBLIC_API_URL=http://127.0.0.1:8787` for the local Worker). Copy [`.env.example`](../.env.example) to `.env` / Worker secrets; relayer + LLM keys live in Wrangler secrets / Netlify env, never in git.
+
+### CLI (secondary / WIP)
+
+```bash
+pnpm --filter @fondof/cli build
+# Agent path:
+fondof login                          # browser GitHub → fondof session
+fondof compose <url> [<url2>] -o .cursor/rules/skill.md
+fondof compose <url> --share          # public share unlocks unlimited when signed in
+# Also: fondof ingest | forge | publish | challenge | status | connect
+```
+
+GitHub login for the CLI (`fondof connect`) is stored in the OS credential vault (macOS Keychain / Linux Secret Service) when available, otherwise in `~/.fondof/config.json` with directory mode `0700` and file mode `0600`. **Fondof API sessions** from `fondof login` use the same vault under a separate key (`fondof.session`) or `sessionToken` in that config file. Set `FONDOF_TOKEN` to override. If the config file was created before owner-only hardening, revoke the old GitHub token at GitHub and run `fondof connect` again — a typical umask left it readable by other local users.
+
+## Architecture
+
+```text
+packages/
+├── web/          Next.js UI — extract, forge, SkillPool desk (/pool, /s/[hash])
+├── api/          Cloudflare Worker — ingest, forge, publish, skills, challenge
+├── cli/          Commander.js CLI (secondary to web)
+├── core/         Shared pipelines used by CLI (ingestion, composition, relayer helpers)
+├── contracts/    Foundry — SkillPool.sol (demo contract); FondofAttestation.sol (legacy)
+└── shared/       Shared TypeScript types
+```
+
+**Package roles:** `api` is the live HTTP edge; `core` backs the CLI and reusable logic; `web` talks to `api` over HTTPS. SkillPool is the downstream public proof/discovery layer — not the core creation flow, marketplace, or listing fee.
+
+**Security model:** CSRF-safe OAuth with same-origin post-login redirects, one-time token exchange bound to the initiating browser (no tokens in URLs or JavaScript-visible storage; browser sessions use an httpOnly cookie), owner-gated write endpoints, an SSRF guard on user-supplied URL fetches, and per-IP rate limits — documented with details in [`docs/architecture.md`](architecture.md#security-model).
+
+**Future of the trust layer (not shipped):** we're evaluating **Arkiv** — a queryable, time-scoped, tamper-proof Ethereum data layer — as a candidate home for provenance + contestable quality, explored **alongside** the existing Monad SkillPool (no retirement decision made). See [`docs/roadmap-arkiv.md`](roadmap-arkiv.md) for the hybrid-layer boundary and why a plain DB can't credibly serve the provenance slice.
+
+## Environment variables
+
+See [`.env.example`](../.env.example) for placeholders. Summary:
+
+```bash
+# On-chain (SkillPool)
+MONAD_RPC_URL=https://…                 # Monad testnet RPC
+FONDOF_RELAYER_KEY=0x…                  # Hot relayer (Worker secret; keep thinly funded)
+FONDOF_RESOLVER_KEY=0x…                 # Resolve-only key; do not reuse the hot relayer
+RESOLVER_LOGINS=your-github-login       # Allowlisted GitHub logins for resolve / halt
+# RELAYER_HALT=1                        # Emergency-stop all relayer-sponsored writes
+FONDOF_CONTRACT_ADDRESS=0x75545e2C450897914df416d0D24aeB33a89a8b19
+
+# Web
+NEXT_PUBLIC_API_URL=https://fondof-api.trustfall.workers.dev
+NEXT_PUBLIC_FONDOF_CONTRACT_ADDRESS=0x75545e2C450897914df416d0D24aeB33a89a8b19
+
+# Auth (GitHub OAuth)
+GITHUB_CLIENT_ID=…                      # GitHub OAuth app
+GITHUB_CLIENT_SECRET=…                  # GitHub OAuth app
+
+# Billing (Stripe)
+STRIPE_SECRET_KEY=sk_test_…             # Stripe secret key
+STRIPE_WEBHOOK_SECRET=whsec_…           # Stripe webhook signing
+STRIPE_PRICE_ID=price_…                 # Pro plan Price ID
+
+# LLM / ingest (Worker secrets)
+CLOUDFLARE_ACCOUNT_ID=…
+CLOUDFLARE_API_TOKEN=…                  # or CF_API_TOKEN
+# ANTHROPIC_API_KEY=…                   # optional
+ELEVENLABS_API_KEY=…                    # optional podcasts
+EXA_API_KEY=…                           # optional Compare
+FIRECRAWL_API_KEY=…                     # optional articles
+```
+
+## Deployment
+
+### API (Cloudflare Worker)
+
+```bash
+cd packages/api
+
+# Create KV namespace for sessions + billing
+wrangler kv namespace create SESSIONS
+# Copy the ID into wrangler.toml → [[kv_namespaces]] id = "…"
+
+# Set secrets
+wrangler secret put FONDOF_RELAYER_KEY
+wrangler secret put FONDOF_RESOLVER_KEY
+wrangler secret put GITHUB_CLIENT_ID
+wrangler secret put GITHUB_CLIENT_SECRET
+wrangler secret put STRIPE_SECRET_KEY
+wrangler secret put STRIPE_WEBHOOK_SECRET
+wrangler secret put STRIPE_PRICE_ID
+# Optional: wrangler secret put RESOLVER_LOGINS
+# Optional emergency stop: wrangler secret put RELAYER_HALT  (value 1)
+
+# Deploy
+wrangler deploy
+```
+
+### Web (Netlify)
+
+Set these env vars in Netlify dashboard (or `netlify.toml`):
+- `NEXT_PUBLIC_API_URL` → your Worker URL
+- `NEXT_PUBLIC_FONDOF_CONTRACT_ADDRESS` → SkillPool address
+
+### GitHub OAuth App
+
+1. Go to [github.com/settings/developers](https://github.com/settings/developers)
+2. Create a new OAuth App
+3. **Authorization callback URL:** `https://YOUR-WORKER.workers.dev/api/auth/callback`
+4. Copy Client ID and Client Secret into Worker secrets
+
+### Stripe
+
+1. Create a Product + Price in the [Stripe Dashboard](https://dashboard.stripe.com)
+2. Set `STRIPE_PRICE_ID` to the Price ID
+3. Create a Webhook endpoint → `https://YOUR-WORKER.workers.dev/api/billing/webhook`
+4. Events to listen for: `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `customer.subscription.deleted`, `customer.subscription.paused`
+5. Copy the signing secret into `STRIPE_WEBHOOK_SECRET`. Unsigned or unpaid events are rejected; Pro is not granted until Stripe reports the session paid.
+
+## Contributing
+
+Built for **Ready, Spec, Ship** (Kiro) and Monad demos. Specs, steering, and task status live under [`.kiro/`](../.kiro/). Prefer the hosted judge path above; open issues/PRs against the web + API loop first.
+
+## License
+
+MIT
