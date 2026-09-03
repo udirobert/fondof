@@ -125,12 +125,13 @@ curl -s -X POST https://fondof-api.trustfall.workers.dev/api/compose -H 'content
 
 What to do with it: save markdown into .kiro/steering/ or .cursor/rules/ (or CLAUDE.md), then apply the skill to the user's next task.
 
-### CLI auth (agents / terminal)
+### Auth (CLI / agents / terminal)
 
+- Web browser sessions are set as an httpOnly cookie by POST /api/auth/exchange; the JavaScript client never sees the session token.
 - POST /api/auth/cli/start → { deviceCode, userCode, verificationUri, interval, expiresIn }
 - Open verificationUri in a browser (GitHub OAuth), then POST /api/auth/cli/poll { deviceCode } until status=ready → { token, user }
 - Or POST /api/auth/cli/github { accessToken } when you already have a GitHub token from fondof connect
-- Use Authorization: Bearer <token> on /api/compose. Prefer: fondof login && fondof compose <urls…>
+- CLI/agents should use Authorization: Bearer <token> on /api/compose. Prefer: fondof login && fondof compose <urls…>
 
 ### Other endpoints
 
