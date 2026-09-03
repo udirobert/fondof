@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
-import { composeSkill, getSkillSignal, searchExistingSkills } from "@/lib/api";
+import { composeSkill, getSkillSignal, searchPublicSkills } from "@/lib/api";
+import { skillPublicPath } from "@/lib/skill-share";
 
 declare global {
   interface Navigator {
@@ -95,9 +96,17 @@ export function WebMCPProvider() {
               "I need a search query before I can look for skills. Ask the user what topic they want to search for (e.g., 'React performance' or 'retry budgets').",
             );
           }
-          const res = await searchExistingSkills(query);
+          const res = await searchPublicSkills(query, 10);
           if (res.error) throw new Error(res.error);
-          return res.results;
+          return (res.skills ?? []).slice(0, 10).map((skill) => ({
+            title: skill.title || "Untitled skill",
+            url: `https://fondof.netlify.app${skillPublicPath(skill.skillHash)}`,
+            snippet:
+              skill.blurb ||
+              skill.sourceUrls?.[0] ||
+              skill.repo ||
+              "Public skill",
+          }));
         },
       },
       {
@@ -225,6 +234,17 @@ export function WebMCPProvider() {
               description: "All source URLs that contributed to the skill.",
               items: { type: "string" },
             },
+            source_failures: {
+              type: "array",
+              description: "Sources that could not be ingested, with per-URL error messages.",
+              items: {
+                type: "object",
+                properties: {
+                  url: { type: "string" },
+                  error: { type: "string" },
+                },
+              },
+            },
             fitted_to: { type: ["string", "null"] },
             private: { type: ["boolean", "null"] },
             error: { type: ["string", "null"] },
@@ -296,6 +316,7 @@ export function WebMCPProvider() {
               unlock: res.unlock ?? null,
               login_url: res.login_url ?? null,
               remaining: res.remaining ?? null,
+              source_failures: res.sourceFailures ?? [],
             };
           }
 
@@ -306,6 +327,7 @@ export function WebMCPProvider() {
             markdown: res.markdown ?? null,
             source_title: res.sourceTitle ?? null,
             source_urls: res.sourceUrls ?? [],
+            source_failures: res.sourceFailures ?? [],
             fitted_to: res.fittedTo ?? null,
             private: res.private ?? true,
           };

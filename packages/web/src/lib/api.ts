@@ -477,6 +477,22 @@ export async function getTopSkills(
   return res.json();
 }
 
+export async function searchPublicSkills(
+  query: string,
+  limit = 10,
+): Promise<{
+  skills: SkillOnChainResponse[];
+  error?: string;
+}> {
+  const params = new URLSearchParams({
+    q: query,
+    limit: String(limit),
+    sort: "impact",
+  });
+  const res = await fetch(`${API_URL}/api/skills?${params.toString()}`);
+  return res.json() as Promise<{ skills: SkillOnChainResponse[]; error?: string }>;
+}
+
 export async function recordUsage(
   hash: string,
   options?: { receiptKey?: string; consented?: boolean },

@@ -162,6 +162,17 @@
             "description": "All source URLs that contributed to the skill.",
             "items": { "type": "string" }
           },
+          "source_failures": {
+            "type": "array",
+            "description": "Sources that could not be ingested, with per-URL error messages.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "url": { "type": "string" },
+                "error": { "type": "string" }
+              }
+            }
+          },
           "fitted_to": { "type": ["string", "null"] },
           "private": { "type": ["boolean", "null"] },
           "error": { "type": ["string", "null"] },

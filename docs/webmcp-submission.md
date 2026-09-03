@@ -36,7 +36,7 @@ Before, this required either an MCP server the user had to install or a brittle 
 
 We added `packages/web/src/components/webmcp-provider.tsx`, a client component that registers three tools with `document.modelContext.registerTool`:
 
-- `search_skills` — `POST /api/search/skills` to find existing public skills.
+- `search_skills` — `GET /api/skills?q={query}` to search the public fondof skill pool.
 - `get_skill` — `GET /api/skills/{hash}` to read a public skill.
 - `compose_skill` — `POST /api/compose` to turn a need or URL into a repo-specific skill.
 
@@ -69,10 +69,8 @@ The code is at:
 ### Live API health check
 
 ```bash
-curl -s https://fondof-api.trustfall.workers.dev/api/skills?limit=2
-curl -s -X POST https://fondof-api.trustfall.workers.dev/api/search/skills \
-  -H 'content-type: application/json' \
-  -d '{"query":"React performance"}'
+curl -s 'https://fondof-api.trustfall.workers.dev/api/skills?limit=2'
+curl -s 'https://fondof-api.trustfall.workers.dev/api/skills?q=React%20performance&limit=5'
 ```
 
 ## Suggested 3-minute demo script
