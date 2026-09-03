@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
   ArrowRight,
@@ -24,19 +24,11 @@ import {
   type ForgeEntitlementResponse,
 } from "@/lib/api";
 import { liveExamples } from "@/lib/demo-data";
+import { looksLikeUrlList, parseUrlList } from "@/lib/url-input";
 
 export type QuickComposeInput =
-  | { url: string; repo?: string; shards: number; isPrivate: boolean }
+  | { urls: string[]; repo?: string; shards: number; isPrivate: boolean }
   | { need: string; repo?: string; shards: number; isPrivate: boolean };
-
-function isUrlLike(value: string): boolean {
-  const trimmed = value.trim();
-  if (!trimmed) return false;
-  if (/^https?:\/\//i.test(trimmed) || /^www\./i.test(trimmed)) return true;
-  // Bare domain-ish: e.g. "nextjs.org/blog/next-16-3" with no spaces
-  if (!/\s/.test(trimmed) && /\.[a-z]{2,}(\/|$)/i.test(trimmed)) return true;
-  return false;
-}
 
 interface QuickPadProps {
   busy: boolean;
@@ -91,7 +83,7 @@ export function QuickPad({
     if (modeLocked) return;
     const trimmed = source.trim();
     if (!trimmed) return;
-    setIsNeed(!isUrlLike(trimmed));
+    setIsNeed(!looksLikeUrlList(trimmed));
   }, [source, modeLocked]);
 
   // Check remaining forge quota so users aren’t surprised by the error state.
@@ -131,8 +123,13 @@ export function QuickPad({
     if (!trimmed || busy) return;
     setSubmitted({ source: trimmed, isNeed });
     const base = { repo: composedRepo, shards, isPrivate };
-    if (isNeed) onCompose({ need: trimmed, ...base });
-    else onCompose({ url: trimmed, ...base });
+    if (isNeed) {
+      onCompose({ need: trimmed, ...base });
+    } else {
+      const urls = parseUrlList(trimmed);
+      if (urls.length === 0) return;
+      onCompose({ urls, ...base });
+    }
   };
 
   const tryExample = (url: string) => {
@@ -141,7 +138,7 @@ export function QuickPad({
     setModeLocked(false);
     setIsNeed(false);
     setSubmitted({ source: url, isNeed: false });
-    onCompose({ url, repo: composedRepo, shards, isPrivate });
+    onCompose({ urls: [url], repo: composedRepo, shards, isPrivate });
   };
 
   const handleCopy = async () => {
@@ -161,6 +158,11 @@ export function QuickPad({
     setCopied(false);
     onNewSource();
   };
+
+  const urlRows = useMemo(
+    () => Math.min(4, Math.max(2, source.split("\n").length)),
+    [source],
+  );
 
   return (
     <motion.div
@@ -199,7 +201,7 @@ export function QuickPad({
                 type="button"
                 onClick={() => {
                   setModeLocked(false);
-                  if (source.trim()) setIsNeed(!isUrlLike(source));
+                  if (source.trim()) setIsNeed(!looksLikeUrlList(source));
                 }}
                 className="text-[10px] text-muted hover:text-ink"
               >
@@ -222,12 +224,12 @@ export function QuickPad({
               }
             }}
             disabled={busy}
-            rows={isNeed ? 3 : 1}
+            rows={isNeed ? 3 : urlRows}
             autoFocus
             placeholder={
               isNeed
                 ? "Describe the technique or problem you want a skill for…"
-                : "Paste a YouTube, blog, or podcast URL…"
+                : "Paste up to 4 URLs, one per line or separated by spaces…"
             }
             className="w-full resize-none bg-transparent px-1 py-1 text-sm text-ink placeholder:text-muted/60 focus:outline-none disabled:opacity-50"
           />

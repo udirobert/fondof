@@ -24,6 +24,7 @@ import {
   patchPublicSkill,
   publicSkillMutationAccess,
   recordPublicSkill,
+  type PublicSkillRecord,
   unlistPublicSkill,
 } from "../lib/skill-registry.js";
 import { rateLimit } from "../lib/rate-limit-mw.js";
@@ -643,11 +644,12 @@ skillsRoute.get("/skills", async (c) => {
   const framework = c.req.query("framework")?.trim().toLowerCase() || "";
   const language = c.req.query("language")?.trim().toLowerCase() || "";
   const genreSlug = c.req.query("genre")?.trim().toLowerCase() || "";
+  const query = c.req.query("q")?.trim().toLowerCase() || "";
   if (genreSlug && !genreBySlug(genreSlug)) {
     return c.json({ error: `Unknown genre: ${genreSlug}` }, 400);
   }
-  const hasFilter = Boolean(domain || framework || language || genreSlug);
-  const cacheKey = `skills:pool:v4:${sort}:${domain}:${framework}:${language}:${genreSlug}:${limit}`;
+  const hasFilter = Boolean(domain || framework || language || genreSlug || query);
+  const cacheKey = `skills:pool:v4:${sort}:${domain}:${framework}:${language}:${genreSlug}:${query}:${limit}`;
 
   const hit = await cacheGetJson<{ skills: unknown[] }>(cacheKey);
   if (hit) {
@@ -666,9 +668,24 @@ skillsRoute.get("/skills", async (c) => {
     }
   }
   const filteredPub = pub.filter((record) => {
-    const matches = (values: string[] | undefined, query: string) =>
-      !query || (values ?? []).some((value) => value.toLowerCase() === query);
+    const matches = (values: string[] | undefined, needle: string) =>
+      !needle || (values ?? []).some((value) => value.toLowerCase() === needle);
+    const matchesQuery = (r: PublicSkillRecord) => {
+      if (!query) return true;
+      const haystack = [
+        r.title,
+        r.blurb,
+        r.repo,
+        ...(r.domains ?? []),
+        ...(r.frameworks ?? []),
+        ...(r.languages ?? []),
+        ...(r.sourceUrls ?? []),
+        ...(r.canonicalSources?.map((s) => s.url) ?? []),
+      ].filter((s): s is string => typeof s === "string" && s.length > 0);
+      return haystack.some((s) => s.toLowerCase().includes(query));
+    };
     return (
+      matchesQuery(record) &&
       matches(record.domains, domain) &&
       matches(record.frameworks, framework) &&
       matches(record.languages, language) &&

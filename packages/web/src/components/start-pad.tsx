@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { liveExamples } from "@/lib/demo-data";
+import { parseUrlList } from "@/lib/url-input";
 
 type Mode = "url" | "need";
 
@@ -11,6 +12,8 @@ interface StartPadProps {
   busy?: boolean;
   autofocus?: boolean;
   onSubmitUrl: (url: string) => void;
+  /** Optional multi-source handler. If omitted, only the first URL is used. */
+  onSubmitUrls?: (urls: string[]) => void;
   onSubmitNeed: (need: string) => void;
   onTrySample: () => void;
 }
@@ -20,6 +23,7 @@ export function StartPad({
   busy = false,
   autofocus = true,
   onSubmitUrl,
+  onSubmitUrls,
   onSubmitNeed,
   onTrySample,
 }: StartPadProps) {
@@ -37,10 +41,24 @@ export function StartPad({
     e?.preventDefault();
     const trimmed = value.trim();
     if (!trimmed || busy) return;
-    if (mode === "need") onSubmitNeed(trimmed);
-    else {
-      const url = trimmed.startsWith("http") ? trimmed : `https://${trimmed}`;
-      onSubmitUrl(url);
+    if (mode === "need") {
+      onSubmitNeed(trimmed);
+      return;
+    }
+    const urls = parseUrlList(trimmed);
+    if (urls.length === 0) {
+      // Bare single token that looks like a query / need in URL mode
+      onSubmitNeed(trimmed);
+      return;
+    }
+    if (urls.length === 1) {
+      onSubmitUrl(urls[0]);
+      return;
+    }
+    if (onSubmitUrls) {
+      onSubmitUrls(urls);
+    } else {
+      onSubmitUrl(urls[0]);
     }
   };
 
@@ -78,7 +96,7 @@ export function StartPad({
         <div className="flex flex-col gap-2 rounded-2xl border border-ink/10 bg-paper p-2 shadow-[var(--shadow-lg)] transition-[border-color,box-shadow] focus-within:border-ember/40 focus-within:ring-2 focus-within:ring-ember/15 sm:flex-row sm:items-stretch">
           <input
             ref={inputRef}
-            type={mode === "url" ? "url" : "text"}
+            type="text"
             value={value}
             onChange={(e) => setValue(e.target.value)}
             disabled={busy}
@@ -87,11 +105,11 @@ export function StartPad({
             autoCorrect="off"
             placeholder={
               mode === "url"
-                ? "Paste a podcast, blog, or YouTube link"
+                ? "Paste up to 4 URLs, separated by spaces or newlines…"
                 : "Describe what you need a skill for"
             }
             className="min-h-12 min-w-0 flex-1 bg-transparent px-3 py-3 text-base text-ink placeholder:text-muted/70 focus:outline-none disabled:opacity-50"
-            aria-label={mode === "url" ? "Source URL" : "Need description"}
+            aria-label={mode === "url" ? "Source URLs" : "Need description"}
           />
           <button
             type="submit"

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ShieldCheck, FileText, Mic } from "lucide-react";
+import { Search, ShieldCheck, FileText, Mic } from "lucide-react";
 import { API_BASE } from "@/lib/api-base";
 import { skillPublicPath } from "@/lib/skill-share";
 import { Tip } from "@/components/tip";
@@ -38,6 +38,8 @@ export function RecentPublicSkills({
   const [domain, setDomain] = useState("");
   const [framework, setFramework] = useState("");
   const [genre, setGenre] = useState(initialGenre);
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [facets, setFacets] = useState<{
     domains: string[];
     frameworks: string[];
@@ -46,17 +48,24 @@ export function RecentPublicSkills({
   }>({ domains: [], frameworks: [], languages: [], genres: [] });
 
   useEffect(() => {
+    const t = window.setTimeout(() => setDebouncedSearch(search.trim()), 250);
+    return () => window.clearTimeout(t);
+  }, [search]);
+
+  useEffect(() => {
     let cancelled = false;
     setSkills(null);
     setError(false);
-    const query = new URLSearchParams({
-      limit: String(limit),
+    const fetchLimit = debouncedSearch ? Math.max(limit, 20) : limit;
+    const params = new URLSearchParams({
+      limit: String(fetchLimit),
       sort,
       ...(domain ? { domain } : {}),
       ...(framework ? { framework } : {}),
       ...(genre ? { genre } : {}),
+      ...(debouncedSearch ? { q: debouncedSearch } : {}),
     });
-    fetch(`${API_BASE}/api/skills?${query.toString()}`)
+    fetch(`${API_BASE}/api/skills?${params.toString()}`)
       .then(async (r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();
@@ -82,7 +91,7 @@ export function RecentPublicSkills({
     return () => {
       cancelled = true;
     };
-  }, [limit, sort, domain, framework, genre]);
+  }, [limit, sort, domain, framework, genre, debouncedSearch]);
 
   if (error) {
     return (
@@ -102,14 +111,44 @@ export function RecentPublicSkills({
 
   if (skills.length === 0) {
     return (
-      <p className="text-center text-[12px] text-muted">
-        Nothing public yet — forge or compose your first skill.
-      </p>
+      <>
+        <div className="relative mb-3">
+          <Search
+            size={14}
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted"
+          />
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search skills, stacks, sources…"
+            className="w-full rounded-full border border-ink/10 bg-paper py-2 pr-3 pl-9 text-sm text-ink placeholder:text-muted/60 focus:border-ember/40 focus:outline-none"
+          />
+        </div>
+        <p className="text-center text-[12px] text-muted">
+          {debouncedSearch
+            ? "No skills match your search."
+            : "Nothing public yet — forge or compose your first skill."}
+        </p>
+      </>
     );
   }
 
   return (
     <>
+      <div className="relative mb-3">
+        <Search
+          size={14}
+          className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted"
+        />
+        <input
+          type="search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search skills, stacks, sources…"
+          className="w-full rounded-full border border-ink/10 bg-paper py-2 pr-3 pl-9 text-sm text-ink placeholder:text-muted/60 focus:border-ember/40 focus:outline-none"
+        />
+      </div>
       <div className="mb-3 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-[11px]">
         {([
           ["impact", "Evidence signal"],

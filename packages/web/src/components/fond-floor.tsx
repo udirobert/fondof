@@ -101,6 +101,7 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
   const [quickMode, setQuickMode] = useState(true);
   const [quickBusy, setQuickBusy] = useState(false);
   const [quickResult, setQuickResult] = useState<ComposeResponse | null>(null);
+  const [ingestError, setIngestError] = useState<string | null>(null);
 
   const persistMode = useCallback(
     (quick: boolean) => {
@@ -238,6 +239,7 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
     abortRef.current?.abort();
     abortRef.current = null;
     setIngesting(false);
+    setIngestError(null);
     setMode(ideas.length > 0 ? "work" : "pad");
     setPhases([]);
     setLiveIdeas([]);
@@ -272,6 +274,7 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
     setLiveIdeas([]);
     setQuickBusy(false);
     setQuickResult(null);
+    setIngestError(null);
     setFitFilterActive(false);
     setFocusShardId(null);
     setSourcesOpen(false);
@@ -489,6 +492,7 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
       } catch (err) {
         if (err instanceof DOMException && err.name === "AbortError") {
           removeSource(placeholderUrl);
+          setIngestError(null);
           setMode("pad");
         } else {
           updateSource(placeholderUrl, {
@@ -496,6 +500,11 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
             isProcessing: false,
           });
           removeSource(placeholderUrl);
+          setIngestError(
+            err instanceof Error
+              ? `Couldn’t extract source: ${err.message.slice(0, 120)}`
+              : "Couldn’t extract source. Check the URL and try again.",
+          );
           setMode("pad");
         }
       } finally {
@@ -517,6 +526,137 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
     ],
   );
 
+  // Batch ingest for Studio: parse multiple URLs and merge their ideas.
+  const runMultiIngest = useCallback(
+    async (urls: string[]) => {
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
+
+      setIngesting(true);
+      setIngestError(null);
+      setMode("ingest");
+      setPhases([{ phase: "ingest", label: `Extracting ${urls.length} sources…` }]);
+      setActivePhase("ingest");
+      setLiveFondObject("these sources");
+      setLiveTitle(undefined);
+      setLiveIdeas([]);
+      setDiscoverySkills([]);
+      setIngestValue(null);
+      setCompareNote(null);
+
+      const results = await Promise.allSettled(
+        urls.map((url) =>
+          resolveIngestStream(url, "content", {}, controller.signal),
+        ),
+      );
+
+      let successCount = 0;
+      let failCount = 0;
+      const allIdeas: IdeaFromAPI[] = [];
+      const failures: string[] = [];
+
+      for (let i = 0; i < urls.length; i++) {
+        const url = urls[i];
+        const r = results[i];
+        if (r.status === "rejected") {
+          failCount++;
+          failures.push(`${url}: ${r.reason instanceof Error ? r.reason.message : "failed"}`);
+          continue;
+        }
+        const result = r.value;
+        if (result.ideas.length === 0) {
+          failCount++;
+          failures.push(`${url}: no ideas extracted`);
+          continue;
+        }
+        successCount++;
+        const sourceHash = result.fromApi ? "api" : "local";
+        const contentType =
+          result.contentType === "youtube"
+            ? "youtube"
+            : result.contentType === "podcast" || result.contentType === "audio"
+              ? "podcast"
+              : result.contentType === "text"
+                ? "text"
+                : "blog";
+        addSource({
+          url: result.source.url,
+          title: result.source.title,
+          contentType,
+          ideasCount: result.ideas.length,
+          sourceHash,
+          isProcessing: false,
+          textLength: result.textLength ?? 0,
+          cacheHit: !result.fromApi,
+        });
+        allIdeas.push(
+          ...result.ideas.map((idea) =>
+            toApiIdea(idea, result.source.url, sourceHash),
+          ),
+        );
+      }
+
+      // Merge with existing ideas, replacing any that came from these URLs.
+      const prevIdeas = useAppStore
+        .getState()
+        .ideas.filter((idea) => !urls.includes(idea.sourceUrl));
+      const mergedIdeas = [...prevIdeas, ...allIdeas];
+      setIdeas(mergedIdeas);
+      const mergedIds = new Set(mergedIdeas.map((idea) => idea.id));
+      useAppStore.setState((state) => ({
+        selectedIdeaIds: new Set(
+          [...state.selectedIdeaIds].filter((id) => mergedIds.has(id)),
+        ),
+      }));
+      setDiscoverySkills([]);
+      if (!allIdeas.length) {
+        setIngestValue({
+          providers: ["cache"],
+          cacheHit: true,
+          sourceHash: "local",
+          textLength: 0,
+          ideaCount: 0,
+          deferred: ["exa", "forge", "publish"],
+        });
+      }
+
+      setIngesting(false);
+      setPhases([]);
+      setLiveIdeas([]);
+      abortRef.current = null;
+
+      if (successCount === 0) {
+        setIngestError(
+          failures[0] ?? "No sources could be extracted. Check the URLs and try again.",
+        );
+        setMode("pad");
+        return;
+      }
+
+      if (failCount > 0) {
+        setIngestError(`${failCount} source(s) failed: ${failures.join("; ")}`);
+      }
+      setMode("work");
+      track("ingest_completed", { ideaCount: allIdeas.length, contentType: "mixed" });
+    },
+    [
+      addSource,
+      setIdeas,
+      setIngesting,
+      setIngestError,
+      setMode,
+      setPhases,
+      setActivePhase,
+      setLiveFondObject,
+      setLiveTitle,
+      setLiveIdeas,
+      setDiscoverySkills,
+      setIngestValue,
+      setCompareNote,
+    ],
+  );
+
   // Quick mode: one-shot compose (ingest → top shards → forge) in a single call.
   const handleQuickCompose = useCallback(
     async (input: QuickComposeInput) => {
@@ -528,7 +668,7 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
           private: input.isPrivate,
         };
         if ("need" in input) body.need = input.need;
-        else body.url = input.url.startsWith("http") ? input.url : `https://${input.url}`;
+        else body.urls = input.urls;
         if (input.repo) body.repo = input.repo;
         const res = await composeSkill(body);
         setQuickResult(res);
@@ -558,6 +698,7 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
       setQuickResult(null);
       if (res && !res.error && res.ideas && res.ideas.length > 0) {
         const sourceUrl =
+          res.sourceUrls?.[0] ||
           res.sourceUrl ||
           (isNeed
             ? `need://${encodeURIComponent(src.slice(0, 48))}`
@@ -842,6 +983,11 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
                   </button>
                 ))}
               </div>
+              {ingestError && (
+                <div className="mb-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-center text-sm text-red-800">
+                  {ingestError}
+                </div>
+              )}
               {quickMode ? (
                 <QuickPad
                   busy={quickBusy}
@@ -857,6 +1003,7 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
                 <StartPad
                   busy={isIngesting}
                   onSubmitUrl={(url) => void runIngest({ url })}
+                  onSubmitUrls={(urls) => void runMultiIngest(urls)}
                   onSubmitNeed={(need) => void runIngest({ need })}
                   onTrySample={loadInstantSample}
                 />

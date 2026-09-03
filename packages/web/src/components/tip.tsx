@@ -1,7 +1,15 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
-import type { ReactNode } from "react";
+import {
+  Children,
+  cloneElement,
+  isValidElement,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+} from "react";
+import type { ReactElement, ReactNode } from "react";
 import { GLOSSARY, type GlossaryKey } from "@/lib/glossary";
 
 interface TipProps {
@@ -15,6 +23,11 @@ interface TipProps {
  * Hover/focus tooltip for product jargon — keeps labels short, teaches on demand.
  * On touch devices, tapping a non-interactive label toggles the tooltip
  * (outside tap dismisses); tips wrapping buttons never hijack the tap.
+ *
+ * Accessibility: when the trigger is a single focusable element (button, link,
+ * input, etc.), the tooltip id is attached to that element via aria-describedby
+ * so screen readers announce it on focus. For non-focusable labels the tooltip
+ * is still available to pointer/hover users.
  */
 export function Tip({ tip, children, className = "" }: TipProps) {
   const label = tip in GLOSSARY ? GLOSSARY[tip as GlossaryKey] : tip;
@@ -44,22 +57,38 @@ export function Tip({ tip, children, className = "" }: TipProps) {
     setOpen((v) => !v);
   };
 
+  const childArray = Children.toArray(children);
+  const firstChild = childArray[0];
+  const onlyChild = childArray.length === 1;
+  const triggerIsElement = onlyChild && isValidElement(firstChild);
+  let trigger: ReactNode = children;
+  if (triggerIsElement) {
+    const child = firstChild as ReactElement<Record<string, unknown>>;
+    const existing = (child.props["aria-describedby"] as string | undefined);
+    trigger = cloneElement(child, {
+      "aria-describedby": open ? (existing ?? tooltipId) : existing,
+    });
+  }
+
   return (
     <span
       ref={ref}
       className={`group/tip relative inline-flex max-w-full ${className}`}
       onClick={handleClick}
-      aria-describedby={open ? tooltipId : undefined}
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+      onFocus={() => setOpen(true)}
+      onBlur={(e) => {
+        if (!ref.current?.contains(e.relatedTarget as Node)) setOpen(false);
+      }}
     >
-      {children}
+      {trigger}
       <span
         id={tooltipId}
         role="tooltip"
         aria-hidden={!open}
         className={`pointer-events-none absolute bottom-[calc(100%+6px)] left-1/2 z-[60] w-max max-w-[16rem] -translate-x-1/2 rounded-md border border-ink/10 bg-ink px-2.5 py-1.5 text-left text-[11px] leading-snug font-normal normal-case tracking-normal text-paper shadow-lg transition-opacity duration-150 ${
-          open
-            ? "opacity-100"
-            : "opacity-0 group-hover/tip:opacity-100 group-focus-within/tip:opacity-100 [@media(hover:none)]:group-active/tip:opacity-100"
+          open ? "opacity-100" : "opacity-0"
         }`}
       >
         {label}
