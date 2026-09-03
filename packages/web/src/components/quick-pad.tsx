@@ -126,7 +126,7 @@ export function QuickPad({
       className="mx-auto w-full max-w-xl px-4"
     >
       <form onSubmit={submit}>
-        <div className="flex flex-col gap-2 rounded-2xl border border-ink/10 bg-paper p-3 shadow-[var(--shadow-lg)]">
+        <div className="flex flex-col gap-2 rounded-2xl border border-ink/10 bg-paper p-2.5 shadow-[var(--shadow-lg)]">
           {/* URL / Need tabs */}
           <div className="flex justify-center gap-1">
             {(["url", "need"] as const).map((m) => (
@@ -151,12 +151,13 @@ export function QuickPad({
             onChange={(e) => setSource(e.target.value)}
             disabled={busy}
             rows={isNeed ? 3 : 1}
+            autoFocus
             placeholder={
               isNeed
                 ? "Describe the technique or problem you want a skill for…"
                 : "Paste a YouTube, blog, or podcast URL…"
             }
-            className="w-full resize-none bg-transparent text-sm text-ink placeholder:text-muted/60 focus:outline-none disabled:opacity-50"
+            className="w-full resize-none bg-transparent px-1 text-sm text-ink placeholder:text-muted/60 focus:outline-none disabled:opacity-50"
           />
 
           {/* Fit repo — always visible; power knobs behind Options */}
@@ -274,7 +275,7 @@ export function QuickPad({
           </div>
           {repos.length === 0 && (
             <p className="text-[10px] leading-snug text-muted">
-              Public repos work without sign-in. {" "}
+              Public repos work without sign-in.{" "}
               <button
                 type="button"
                 onClick={() => loginWithGitHub(window.location.pathname)}
@@ -282,7 +283,7 @@ export function QuickPad({
               >
                 Sign in with GitHub
               </button>{" "}
-              to save ownership and share outcomes.
+              for private repos and sharing.
             </p>
           )}
 
@@ -313,7 +314,35 @@ export function QuickPad({
           animate={{ opacity: 1, y: 0 }}
           className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
         >
-          {result.error}
+          <p className="font-medium">{result.error}</p>
+          {result.code === "quota_exceeded" && (
+            <div className="mt-2 space-y-2">
+              {result.hint && (
+                <p className="text-xs text-red-700/80">{result.hint}</p>
+              )}
+              <div className="flex flex-wrap items-center gap-2">
+                {result.login_url && (
+                  <a
+                    href={result.login_url}
+                    className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2.5 py-1 text-xs font-medium text-red-900 hover:bg-red-200"
+                  >
+                    <ExternalLink size={11} />
+                    Sign in
+                  </a>
+                )}
+                {result.remaining !== null && result.remaining !== undefined && (
+                  <span className="text-xs text-red-700/70">
+                    {result.remaining} free {result.remaining === 1 ? "forge" : "forges"} left
+                  </span>
+                )}
+              </div>
+              {result.unlock && result.unlock.length > 0 && (
+                <p className="text-[11px] text-red-700/60">
+                  Unlock: {result.unlock.join(" · ")}
+                </p>
+              )}
+            </div>
+          )}
         </motion.div>
       )}
 

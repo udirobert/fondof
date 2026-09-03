@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowDown, ChevronDown, Flame } from "lucide-react";
+import { ChevronDown, Flame } from "lucide-react";
 import { SourceCard } from "@/components/source-card";
 import { IdeaShard } from "@/components/idea-shard";
 import { DiscoveryPanel } from "@/components/discovery-panel";
@@ -800,13 +800,13 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
           >
             <div className="relative z-20 flex min-h-[calc(100dvh-3.5rem)] flex-col items-center justify-center px-4 pb-[max(2rem,env(safe-area-inset-bottom))] pt-6">
               {showFrame && (
-                <div className="mb-6 text-center">
+                <div className="mb-4 text-center">
                   <FondofWordmark size="hero" />
-                  <p className="mx-auto mt-3 max-w-sm font-serif text-lg text-ink sm:text-xl">
-                    You just learned something. Your agent still hasn&apos;t.
+                  <p className="mx-auto mt-2 max-w-sm text-base text-ink sm:text-lg">
+                    Turn what you learn into a repo-ready skill.
                   </p>
-                  <p className="mx-auto mt-2 max-w-sm text-sm text-foreground-secondary">
-                    Paste it — get a skill fitted to your repo.
+                  <p className="mx-auto mt-1 max-w-sm text-sm text-foreground-secondary">
+                    Paste a link or describe a problem. We fit it to your code.
                   </p>
                 </div>
               )}
@@ -842,11 +842,6 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
                   </button>
                 ))}
               </div>
-              <p className="mb-3 max-w-sm text-center text-[11px] leading-snug text-muted">
-                Quick: one ready-to-copy skill · Studio: review and combine
-                ideas
-              </p>
-
               {quickMode ? (
                 <QuickPad
                   busy={quickBusy}
@@ -867,21 +862,9 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
                 />
               )}
               {showFrame && (
-                <>
-                  <p className="mt-6 text-center text-xs text-muted">
-                    Works with any coding agent
-                  </p>
-                  <a
-                    href="#landing-story"
-                    className="group mt-5 inline-flex items-center gap-2 rounded-full border border-ink/10 bg-paper/55 px-3.5 py-2 text-[11px] text-muted transition-colors hover:border-ember/35 hover:bg-paper hover:text-ember"
-                  >
-                    Scroll to see the Skill Pool in motion
-                    <ArrowDown
-                      size={13}
-                      className="transition-transform duration-200 group-hover:translate-y-0.5"
-                    />
-                  </a>
-                </>
+                <p className="mt-4 text-center text-[11px] text-muted">
+                  Works with any coding agent
+                </p>
               )}
             </div>
             {showFrame && <LandingExperience />}
