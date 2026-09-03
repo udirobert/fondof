@@ -207,14 +207,39 @@ export async function meteredGenerate<T>(
 export function quotaExceededBody(
   entitlement: ForgeEntitlement,
 ): Record<string, unknown> {
+  const plan = entitlement.plan;
+  const limit = entitlement.limit ?? FREE_FORGE_LIMIT;
+  const period = "month";
+
+  const unlock =
+    plan === "anonymous"
+      ? (["sign_in", "share", "pro"] as const)
+      : (["share", "pro"] as const);
+
+  const howToSignIn =
+    plan === "anonymous"
+      ? " Run `fondof login` (or send Authorization: Bearer <fondof session>), then retry."
+      : "";
+
+  const howToShare =
+    " Share a public skill you own (`fondof compose … --share`, or Share on the site) to unlock unlimited forges this month.";
+
+  const error =
+    `Forge quota exceeded (${limit}/${period}, plan=${plan}).${howToSignIn}${howToShare} Or upgrade to Pro.`;
+
   return {
-    error:
-      "Forge quota exceeded. Sign in, share a public skill you own, or upgrade to Pro.",
+    error,
     code: "quota_exceeded",
     allowed: false,
     remaining: entitlement.remaining,
-    plan: entitlement.plan,
-    limit: entitlement.limit,
+    plan,
+    limit,
+    period,
+    unlock: [...unlock],
+    hint:
+      plan === "anonymous"
+        ? "fondof login → retry; or share one public skill after sign-in"
+        : "share one public skill you own this month, or upgrade to Pro",
   };
 }
 

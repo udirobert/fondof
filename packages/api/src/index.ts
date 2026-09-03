@@ -8,6 +8,7 @@ import { skillsRoute } from "./routes/skills.js";
 import { challengeRoute } from "./routes/challenge.js";
 import { searchRoute } from "./routes/search.js";
 import { authRoute } from "./routes/auth.js";
+import { authCliRoute } from "./routes/auth-cli.js";
 import { eventsRoute } from "./routes/events.js";
 import { billingRoute } from "./routes/billing.js";
 import { githubPublishRoute } from "./routes/github-publish.js";
@@ -83,23 +84,31 @@ const API_LLMS_TXT = `# fondof API
 
 Base URL: https://fondof-api.trustfall.workers.dev
 
-> fondof turns a URL (YouTube, blog, podcast) or a stated need into a coding skill fitted to a repo's stack. Agents get one endpoint: POST /api/compose. The core loop is useful without blockchain; SkillPool is optional downstream proof.
+> fondof turns URL(s) (YouTube, blog, podcast) or a stated need into a coding skill fitted to a repo's stack. Agents get one endpoint: POST /api/compose. The core loop is useful without blockchain; SkillPool is optional downstream proof.
 
 ## Endpoints
 
 ### POST /api/compose — one-shot skill composition (use this)
 
-Body: { "url": "<source url>" | "need": "<stated need>", "repo": "owner/name" | { "name": "…", "frameworks": ["…"], "languages": ["…"] }, "topShards": 2, "private": false }
+Body: { "urls": ["<source>", …] | "url": "<source>" | "need": "<stated need>", "repo": "owner/name" | { "name": "…", "frameworks": ["…"], "languages": ["…"] }, "topShards": 2, "private": false }
 
-- Exactly one of url / need. repo as "owner/name" or a GitHub URL is auto-detected (frameworks + languages from the repo's package.json).
+- Exactly one of url/urls / need. "urls" accepts up to 4 sources (YouTube + blog is the common case); ideas are merged and forged once. repo as "owner/name" or a GitHub URL is auto-detected (frameworks + languages from the repo's package.json). Omit repo to forge without stack fit.
+- Default topShards: 2 (single source) or 3 (multi). Max 6.
 - Compose is private by default; pass "private": false for an explicit public share. A shareable skillUrl is returned only after the durable public record is written and read back. If that write fails, the response stays private (skillUrl: null) with the markdown still included.
-- Response: { markdown, ideas: [{ title, description, domain, applicability, patternType, sourceUrl }], skillHash, skillUrl, title, canonicalSources, derivedFromSkillHash, sourceUrl, sourceHash, contentType, fittedTo, onChain, private, providers }
+- Response: { markdown, ideas: [{ title, description, domain, applicability, patternType, sourceUrl }], skillHash, skillUrl, title, canonicalSources, derivedFromSkillHash, sourceUrl, sourceUrls, sourceHash, sourceHashes, contentType, fittedTo, onChain, private, providers, sourceFailures? }
 - Errors: 400 bad body, 402 monthly forge quota exceeded (3/IP or signed-in free account), 422 nothing extractable, 429 rate limit (10/hour/IP), 500 upstream.
 
-Example:
-curl -s -X POST https://fondof-api.trustfall.workers.dev/api/compose -H 'content-type: application/json' -d '{"url":"https://www.youtube.com/watch?v=7wuYBfE131U","repo":"udirobert/fondof"}'
+Example (multi-source):
+curl -s -X POST https://fondof-api.trustfall.workers.dev/api/compose -H 'content-type: application/json' -d '{"urls":["https://www.youtube.com/watch?v=7wuYBfE131U","https://www.remotion.dev/docs"],"repo":"udirobert/fondof"}'
 
-What to do with it: save markdown into .kiro/steering/ or .cursor/rules/ (or CLAUDE.md), then share skillUrl.
+What to do with it: save markdown into .kiro/steering/ or .cursor/rules/ (or CLAUDE.md), then apply the skill to the user's next task.
+
+### CLI auth (agents / terminal)
+
+- POST /api/auth/cli/start → { deviceCode, userCode, verificationUri, interval, expiresIn }
+- Open verificationUri in a browser (GitHub OAuth), then POST /api/auth/cli/poll { deviceCode } until status=ready → { token, user }
+- Or POST /api/auth/cli/github { accessToken } when you already have a GitHub token from fondof connect
+- Use Authorization: Bearer <token> on /api/compose. Prefer: fondof login && fondof compose <urls…>
 
 ### Other endpoints
 
@@ -162,6 +171,7 @@ app.route("/api", skillsRoute);
 app.route("/api", challengeRoute);
 app.route("/api", searchRoute);
 app.route("/api", authRoute);
+app.route("/api", authCliRoute);
 app.route("/api", eventsRoute);
 app.route("/api", billingRoute);
 app.route("/api", githubPublishRoute);

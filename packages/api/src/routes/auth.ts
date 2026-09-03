@@ -36,6 +36,41 @@ function generateToken(): string {
     .join("");
 }
 
+/** Shared by web OAuth and CLI login. */
+export function generateAuthToken(): string {
+  return generateToken();
+}
+
+export async function createSessionFromGitHubUser(
+  env: Env,
+  input: {
+    userId: number;
+    login: string;
+    avatarUrl: string;
+    name: string | null;
+    accessToken: string;
+  },
+): Promise<{ token: string; session: Session }> {
+  const token = generateToken();
+  const session: Session = {
+    userId: input.userId,
+    login: input.login,
+    avatarUrl: input.avatarUrl,
+    name: input.name,
+    accessToken: input.accessToken,
+    createdAt: Date.now(),
+  };
+
+  await env.SESSIONS.put(`session:${token}`, JSON.stringify(session), {
+    expirationTtl: SESSION_TTL,
+  });
+  await env.SESSIONS.put(`login-to-id:${input.login}`, String(input.userId), {
+    expirationTtl: SESSION_TTL,
+  });
+
+  return { token, session };
+}
+
 function frontendOrigin(frontendUrl: string): string {
   return new URL(frontendUrl).origin;
 }
@@ -114,18 +149,22 @@ authRoute.get("/auth/callback", async (c) => {
   await c.env.SESSIONS.delete(`oauth-state:${stateRaw}`);
   let redirect = "/";
   let browserNonce = "";
+  let cliDeviceCode = "";
   try {
     const parsed = JSON.parse(stateRawStored) as {
       redirect?: string;
       browserNonce?: string;
+      cliDeviceCode?: string;
     };
     redirect = safeAppPath(parsed.redirect);
     browserNonce = parsed.browserNonce?.trim() || "";
+    cliDeviceCode = parsed.cliDeviceCode?.trim() || "";
   } catch {
     // ignore bad state payload
   }
 
   const cookieNonce = getCookie(c, OAUTH_COOKIE);
+  // CLI authorize sets the cookie in the same browser; require the match.
   if (!browserNonce || cookieNonce !== browserNonce) {
     const url = new URL("/", frontendUrl);
     url.searchParams.set(
@@ -184,25 +223,23 @@ authRoute.get("/auth/callback", async (c) => {
     name: string | null;
   };
 
-  // Create session
-  const token = generateToken();
-  const session: Session = {
+  const { token, session } = await createSessionFromGitHubUser(c.env, {
     userId: user.id,
     login: user.login,
     avatarUrl: user.avatar_url,
     name: user.name,
     accessToken: tokenData.access_token,
-    createdAt: Date.now(),
-  };
-
-  await c.env.SESSIONS.put(`session:${token}`, JSON.stringify(session), {
-    expirationTtl: SESSION_TTL,
   });
 
-  // Map login → userId for portfolio lookups
-  await c.env.SESSIONS.put(`login-to-id:${user.login}`, String(user.id), {
-    expirationTtl: SESSION_TTL,
-  });
+  // CLI device login — hand the session to the waiting terminal, skip web exchange.
+  if (cliDeviceCode) {
+    const { completeCliDeviceLogin, cliSuccessHtml } = await import(
+      "./auth-cli.js"
+    );
+    await completeCliDeviceLogin(c.env, cliDeviceCode, token, session);
+    deleteCookie(c, OAUTH_COOKIE, { path: "/api/auth" });
+    return c.html(cliSuccessHtml(session.login));
+  }
 
   // Redirect back with a short-lived one-time exchange code instead of the
   // session token itself — the token never appears in a URL (no history,

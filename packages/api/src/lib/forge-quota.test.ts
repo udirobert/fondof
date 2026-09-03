@@ -5,6 +5,7 @@ import {
   grantVerifiedShareBenefit,
   inspectForgeEntitlement,
   meteredGenerate,
+  quotaExceededBody,
   releaseForgeQuota,
   reserveForgeQuota,
 } from "./forge-quota.js";
@@ -125,5 +126,19 @@ describe("forge quota", () => {
     const sharer = await inspectForgeEntitlement(kv, session(), "1.1.1.1");
     expect(sharer.plan).toBe("sharer");
     expect(sharer.remaining).toBeNull();
+  });
+
+  it("explains unlock paths on quota exceeded", async () => {
+    const kv = fakeKV();
+    for (let i = 0; i < FREE_FORGE_LIMIT; i++) {
+      await reserveForgeQuota(kv, null, "203.0.113.9");
+    }
+    const denied = await reserveForgeQuota(kv, null, "203.0.113.9");
+    const body = quotaExceededBody(denied.entitlement);
+    expect(body.code).toBe("quota_exceeded");
+    expect(body.period).toBe("month");
+    expect(body.unlock).toEqual(["sign_in", "share", "pro"]);
+    expect(String(body.error)).toMatch(/3\/month/);
+    expect(String(body.error)).toMatch(/fondof login/);
   });
 });

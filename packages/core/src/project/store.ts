@@ -8,12 +8,17 @@ import {
   writePrivateFile,
 } from "./private-fs.js";
 import {
+  clearSessionFromKeychain,
+  readSessionFromKeychain,
   readTokenFromKeychain,
+  saveSessionToKeychain,
   saveTokenToKeychain,
 } from "./keychain.js";
 
 export interface FondofConfig {
   githubToken?: string;
+  /** Fondof API session (compose / billing) — prefer OS vault. */
+  sessionToken?: string;
   githubClientId?: string;
 }
 
@@ -22,11 +27,17 @@ export type TokenStorage = "keychain" | "file";
 type KeychainFns = {
   save: (token: string) => boolean;
   read: () => string | null;
+  saveSession?: (token: string) => boolean;
+  readSession?: () => string | null;
+  clearSession?: () => void;
 };
 
 let keychain: KeychainFns = {
   save: saveTokenToKeychain,
   read: readTokenFromKeychain,
+  saveSession: saveSessionToKeychain,
+  readSession: readSessionFromKeychain,
+  clearSession: clearSessionFromKeychain,
 };
 
 let lastStorage: TokenStorage = "file";
@@ -37,6 +48,9 @@ export function setKeychainForTests(next: KeychainFns | null): void {
   keychain = next ?? {
     save: saveTokenToKeychain,
     read: readTokenFromKeychain,
+    saveSession: saveSessionToKeychain,
+    readSession: readSessionFromKeychain,
+    clearSession: clearSessionFromKeychain,
   };
 }
 
@@ -118,6 +132,44 @@ export function saveToken(token: string): void {
   const config = loadConfig();
   config.githubToken = token;
   saveConfig(config);
+}
+
+/**
+ * Fondof API session token (for Authorization: Bearer on compose).
+ * Order: FONDOF_TOKEN env, OS vault, config file.
+ */
+export function getSessionToken(): string | null {
+  const fromEnv = process.env.FONDOF_TOKEN?.trim();
+  if (fromEnv) return fromEnv;
+  const fromVault = keychain.readSession?.() ?? null;
+  if (fromVault) return fromVault;
+  const config = loadConfig();
+  return config.sessionToken ?? null;
+}
+
+export function saveSessionToken(token: string): void {
+  if (keychain.saveSession?.(token)) {
+    lastStorage = "keychain";
+    const config = loadConfig();
+    if (config.sessionToken) {
+      delete config.sessionToken;
+      saveConfig(config);
+    }
+    return;
+  }
+  lastStorage = "file";
+  const config = loadConfig();
+  config.sessionToken = token;
+  saveConfig(config);
+}
+
+export function clearSessionToken(): void {
+  keychain.clearSession?.();
+  const config = loadConfig();
+  if (config.sessionToken) {
+    delete config.sessionToken;
+    saveConfig(config);
+  }
 }
 
 /**

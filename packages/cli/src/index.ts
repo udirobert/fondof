@@ -8,6 +8,8 @@ config({ path: resolve(process.cwd(), ".env"), override: true });
 config({ path: resolve(process.cwd(), "../../.env"), override: true }); // from packages/cli
 
 import { connectCommand } from "./commands/connect.js";
+import { loginCommand } from "./commands/login.js";
+import { composeCommand } from "./commands/compose.js";
 import { ingestCommand } from "./commands/ingest.js";
 import { needCommand } from "./commands/need.js";
 import { forgeCommand } from "./commands/forge.js";
@@ -22,6 +24,8 @@ program
   .description("The bridge between what you learn and what your agents do")
   .version("0.1.0");
 
+program.addCommand(loginCommand);
+program.addCommand(composeCommand);
 program.addCommand(connectCommand);
 program.addCommand(ingestCommand);
 program.addCommand(needCommand);
