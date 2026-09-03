@@ -7,7 +7,16 @@ import { transcribeAudio, isAudioUrl, resolveAudioUrl } from "../lib/transcribe.
 import { isYouTubeUrl, getYouTubeTranscript } from "../lib/youtube.js";
 import { isRssUrl, getLatestEpisodeFromRss } from "../lib/rss.js";
 import { cacheGetJson, cachePutJson, sha256Hex } from "../lib/edge-cache.js";
-import { ingestCacheTtl, normalizeSourceUrl } from "../lib/source-url.js";
+import {
+  canonicalPublicSourceUrl,
+  canonicalSourceId,
+  getSourceEntity,
+  ingestCacheTtl,
+  normalizeSourceUrl,
+  persistSourceEntity,
+  type SourceEntity,
+  type SourceMeta,
+} from "../lib/source-url.js";
 import { rateLimit } from "../lib/rate-limit-mw.js";
 
 /** Providers used during extract — Exa is a separate compare stage. */
@@ -94,6 +103,8 @@ export type IngestStreamEvent =
       ideaCount: number;
       cacheHit?: boolean;
       providers?: IngestProvider[];
+      sourceMeta?: SourceMeta;
+      canonicalSourceId?: string;
     }
   | {
       type: "discovery";
@@ -121,6 +132,11 @@ type IngestResult = {
   textLength: number;
   /** Source body for verify / copy — may be absent on legacy cache entries */
   text?: string;
+  /** Extracted human-readable source metadata (author, show, etc). */
+  sourceMeta?: SourceMeta;
+  /** Canonical source URL and id for this ingest. */
+  sourceUrl?: string;
+  canonicalSourceId?: string;
   /** Kept empty on extract — compare is a separate Exa stage */
   existingSkills: Array<{ title: string; url: string; snippet: string }>;
   cacheHit?: boolean;
@@ -212,6 +228,8 @@ async function replayCachedIngest(cached: IngestResult, emit: Emit) {
     ideaCount: cached.ideas.length,
     cacheHit: true,
     providers,
+    sourceMeta: cached.sourceMeta,
+    canonicalSourceId: cached.canonicalSourceId,
   });
 }
 
@@ -354,6 +372,7 @@ export async function runIngestPipeline(
   let text: string;
   let title: string;
   let contentType: IngestContentType;
+  let sourceMeta: SourceMeta | undefined;
   const providers: IngestProvider[] = [];
   let extractProvider: IngestProvider | undefined;
 
@@ -386,6 +405,7 @@ export async function runIngestPipeline(
     text = transcript.text;
     title = transcript.title;
     extractProvider = transcript.provider;
+    sourceMeta = transcript.author ? { author: transcript.author, show: "YouTube" } : undefined;
     providers.push(transcript.provider);
     emit({ type: "meta", title });
   } else if (isRssUrl(canonical)) {
@@ -432,6 +452,12 @@ export async function runIngestPipeline(
     }
 
     title = episode.title;
+    sourceMeta = {
+      show: episode.show,
+      author: episode.author,
+      feedUrl: canonical,
+      publishedAt: episode.publishedDate,
+    };
   } else if (isAudioUrl(canonical)) {
     contentType = "audio";
     emit({
@@ -475,6 +501,7 @@ export async function runIngestPipeline(
     text = extracted.text;
     title = extracted.title || new URL(canonical).hostname;
     extractProvider = extracted.provider;
+    sourceMeta = extracted.sourceMeta;
     providers.push(extracted.provider);
     emit({ type: "meta", title });
   }
@@ -484,6 +511,20 @@ export async function runIngestPipeline(
   const sourceHash = Array.from(new Uint8Array(hashBuffer))
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
+
+  const sourceUrl = canonicalPublicSourceUrl(canonical) ?? canonical;
+  const sourceId = (await canonicalSourceId(sourceUrl)) ?? sourceHash;
+
+  // Persist a durable source entity so writer / podcaster attribution survives cache eviction.
+  if (sourceMeta) {
+    await persistSourceEntity(env, {
+      id: sourceId,
+      url: sourceUrl,
+      domain: new URL(sourceUrl).hostname.replace(/^www\./, ""),
+      meta: sourceMeta,
+      createdAt: new Date().toISOString(),
+    });
+  }
 
   emit({
     type: "sourceText",
@@ -545,6 +586,8 @@ export async function runIngestPipeline(
     ideaCount: ideas.length,
     cacheHit: false,
     providers,
+    sourceMeta,
+    canonicalSourceId: sourceId,
   });
 
   const result: IngestResult = {
@@ -554,6 +597,9 @@ export async function runIngestPipeline(
     ideas,
     textLength: text.length,
     text,
+    sourceMeta,
+    sourceUrl,
+    canonicalSourceId: sourceId,
     existingSkills: [],
     cacheHit: false,
     providers,
@@ -644,6 +690,9 @@ ingestRoute.post("/ingest", rateLimit("ingest"), async (c) => {
       cached: !!result.cacheHit,
       providers: result.providers,
       extractProvider: result.extractProvider,
+      sourceMeta: result.sourceMeta,
+      sourceUrl: result.sourceUrl,
+      canonicalSourceId: result.canonicalSourceId,
       deferred: ["exa", "forge", "publish"],
     });
   } catch (e) {

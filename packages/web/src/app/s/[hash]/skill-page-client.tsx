@@ -712,12 +712,25 @@ export default function SkillPublicPage() {
                     </p>
                   )}
                   {canonicalSources.length > 0 && (
-                    <p className="text-[10px] text-muted">
-                      Canonical ·{" "}
-                      <span className="font-mono" title={canonicalSources.map((s) => s.url).join("\n")}>
-                        {canonicalSources[0]!.id}
-                      </span>
-                    </p>
+                    <div className="text-[10px] text-muted">
+                      <span className="block">Canonical sources</span>
+                      <ul className="mt-1 space-y-1 pl-0">
+                        {canonicalSources.map((source) => (
+                          <li key={source.id}>
+                            <Link
+                              href={`/source/${encodeURIComponent(source.id)}`}
+                              className="text-ember hover:underline"
+                              title={source.url}
+                            >
+                              {source.meta?.show || source.meta?.siteName || source.domain}
+                            </Link>
+                            {source.meta?.author && (
+                              <span className="ml-1 text-muted">· {source.meta.author}</span>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   )}
                 </div>
               )}

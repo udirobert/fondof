@@ -1,5 +1,6 @@
 import type { Env } from "../index.js";
 import { safeFetch, validateFetchTarget } from "./ssrf.js";
+import type { SourceMeta } from "./source-url.js";
 
 export type ExtractProvider = "firecrawl" | "html";
 
@@ -7,6 +8,7 @@ export type ExtractResult = {
   text: string;
   title: string;
   provider: ExtractProvider;
+  sourceMeta?: SourceMeta;
 };
 
 /**
@@ -30,10 +32,16 @@ export async function extractContent(
   return basic ? { ...basic, provider: "html" } : null;
 }
 
+type RawExtract = {
+  text: string;
+  title: string;
+  sourceMeta?: SourceMeta;
+};
+
 async function firecrawlExtract(
   url: string,
   apiKey: string
-): Promise<{ text: string; title: string } | null> {
+): Promise<RawExtract | null> {
   try {
     const response = await fetch("https://api.firecrawl.dev/v1/scrape", {
       method: "POST",
@@ -55,22 +63,41 @@ async function firecrawlExtract(
       success: boolean;
       data?: {
         markdown?: string;
-        metadata?: { title?: string };
+        metadata?: {
+          title?: string;
+          author?: string;
+          siteName?: string;
+          publishedDate?: string;
+        };
       };
     };
 
     if (!data.success || !data.data?.markdown) return null;
 
+    const metadata = data.data.metadata;
     return {
       text: data.data.markdown,
-      title: data.data.metadata?.title ?? "",
+      title: metadata?.title ?? "",
+      sourceMeta: {
+        author: metadata?.author,
+        siteName: metadata?.siteName,
+        publishedAt: metadata?.publishedDate,
+      },
     };
   } catch {
     return null;
   }
 }
 
-async function basicExtract(url: string): Promise<{ text: string; title: string } | null> {
+function metaContent(html: string, ...patterns: RegExp[]): string | undefined {
+  for (const pattern of patterns) {
+    const match = html.match(pattern);
+    if (match?.[1]) return match[1].trim();
+  }
+  return undefined;
+}
+
+async function basicExtract(url: string): Promise<ExtractResult | null> {
   try {
     const fetched = await safeFetch(url, {
       headers: { "User-Agent": "fondof/0.1 (skill forge)" },
@@ -81,6 +108,23 @@ async function basicExtract(url: string): Promise<{ text: string; title: string 
     // Extract title from <title> tag
     const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/i);
     const title = titleMatch ? titleMatch[1].trim() : "";
+
+    const author = metaContent(
+      html,
+      /<meta[^>]+name=["']author["'][^>]+content=["']([^"']+)["']/i,
+      /<meta[^>]+content=["']([^"']+)["'][^>]+name=["']author["']/i,
+      /<meta[^>]+property=["']article:author["'][^>]+content=["']([^"']+)["']/i,
+    );
+    const siteName = metaContent(
+      html,
+      /<meta[^>]+property=["']og:site_name["'][^>]+content=["']([^"']+)["']/i,
+      /<meta[^>]+name=["']application-name["'][^>]+content=["']([^"']+)["']/i,
+    );
+    const publishedAt = metaContent(
+      html,
+      /<meta[^>]+property=["']article:published_time["'][^>]+content=["']([^"']+)["']/i,
+      /<meta[^>]+name=["']publishedDate["'][^>]+content=["']([^"']+)["']/i,
+    );
 
     // Strip to text
     const text = html
@@ -97,7 +141,14 @@ async function basicExtract(url: string): Promise<{ text: string; title: string 
       .replace(/\s+/g, " ")
       .trim();
 
-    return text.length > 100 ? { text, title } : null;
+    if (text.length <= 100) return null;
+
+    const sourceMeta: SourceMeta | undefined =
+      author || siteName || publishedAt
+        ? { author, siteName, publishedAt }
+        : undefined;
+
+    return { text, title, provider: "html", sourceMeta };
   } catch {
     return null;
   }

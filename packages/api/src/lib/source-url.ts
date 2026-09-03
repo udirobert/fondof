@@ -1,4 +1,18 @@
 import { extractVideoId, isYouTubeUrl } from "./youtube.js";
+import type { Env } from "../index.js";
+
+export interface SourceMeta {
+  /** Author / creator name, when extractable. */
+  author?: string;
+  /** Site or publication name (e.g. "Vercel", "Software Engineering Daily"). */
+  siteName?: string;
+  /** Show / series / podcast name. */
+  show?: string;
+  /** ISO publication date, when available. */
+  publishedAt?: string;
+  /** For podcast/audio sources, the feed URL we resolved the episode from. */
+  feedUrl?: string;
+}
 
 export interface CanonicalSource {
   /** Stable URL identity, not a content hash. */
@@ -7,6 +21,8 @@ export interface CanonicalSource {
   url: string;
   /** Hostname without www, useful for existing domain views. */
   domain: string;
+  /** Extracted human-readable source metadata. */
+  meta?: SourceMeta;
 }
 
 /** Canonical form for cache keys — strip trackers, normalize YouTube. */
@@ -78,6 +94,7 @@ export async function canonicalSourceId(url: string): Promise<string | null> {
 /** Build de-duplicated canonical identities in source order. */
 export async function canonicalSources(
   urls: readonly string[],
+  metaByUrl?: Readonly<Record<string, SourceMeta | undefined>>,
 ): Promise<CanonicalSource[]> {
   const out: CanonicalSource[] = [];
   const seen = new Set<string>();
@@ -87,10 +104,12 @@ export async function canonicalSources(
     const id = await canonicalSourceId(url);
     if (!id) continue;
     seen.add(url);
+    const meta = metaByUrl?.[url];
     out.push({
       id,
       url,
       domain: new URL(url).hostname.replace(/^www\./, ""),
+      ...(meta ? { meta } : {}),
     });
   }
   return out;
@@ -101,4 +120,39 @@ export function ingestCacheTtl(contentType: string): number {
     return 60 * 60 * 24 * 7; // 7d — transcripts are stable
   }
   return 60 * 60 * 24; // 1d articles
+}
+
+export interface SourceEntity extends CanonicalSource {
+  createdAt: string;
+  updatedAt?: string;
+}
+
+function sourceEntityKey(id: string): string {
+  return `source-entity:${id}`;
+}
+
+export async function getSourceEntity(
+  env: Env,
+  id: string,
+): Promise<SourceEntity | null> {
+  try {
+    return (await env.SESSIONS.get(sourceEntityKey(id), "json")) as SourceEntity | null;
+  } catch {
+    return null;
+  }
+}
+
+export async function persistSourceEntity(
+  env: Env,
+  entity: SourceEntity,
+): Promise<void> {
+  const existing = await getSourceEntity(env, entity.id);
+  const now = new Date().toISOString();
+  const next: SourceEntity = {
+    ...(existing ?? entity),
+    ...entity,
+    createdAt: existing?.createdAt ?? entity.createdAt,
+    updatedAt: now,
+  };
+  await env.SESSIONS.put(sourceEntityKey(entity.id), JSON.stringify(next));
 }

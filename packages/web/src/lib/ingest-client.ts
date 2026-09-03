@@ -3,6 +3,7 @@ import {
   ingestURLStream,
   type IdeaFromAPI,
   type IngestStreamEvent,
+  type SourceMeta,
 } from "@/lib/api";
 import {
   hostnameTitle,
@@ -222,6 +223,7 @@ export async function resolveIngestStream(
   let textLength = 0;
   let rawContentType = "";
   let sawDone = false;
+  let doneSourceMeta: SourceMeta | undefined;
   let streamError: string | null = null;
 
   try {
@@ -246,6 +248,7 @@ export async function resolveIngestStream(
           title = event.title || title;
           textLength = event.textLength ?? 0;
           rawContentType = event.contentType;
+          doneSourceMeta = event.sourceMeta;
           contentType =
             event.contentType === "youtube"
               ? "youtube"
@@ -263,12 +266,17 @@ export async function resolveIngestStream(
     if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
 
     if (sawDone && ideas.length > 0) {
+      const author =
+        doneSourceMeta?.show ||
+        doneSourceMeta?.author ||
+        doneSourceMeta?.siteName;
       return {
         source: {
           type: contentType === "podcast" ? "podcast" : "blog",
           title,
           url: value,
           ideasCount: ideas.length,
+          ...(author ? { author } : {}),
         },
         ideas,
         fromApi: true,
@@ -327,6 +335,8 @@ export async function resolveIngestStream(
       textLength: res.textLength,
       ideaCount: mapped.length,
     });
+    const author =
+      res.sourceMeta?.show || res.sourceMeta?.author || res.sourceMeta?.siteName;
     return {
       source: {
         type:
@@ -334,6 +344,7 @@ export async function resolveIngestStream(
         title: res.title || hostnameTitle(value),
         url: value,
         ideasCount: mapped.length,
+        ...(author ? { author } : {}),
       },
       ideas: mapped,
       fromApi: true,

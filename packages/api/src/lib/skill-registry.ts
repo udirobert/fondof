@@ -11,6 +11,7 @@ import type { Env } from "../index.js";
 import {
   canonicalSources,
   type CanonicalSource,
+  type SourceMeta,
 } from "./source-url.js";
 
 export type SkillVisibility = "public" | "unlisted";
@@ -263,13 +264,18 @@ export async function removeSkillFromSourceIndexes(
       // Direct needs and malformed provenance have no source-domain index.
     }
   }
-  for (const source of await canonicalSources(sourceUrls)) {
+  const sources = await canonicalSources(sourceUrls);
+  for (const source of sources) {
     domains.add(source.domain);
   }
 
+  const keys = [...domains].map((domain) => `source:${domain}`);
+  for (const source of sources) {
+    keys.push(`source-skills:${source.id}`);
+  }
+
   await Promise.all(
-    [...domains].map(async (domain) => {
-      const key = `source:${domain}`;
+    keys.map(async (key) => {
       const entries = (await env.SESSIONS.get(key, "json")) as Array<{
         skillHash?: string;
       }> | null;
@@ -291,6 +297,8 @@ export interface SourceIndexEntry {
   sourceUrl: string;
   /** Added for new records; legacy domain entries may not have one. */
   canonicalSourceId?: string;
+  /** Extracted source metadata (author, show, etc). */
+  sourceMeta?: SourceMeta;
   fittedTo: string;
   forgedAt: string;
 }
@@ -300,26 +308,44 @@ export async function addSkillToSourceIndexes(
   env: Env,
   sourceUrls: readonly string[],
   entry: Omit<SourceIndexEntry, "sourceUrl">,
+  canonicalSourceRecords?: CanonicalSource[],
 ): Promise<void> {
-  const sources = await canonicalSources(sourceUrls);
+  const sources =
+    canonicalSourceRecords?.length
+      ? canonicalSourceRecords
+      : await canonicalSources(sourceUrls);
   await Promise.all(
     sources.map(async (source) => {
-      const key = `source:${source.domain}`;
-      const existing = (await env.SESSIONS.get(key, "json")) as SourceIndexEntry[] | null;
-      const entries = existing ?? [];
+      const indexEntry: SourceIndexEntry = {
+        ...entry,
+        sourceUrl: source.url,
+        canonicalSourceId: source.id,
+        sourceMeta: source.meta,
+      };
+
+      const domainKey = `source:${source.domain}`;
+      const domainExisting = (await env.SESSIONS.get(domainKey, "json")) as SourceIndexEntry[] | null;
+      const domainEntries = domainExisting ?? [];
       if (
-        !entries.some(
+        !domainEntries.some(
           (item) =>
             item.skillHash === entry.skillHash &&
             (item.canonicalSourceId ?? source.id) === source.id,
         )
       ) {
-        entries.push({
-          ...entry,
-          sourceUrl: source.url,
-          canonicalSourceId: source.id,
+        domainEntries.push(indexEntry);
+        await env.SESSIONS.put(domainKey, JSON.stringify(domainEntries), {
+          expirationTtl: YEAR,
         });
-        await env.SESSIONS.put(key, JSON.stringify(entries), {
+      }
+
+      // Per-canonical-source index enables /api/source/:id without scanning a domain.
+      const sourceKey = `source-skills:${source.id}`;
+      const sourceExisting = (await env.SESSIONS.get(sourceKey, "json")) as SourceIndexEntry[] | null;
+      const sourceEntries = sourceExisting ?? [];
+      if (!sourceEntries.some((item) => item.skillHash === entry.skillHash)) {
+        sourceEntries.push(indexEntry);
+        await env.SESSIONS.put(sourceKey, JSON.stringify(sourceEntries), {
           expirationTtl: YEAR,
         });
       }

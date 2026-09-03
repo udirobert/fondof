@@ -10,6 +10,12 @@ export interface RssEpisode {
   audioUrl: string;
   description?: string;
   publishedDate?: string;
+  /** Podcast / show name from the RSS channel. */
+  show?: string;
+  /** Author / creator, if the feed declares one. */
+  author?: string;
+  /** The feed URL the episode was pulled from. */
+  feedUrl?: string;
 }
 
 /**
@@ -63,7 +69,23 @@ export async function getLatestEpisodeFromRss(feedUrl: string): Promise<RssEpiso
     const descMatch = xml.match(/<item[\s\S]*?<description>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/description>/);
     const description = descMatch ? descMatch[1].replace(/<[^>]+>/g, "").trim().slice(0, 200) : undefined;
 
-    return { title, audioUrl, description };
+    // Channel-level metadata
+    const showMatch = xml.match(
+      /<channel>[\s\S]*?<title>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/title>/i,
+    );
+    const show = showMatch ? showMatch[1].trim() : undefined;
+
+    const authorMatch = xml.match(
+      /<(?:itunes:)?author>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/(?:itunes:)?author>/i,
+    );
+    const author = authorMatch ? authorMatch[1].trim() : undefined;
+
+    const pubMatch = xml.match(
+      /<item[\s\S]*?<(?:pubDate|published)>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/(?:pubDate|published)>/i,
+    );
+    const publishedDate = pubMatch ? pubMatch[1].trim() : undefined;
+
+    return { title, audioUrl, description, show, author, feedUrl, publishedDate };
   } catch {
     return null;
   }

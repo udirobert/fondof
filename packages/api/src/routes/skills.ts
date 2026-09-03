@@ -27,6 +27,7 @@ import {
   type PublicSkillRecord,
   unlistPublicSkill,
 } from "../lib/skill-registry.js";
+import { type SourceMeta } from "../lib/source-url.js";
 import { rateLimit } from "../lib/rate-limit-mw.js";
 import { grantVerifiedShareBenefit } from "../lib/forge-quota.js";
 import { relayerSigningKey, runRelayerWrite } from "../lib/relayer-guard.js";
@@ -651,12 +652,15 @@ skillsRoute.get("/skills", async (c) => {
   const framework = c.req.query("framework")?.trim().toLowerCase() || "";
   const language = c.req.query("language")?.trim().toLowerCase() || "";
   const genreSlug = c.req.query("genre")?.trim().toLowerCase() || "";
+  const author = c.req.query("author")?.trim().toLowerCase() || "";
+  const show = c.req.query("show")?.trim().toLowerCase() || "";
+  const source = c.req.query("source")?.trim().toLowerCase() || "";
   const query = c.req.query("q")?.trim().toLowerCase() || "";
   if (genreSlug && !genreBySlug(genreSlug)) {
     return c.json({ error: `Unknown genre: ${genreSlug}` }, 400);
   }
-  const hasFilter = Boolean(domain || framework || language || genreSlug || query);
-  const cacheKey = `skills:pool:v4:${sort}:${domain}:${framework}:${language}:${genreSlug}:${query}:${limit}`;
+  const hasFilter = Boolean(domain || framework || language || genreSlug || author || show || source || query);
+  const cacheKey = `skills:pool:v4:${sort}:${domain}:${framework}:${language}:${genreSlug}:${author}:${show}:${source}:${query}:${limit}`;
 
   const hit = await cacheGetJson<{ skills: unknown[] }>(cacheKey);
   if (hit) {
@@ -677,6 +681,8 @@ skillsRoute.get("/skills", async (c) => {
   const filteredPub = pub.filter((record) => {
     const matches = (values: string[] | undefined, needle: string) =>
       !needle || (values ?? []).some((value) => value.toLowerCase() === needle);
+    const sourceMetas =
+      record.canonicalSources?.map((s) => s.meta).filter((m): m is SourceMeta => !!m) ?? [];
     const matchesQuery = (r: PublicSkillRecord) => {
       if (!query) return true;
       const haystack = [
@@ -688,14 +694,36 @@ skillsRoute.get("/skills", async (c) => {
         ...(r.languages ?? []),
         ...(r.sourceUrls ?? []),
         ...(r.canonicalSources?.map((s) => s.url) ?? []),
+        ...(r.canonicalSources?.map((s) => s.meta?.author) ?? []),
+        ...(r.canonicalSources?.map((s) => s.meta?.siteName) ?? []),
+        ...(r.canonicalSources?.map((s) => s.meta?.show) ?? []),
       ].filter((s): s is string => typeof s === "string" && s.length > 0);
       return haystack.some((s) => s.toLowerCase().includes(query));
     };
+    const matchesSource = (r: PublicSkillRecord) => {
+      if (!source) return true;
+      return (r.canonicalSources ?? []).some(
+        (s) => s.id.toLowerCase() === source || s.url.toLowerCase().includes(source),
+      );
+    };
     return (
       matchesQuery(record) &&
+      matchesSource(record) &&
       matches(record.domains, domain) &&
       matches(record.frameworks, framework) &&
       matches(record.languages, language) &&
+      matches(
+        sourceMetas
+          .map((m) => m.author)
+          .filter((s): s is string => !!s),
+        author,
+      ) &&
+      matches(
+        sourceMetas
+          .map((m) => m.show)
+          .filter((s): s is string => !!s),
+        show,
+      ) &&
       (!genreSlug ||
         classifySkillGenres({
           domains: record.domains,

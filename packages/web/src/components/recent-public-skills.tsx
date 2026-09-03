@@ -6,7 +6,7 @@ import { Search, ShieldCheck, FileText, Mic } from "lucide-react";
 import { API_BASE } from "@/lib/api-base";
 import { skillPublicPath } from "@/lib/skill-share";
 import { Tip } from "@/components/tip";
-import type { EvidenceSummary, GenreFacet, SkillGenre } from "@/lib/api";
+import type { CanonicalSource, EvidenceSummary, GenreFacet, SkillGenre } from "@/lib/api";
 
 type DiscoverySort = "recent" | "impact" | "outcomes" | "adapted";
 
@@ -16,6 +16,7 @@ interface PoolSkill {
   repo?: string;
   onChain?: boolean;
   sourceUrls?: string[];
+  canonicalSources?: CanonicalSource[];
   evidenceSummary?: EvidenceSummary;
   genres?: SkillGenre[];
   agentUrl?: string;
@@ -121,7 +122,7 @@ export function RecentPublicSkills({
             type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search skills, stacks, sources…"
+            placeholder="Search skills, stacks, sources, authors, podcasts…"
             className="w-full rounded-full border border-ink/10 bg-paper py-2 pr-3 pl-9 text-sm text-ink placeholder:text-muted/60 focus:border-ember/40 focus:outline-none"
           />
         </div>
@@ -145,7 +146,7 @@ export function RecentPublicSkills({
           type="search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search skills, stacks, sources…"
+          placeholder="Search skills, stacks, sources, authors, podcasts…"
           className="w-full rounded-full border border-ink/10 bg-paper py-2 pr-3 pl-9 text-sm text-ink placeholder:text-muted/60 focus:border-ember/40 focus:outline-none"
         />
       </div>
@@ -204,7 +205,10 @@ export function RecentPublicSkills({
       )}
       <ul className="space-y-2">
       {skills.map((s) => {
-        const source = s.sourceUrls?.[0];
+        const canonical = s.canonicalSources?.[0];
+        const sourceLabel =
+          canonical?.meta?.show || canonical?.meta?.siteName || canonical?.meta?.author;
+        const sourceUrl = canonical?.url ?? s.sourceUrls?.[0];
         return (
           <li key={s.skillHash}>
             <Link
@@ -245,16 +249,16 @@ export function RecentPublicSkills({
                 ) : (
                   <span>off-chain</span>
                 )}
-                {source && (
+                {sourceUrl && (
                   <a
-                    href={source}
+                    href={sourceUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={(e) => e.stopPropagation()}
                     className="max-w-28 truncate underline decoration-ink/20 hover:text-ember"
-                    title={source}
+                    title={sourceUrl}
                   >
-                    source
+                    {sourceLabel || "source"}
                   </a>
                 )}
               </span>

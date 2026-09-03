@@ -5,7 +5,12 @@ import { forgeSkillCore } from "./forge.js";
 import { rateLimit } from "../lib/rate-limit-mw.js";
 import { clientIp } from "../lib/rate-limit.js";
 import { meteredGenerate, grantVerifiedShareBenefit, inspectForgeEntitlement } from "../lib/forge-quota.js";
-import { normalizeSourceUrl } from "../lib/source-url.js";
+import {
+  canonicalSources,
+  normalizeSourceUrl,
+  type CanonicalSource,
+  type SourceMeta,
+} from "../lib/source-url.js";
 import { resolveRepoContext } from "../lib/repo-context.js";
 import { getPublicSkill } from "../lib/skill-registry.js";
 import { resolveSession } from "./auth.js";
@@ -82,6 +87,8 @@ async function ingestUrls(
   titles: string[];
   sourceUrls: string[];
   sourceHashes: string[];
+  sourceMetas: Record<string, SourceMeta>;
+  canonicalSources: CanonicalSource[];
   textLength: number;
   contentType: string;
   providers: string[];
@@ -96,6 +103,7 @@ async function ingestUrls(
   const titles: string[] = [];
   const sourceUrls: string[] = [];
   const sourceHashes: string[] = [];
+  const sourceMetas: Record<string, SourceMeta> = {};
   const providers: string[] = [];
   const failures: Array<{ url: string; error: string }> = [];
   let textLength = 0;
@@ -121,8 +129,10 @@ async function ingestUrls(
     }
     ideas.push(...r.ideas);
     if (r.title) titles.push(r.title);
-    sourceUrls.push(normalizeSourceUrl(url));
+    const normalizedUrl = normalizeSourceUrl(url);
+    sourceUrls.push(normalizedUrl);
     if (r.sourceHash) sourceHashes.push(r.sourceHash);
+    if (r.sourceMeta) sourceMetas[normalizedUrl] = r.sourceMeta;
     textLength += r.textLength ?? 0;
     if (r.providers?.length) providers.push(...r.providers);
     if (!r.cacheHit) cacheHit = false;
@@ -133,11 +143,15 @@ async function ingestUrls(
     contentType = "mixed";
   }
 
+  const canonicalSourceRecords = await canonicalSources(sourceUrls, sourceMetas);
+
   return {
     ideas,
     titles,
     sourceUrls,
     sourceHashes,
+    sourceMetas,
+    canonicalSources: canonicalSourceRecords,
     textLength,
     contentType,
     providers: [...new Set(providers)],
@@ -207,6 +221,8 @@ composeRoute.post("/compose", rateLimit("compose"), async (c) => {
           cacheHit: boolean;
           sourceUrls: string[];
           sourceHashes: string[];
+          sourceMetas: Record<string, SourceMeta>;
+          canonicalSources: CanonicalSource[];
           failures: Array<{ url: string; error: string }>;
         };
 
@@ -234,6 +250,8 @@ composeRoute.post("/compose", rateLimit("compose"), async (c) => {
             sourceHashes: ingestResult.sourceHash
               ? [ingestResult.sourceHash]
               : [],
+            sourceMetas: {},
+            canonicalSources: [],
             failures: [],
           };
         } else {
@@ -259,6 +277,8 @@ composeRoute.post("/compose", rateLimit("compose"), async (c) => {
             cacheHit: merged.cacheHit,
             sourceUrls: merged.sourceUrls,
             sourceHashes: merged.sourceHashes,
+            sourceMetas: merged.sourceMetas,
+            canonicalSources: merged.canonicalSources,
             failures: merged.failures,
           };
         }
@@ -280,6 +300,7 @@ composeRoute.post("/compose", rateLimit("compose"), async (c) => {
         let isPrivate = body.private !== false;
         if (!session) isPrivate = false;
         const { payload, cacheHit } = await forgeSkillCore(c.env, {
+          canonicalSources: ingestMeta.canonicalSources,
           ideas: topShards.map((i) => ({
             title: i.title,
             description: i.description,

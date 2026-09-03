@@ -42,6 +42,17 @@ function SourceSkillCard({ skill }: { skill: SourceSkillEntry }) {
       >
         {skill.title}
       </Link>
+      {skill.sourceMeta && (
+        <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] text-muted">
+          {skill.sourceMeta.show && <span>{skill.sourceMeta.show}</span>}
+          {skill.sourceMeta.author && (
+            <span>by {skill.sourceMeta.author}</span>
+          )}
+          {skill.sourceMeta.publishedAt && (
+            <span>· {new Date(skill.sourceMeta.publishedAt).toLocaleDateString()}</span>
+          )}
+        </div>
+      )}
       <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] text-muted">
         <span>Fitted for {skill.fittedTo}</span>
         <span>{new Date(skill.forgedAt).toLocaleDateString()}</span>

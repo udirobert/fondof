@@ -7,6 +7,7 @@ import {
 } from "../lib/skill-evidence.js";
 import { getSkillRecord } from "../lib/skill-registry.js";
 import { safeFetch } from "../lib/ssrf.js";
+import { getSourceEntity, type SourceEntity } from "../lib/source-url.js";
 import { resolveSession } from "./auth.js";
 
 export const sourcesRoute = new Hono<{ Bindings: Env }>();
@@ -17,6 +18,7 @@ interface SourceEntry {
   title: string;
   sourceUrl: string;
   canonicalSourceId?: string;
+  sourceMeta?: { author?: string; siteName?: string; show?: string; publishedAt?: string; feedUrl?: string };
   fittedTo: string;
   forgedAt: string;
 }
@@ -81,21 +83,15 @@ function emptyImpact(): SourceImpactSummary {
   };
 }
 
-/**
- * Build one source snapshot from the domain index and durable evidence.
- * A source index is discovery data, so unlisted records are filtered even if
- * an older index entry has not been cleaned up yet.
- */
-async function sourceSnapshot(
+async function buildSourceSnapshot(
   env: Env,
+  entries: SourceEntry[] | null,
   domain: string,
 ): Promise<{
   skills: SourceSkillResponse[];
   impact: SourceImpactSummary;
   claim: SourceClaim | null;
 }> {
-  const entries =
-    (await env.SESSIONS.get(`source:${domain}`, "json")) as SourceEntry[] | null;
   const claim = (await env.SESSIONS.get(claimKey(domain), "json")) as SourceClaim | null;
   if (!entries?.length) return { skills: [], impact: emptyImpact(), claim };
 
@@ -140,6 +136,24 @@ async function sourceSnapshot(
 }
 
 /**
+ * Build one source snapshot from the domain index and durable evidence.
+ * A source index is discovery data, so unlisted records are filtered even if
+ * an older index entry has not been cleaned up yet.
+ */
+async function sourceSnapshot(
+  env: Env,
+  domain: string,
+): Promise<{
+  skills: SourceSkillResponse[];
+  impact: SourceImpactSummary;
+  claim: SourceClaim | null;
+}> {
+  const entries =
+    (await env.SESSIONS.get(`source:${domain}`, "json")) as SourceEntry[] | null;
+  return buildSourceSnapshot(env, entries, domain);
+}
+
+/**
  * GET /sources/:domain — returns all skills forged from a given source domain.
  * Used by the /from/[source] page and the badge endpoint.
  */
@@ -163,6 +177,34 @@ sourcesRoute.get("/sources/:domain/impact", async (c) => {
   if (!domain) return c.json({ error: "domain required" }, 400);
   const snapshot = await sourceSnapshot(c.env, domain);
   return c.json({ domain, impact: snapshot.impact, claim: snapshot.claim });
+});
+
+/**
+ * GET /source/:id — returns a specific canonical source entity and the
+ * skills forged from it. /source/:id decouples attribution from coarse domains
+ * (e.g. every YouTube video has its own canonical source id).
+ */
+sourcesRoute.get("/source/:id", async (c) => {
+  const id = c.req.param("id")?.trim() ?? "";
+  if (!id) return c.json({ error: "source id required" }, 400);
+
+  const entity = await getSourceEntity(c.env, id);
+  if (!entity) {
+    return c.json({ error: "source not found" }, 404);
+  }
+
+  const entries =
+    (await c.env.SESSIONS.get(`source-skills:${id}`, "json")) as SourceEntry[] | null;
+  const snapshot = await buildSourceSnapshot(c.env, entries, entity.domain);
+
+  return c.json({
+    source: entity,
+    domain: entity.domain,
+    skills: snapshot.skills,
+    count: snapshot.skills.length,
+    impact: snapshot.impact,
+    claim: snapshot.claim,
+  });
 });
 
 /**

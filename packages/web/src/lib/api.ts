@@ -44,6 +44,14 @@ export interface IngestValue {
   deferred: Array<"exa" | "forge" | "publish">;
 }
 
+export interface SourceMeta {
+  author?: string;
+  siteName?: string;
+  show?: string;
+  publishedAt?: string;
+  feedUrl?: string;
+}
+
 export interface IngestResponse {
   contentType: string;
   sourceHash: string;
@@ -53,6 +61,9 @@ export interface IngestResponse {
   existingSkills?: ExistingSkillHit[];
   providers?: IngestProvider[];
   extractProvider?: IngestProvider;
+  sourceMeta?: SourceMeta;
+  sourceUrl?: string;
+  canonicalSourceId?: string;
   cached?: boolean;
   deferred?: Array<"exa" | "forge" | "publish">;
   error?: string;
@@ -62,6 +73,7 @@ export interface CanonicalSource {
   id: string;
   url: string;
   domain: string;
+  meta?: SourceMeta;
 }
 
 export interface SkillGenre {
@@ -233,6 +245,8 @@ export type IngestStreamEvent =
       ideaCount: number;
       cacheHit?: boolean;
       providers?: IngestProvider[];
+      sourceMeta?: SourceMeta;
+      canonicalSourceId?: string;
     }
   | { type: "error"; error: string };
 

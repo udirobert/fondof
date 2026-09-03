@@ -55,6 +55,8 @@ export interface ForgeInput {
   /** Explicit false shares publicly; omitted/true keeps the draft private. */
   private?: boolean;
   owner?: { userId: number; login: string };
+  /** Canonical source records with extracted metadata; computed from URLs if omitted. */
+  canonicalSources?: CanonicalSource[];
 }
 
 export interface ForgePayload {
@@ -122,7 +124,7 @@ async function persistPublicForge(
         title: payload.title,
         fittedTo: payload.fittedTo,
         forgedAt: payload.composedAt,
-      });
+      }, payload.canonicalSources);
     } catch {
       /* discovery indexes are optional once the public record exists */
     }
@@ -169,16 +171,22 @@ export async function forgeSkillCore(
     : "";
 
   const sourceUrls = [...new Set(body.ideas.map((i) => i.sourceUrl))];
-  const canonicalSourceRecords = await canonicalSources(sourceUrls);
+  const canonicalSourceRecords =
+    body.canonicalSources?.length
+      ? body.canonicalSources
+      : await canonicalSources(sourceUrls);
 
   const cacheKey = `forge:v4:${await sha256Hex(
     `${repoStr}\n${ideasStr}\n${gapStr}\nprivate:${isPrivate}`,
   )}`;
   const hit = await cacheGetJson<ForgePayload>(cacheKey);
   if (hit?.markdown) {
-    const cachedPayload = hit.canonicalSources
-      ? hit
-      : { ...hit, canonicalSources: canonicalSourceRecords };
+    // Prefer caller-supplied source metadata (author/show) over a stale cache entry.
+    const cachedPayload = body.canonicalSources?.length
+      ? { ...hit, canonicalSources: canonicalSourceRecords }
+      : hit.canonicalSources
+        ? hit
+        : { ...hit, canonicalSources: canonicalSourceRecords };
     const payload = await withPublicRegistry(env, body, cachedPayload, isPrivate);
     return { payload, cacheHit: true };
   }

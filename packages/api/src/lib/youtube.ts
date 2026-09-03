@@ -37,6 +37,14 @@ export function extractVideoId(url: string): string | null {
 
 export type YoutubeProvider = "timedtext" | "firecrawl" | "page";
 
+export interface YouTubeTranscriptResult {
+  text: string;
+  title: string;
+  provider: YoutubeProvider;
+  /** YouTube channel / uploader name, when extractable. */
+  author?: string;
+}
+
 /** A single entry from the watch page's captionTracks array. */
 export interface CaptionTrack {
   baseUrl: string;
@@ -59,7 +67,7 @@ export async function getYouTubeTranscript(
   url: string,
   firecrawlKey?: string,
   kv?: KVNamespace,
-): Promise<{ text: string; title: string; provider: YoutubeProvider } | null> {
+): Promise<YouTubeTranscriptResult | null> {
   const videoId = extractVideoId(url);
   if (!videoId) return null;
 
@@ -84,6 +92,7 @@ type CachedCaption = {
   text: string;
   title: string;
   provider: YoutubeProvider;
+  author?: string;
 };
 
 function captionCacheKey(videoId: string) {
@@ -127,21 +136,22 @@ async function captionCachePut(
 async function fetchYouTubeTranscript(
   videoId: string,
   firecrawlKey?: string,
-): Promise<{ text: string; title: string; provider: YoutubeProvider } | null> {
+): Promise<YouTubeTranscriptResult | null> {
 
   // Backbone: watch page gives us the real title + the full track list
   const page = await fetchWatchPage(videoId);
   const title = page?.title || `YouTube: ${videoId}`;
+  const author = page?.author;
 
   // Method 1: timedtext API, lang fallbacks (en → en-US → ASR)
   const timedText = await fetchTimedTextBest(videoId);
-  if (timedText) return { text: timedText, title, provider: "timedtext" };
+  if (timedText) return { text: timedText, title, provider: "timedtext", author };
 
   // Method 2: ranked captionTracks → baseUrl XML → existing parser
   if (page?.captionTracks?.length) {
     for (const track of rankCaptionTracks(page.captionTracks)) {
       const text = await fetchTrackXml(track.baseUrl);
-      if (text) return { text, title, provider: "page" };
+      if (text) return { text, title, provider: "page", author };
     }
   }
 
@@ -173,6 +183,7 @@ async function fetchYouTubeTranscript(
             text: data.data.markdown,
             title: data.data.metadata?.title ?? title,
             provider: "firecrawl",
+            author,
           };
         }
       }
@@ -186,6 +197,7 @@ async function fetchYouTubeTranscript(
 
 interface WatchPage {
   title: string | null;
+  author: string | undefined;
   captionTracks: CaptionTrack[];
 }
 
@@ -209,6 +221,7 @@ async function fetchWatchPage(videoId: string): Promise<WatchPage | null> {
     const html = fetched.body;
     return {
       title: extractTitle(html) ?? `YouTube: ${videoId}`,
+      author: extractChannel(html),
       captionTracks: extractCaptionTracks(html),
     };
   } catch {
@@ -230,6 +243,24 @@ export function extractTitle(html: string): string | null {
   if (generic) return decodeJsonString(generic[1]);
 
   return null;
+}
+
+/**
+ * Extract channel/uploader name from the watch page.
+ * Tries the ytInitialData JSON, then common meta tags.
+ */
+function extractChannel(html: string): string | undefined {
+  const ytChannel = html.match(
+    /"videoOwnerRenderer"[\s\S]{0,400}?"title"[\s\S]{0,100}?"text":"((?:[^"\\]|\\.)*)"/,
+  );
+  if (ytChannel) return decodeJsonString(ytChannel[1]);
+
+  const ogAuthor = html.match(
+    /<meta\s+(?:name|property)="(?:og:)?author"\s+content="([^"]+)"/i,
+  );
+  if (ogAuthor) return ogAuthor[1].trim();
+
+  return undefined;
 }
 
 function decodeJsonString(s: string): string {
