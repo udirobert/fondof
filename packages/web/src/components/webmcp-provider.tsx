@@ -128,7 +128,7 @@ export function WebMCPProvider() {
         name: "compose_skill",
         title: "Compose a new skill",
         description:
-          "Turn a stated need or one or more source URLs into a single repo-specific skill. DO NOT call this tool unless the user has already provided either a need (free-text description of a technique or problem) or one or more urls (public articles, blog posts, documentation pages, or YouTube links). If the user gives multiple links, pass them all in the urls array so they are combined into one skill. Do not call compose_skill once per URL. If neither need nor urls are present, ask the user to describe what they want to learn or paste a link. Optionally pass a target repo and top_shards. Returns the generated markdown, skill hash, shareable URL, and source attribution.",
+          "Turn a stated need or one or more source URLs into a single repo-specific skill. DO NOT call this tool unless the user has already provided either a need (free-text description of a technique or problem) or one or more urls (public articles, blog posts, documentation pages, or YouTube links). If the user gives multiple links, pass them all in the urls array so they are combined into one skill. Do not call compose_skill once per URL. If neither need nor urls are present, ask the user to describe what they want to learn or paste a link. Optionally pass a target repo and top_shards. Returns the generated markdown, skill hash, shareable URL, and source_urls for attribution.",
         inputSchema: {
           type: "object",
           description:
