@@ -19,7 +19,9 @@ Use when the user wants to create a new skill from a need (plain-text descriptio
 - Pass **all** source URLs in a single `urls` array. Do not call `compose_skill` once per URL; the backend merges up to 4 sources into one skill.
 - Provide exactly one of `need` or `urls` (or legacy `url`).
 - Optional: `repo` for stack fitting and `top_shards` (1-6) for how many ideas to include.
+- Optional: `private` (default `true`). Set `private: false` only when the user explicitly wants a public share and is signed in — this also unlocks unlimited forges for the month.
 - Multi-source compose defaults to 3 shards; single-source defaults to 2.
+- If the response contains `error` and `code: "quota_exceeded"`, stop and present `hint`, `unlock`, and `login_url` to the user. Do not retry silently.
 
 ## Attribution
 

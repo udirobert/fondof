@@ -15,15 +15,25 @@ export type ExchangePayload = {
   expiresAt: number;
 };
 
+export type ForgeQuotaRequest =
+  | { op: "forge-inspect"; subjectKey: string; month: string; limit: number }
+  | { op: "forge-reserve"; subjectKey: string; month: string; limit: number }
+  | { op: "forge-release"; subjectKey: string; month: string; limit: number };
+
+export type ForgeQuotaResponse =
+  | { ok: true; remaining: number; reserved?: boolean }
+  | { ok: false; remaining: number; error: string };
+
 export type CoordinatorRequest =
   | { op: "put-exchange"; code: string; payload: ExchangePayload }
   | { op: "peek-exchange"; code: string }
   | { op: "take-exchange"; code: string }
-  | { op: "claim-use"; hash: string; actorKey?: string };
+  | { op: "claim-use"; hash: string; actorKey?: string }
+  | ForgeQuotaRequest;
 
 export type CoordinatorResponse =
-  | { ok: true; payload?: ExchangePayload; claim?: ClaimedUseResult }
-  | { ok: false; error: string };
+  | { ok: true; payload?: ExchangePayload; claim?: ClaimedUseResult; remaining?: number; reserved?: boolean }
+  | { ok: false; error: string; remaining?: number };
 
 export interface AtomicStore {
   get<T>(key: string): Promise<T | undefined>;
@@ -70,9 +80,53 @@ export async function dispatchCoordinator(
       );
       return { ok: true, claim };
     }
+    case "forge-inspect":
+    case "forge-reserve":
+    case "forge-release": {
+      return dispatchForgeQuota(store, request);
+    }
     default:
       return { ok: false, error: "unknown_op" };
   }
+}
+
+function forgeUsageKey(subjectKey: string, month: string): string {
+  return `usage:${subjectKey}:${month}`;
+}
+
+async function dispatchForgeQuota(
+  store: AtomicStore,
+  request: ForgeQuotaRequest,
+): Promise<CoordinatorResponse> {
+  const key = forgeUsageKey(request.subjectKey, request.month);
+  const current = Math.max(0, (await store.get<number>(key)) ?? 0);
+
+  if (request.op === "forge-inspect") {
+    const remaining = Math.max(0, request.limit - current);
+    return { ok: true, remaining };
+  }
+
+  if (request.op === "forge-release") {
+    const next = Math.max(0, current - 1);
+    if (next === 0) {
+      await store.delete(key);
+    } else {
+      await store.put(key, next);
+    }
+    return { ok: true, remaining: request.limit - next };
+  }
+
+  // forge-reserve
+  if (current >= request.limit) {
+    return {
+      ok: false,
+      error: "quota_exceeded",
+      remaining: Math.max(0, request.limit - current),
+    };
+  }
+  const next = current + 1;
+  await store.put(key, next);
+  return { ok: true, remaining: request.limit - next, reserved: true };
 }
 
 function durableStore(storage: DurableObjectStorage): AtomicStore {

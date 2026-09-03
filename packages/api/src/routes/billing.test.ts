@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { createMemoryCoordinator } from "../durable/coordinator.js";
 import { billingMonth } from "../lib/forge-quota.js";
 import { computeStripeSignature } from "../lib/stripe-webhook.js";
 import { billingRoute } from "./billing.js";
@@ -25,6 +26,9 @@ function fakeKV(): KVNamespace {
 function envWith(kv: KVNamespace) {
   return {
     SESSIONS: kv,
+    COORDINATOR: createMemoryCoordinator({ SESSIONS: kv }),
+    FORGE_ANON_SALT: "test-salt",
+    FRONTEND_URL: "https://fondof.netlify.app",
     STRIPE_WEBHOOK_SECRET: SECRET,
   } as never;
 }
@@ -238,7 +242,6 @@ describe("billing accounting endpoints", () => {
       envWith(kv),
     );
     expect(response.status).toBe(410);
-    expect(await kv.get(`usage:42:${billingMonth()}`)).toBeNull();
   });
 
   it("does not unlock sharer status from an unverified share claim", async () => {

@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { createMemoryCoordinator } from "../durable/coordinator.js";
 import { composeRoute, resolveComposeUrls } from "./compose.js";
 
 const ingestCalls: string[] = [];
@@ -84,6 +85,8 @@ Do the thing.
 function envWith(kv: KVNamespace) {
   return {
     SESSIONS: kv,
+    COORDINATOR: createMemoryCoordinator({ SESSIONS: kv }),
+    FORGE_ANON_SALT: "test-salt",
     FRONTEND_URL: "https://fondof.netlify.app",
     AI: { run: async () => ({ response: SKILL_MD }) },
   } as never;

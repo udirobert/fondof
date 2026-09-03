@@ -28,7 +28,7 @@ billingRoute.post("/billing/check-forge", async (c) => {
     c.env.SESSIONS,
   );
   const entitlement = await inspectForgeEntitlement(
-    c.env.SESSIONS,
+    c.env,
     session,
     clientIp(c.req.raw),
   );

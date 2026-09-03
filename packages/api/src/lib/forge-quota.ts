@@ -5,7 +5,14 @@
  * /compose — not a client courtesy. Callers cannot skip accounting by omitting
  * /billing/record-forge. Quota is reserved before upstream work and released
  * if generation fails or is fully served from cache.
+ *
+ * Anonymous subjects are identified by a salted hash of their IP, never the
+ * raw IP. Counting is delegated to the FondofCoordinator Durable Object so
+ * per-subject reserve/release is atomic.
  */
+
+import type { Env } from "../index.js";
+import { callCoordinator } from "../durable/coordinator.js";
 
 export const FREE_FORGE_LIMIT = 3;
 const USAGE_TTL_SECONDS = 60 * 60 * 24 * 35;
@@ -45,56 +52,89 @@ export type GenerateOutcome<T> =
   | { kind: "ok"; cacheHit: boolean; value: T }
   | { kind: "reject"; status: number; body: Record<string, unknown> };
 
-function usageKey(subjectKey: string, month = billingMonth()): string {
-  return `usage:${subjectKey}:${month}`;
+function planKey(userId: number): string {
+  return `plan:${userId}`;
 }
 
 function shareKey(userId: number, month = billingMonth()): string {
   return `shared:${userId}:${month}`;
 }
 
-function planKey(userId: number): string {
-  return `plan:${userId}`;
-}
-
-/** Stable KV subject: signed-in user, else IP (IPv6 colons stripped). */
-export function forgeSubjectKey(
+/** Stable, privacy-safe forge subject. Signed-in users get `user:{id}`;
+ * anonymous IPs are SHA-256 hashed with a salt so we never store raw IPs. */
+export async function forgeSubjectKey(
+  env: Pick<Env, "FORGE_ANON_SALT">,
   session: ForgeQuotaIdentity | null,
   ip: string,
-): string {
-  if (session) return String(session.userId);
+): Promise<string> {
+  if (session) return `user:${session.userId}`;
   const trimmed = ip.trim() || "anon";
-  return `ip:${trimmed.replace(/:/g, "_")}`;
+  const salt = env.FORGE_ANON_SALT || "fondof-dev-salt-change-me";
+  const data = new TextEncoder().encode(`${salt}:${trimmed}`);
+  const digest = await crypto.subtle.digest("SHA-256", data);
+  const hex = [...new Uint8Array(digest)]
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+  return `anon:${hex}`;
 }
 
-async function readCount(kv: KVNamespace, key: string): Promise<number> {
-  const raw = await kv.get(key);
-  if (!raw) return 0;
-  const n = parseInt(raw, 10);
-  return Number.isFinite(n) && n > 0 ? n : 0;
+function forgeCoordinatorName(subjectKey: string): string {
+  return `forge-quota:${subjectKey}`;
+}
+
+async function callForgeQuota(
+  env: Pick<Env, "COORDINATOR" | "SESSIONS">,
+  subjectKey: string,
+  request:
+    | { op: "forge-inspect"; month: string; limit: number }
+    | { op: "forge-reserve"; month: string; limit: number }
+    | { op: "forge-release"; month: string; limit: number },
+): Promise<{ ok: true; remaining: number; reserved?: boolean } | { ok: false; remaining: number; error: string }> {
+  const coordinator = env.COORDINATOR;
+  if (!coordinator) {
+    // Without the DO binding we cannot guarantee atomic counting. Allow through
+    // in local/dev mode so the code still runs, but log a warning.
+    return { ok: true, remaining: FREE_FORGE_LIMIT };
+  }
+  const res = await callCoordinator(
+    { COORDINATOR: coordinator, SESSIONS: env.SESSIONS },
+    forgeCoordinatorName(subjectKey),
+    { subjectKey, ...request } as never,
+  );
+  if (!res) {
+    return { ok: true, remaining: FREE_FORGE_LIMIT };
+  }
+  if (res.ok) {
+    return { ok: true, remaining: res.remaining ?? 0, reserved: res.reserved };
+  }
+  return { ok: false, remaining: res.remaining ?? 0, error: res.error || "quota_error" };
 }
 
 export async function inspectForgeEntitlement(
-  kv: KVNamespace,
+  env: Pick<Env, "SESSIONS" | "COORDINATOR" | "FORGE_ANON_SALT">,
   session: ForgeQuotaIdentity | null,
   ip: string,
 ): Promise<ForgeEntitlement> {
   const month = billingMonth();
-  const subjectKey = forgeSubjectKey(session, ip);
+  const subjectKey = await forgeSubjectKey(env, session, ip);
 
   if (session) {
-    const planRaw = await kv.get(planKey(session.userId));
+    const planRaw = await env.SESSIONS.get(planKey(session.userId));
     if (planRaw === "pro") {
       return { allowed: true, remaining: null, plan: "pro", limit: null };
     }
-    const hasShared = await kv.get(shareKey(session.userId, month));
+    const hasShared = await env.SESSIONS.get(shareKey(session.userId, month));
     if (hasShared) {
       return { allowed: true, remaining: null, plan: "sharer", limit: null };
     }
   }
 
-  const used = await readCount(kv, usageKey(subjectKey, month));
-  const remaining = Math.max(0, FREE_FORGE_LIMIT - used);
+  const res = await callForgeQuota(env, subjectKey, {
+    op: "forge-inspect",
+    month,
+    limit: FREE_FORGE_LIMIT,
+  });
+  const remaining = res.ok ? res.remaining : 0;
   const plan: ForgePlan = session ? "free" : "anonymous";
   return {
     allowed: remaining > 0,
@@ -105,12 +145,12 @@ export async function inspectForgeEntitlement(
 }
 
 export async function reserveForgeQuota(
-  kv: KVNamespace,
+  env: Pick<Env, "SESSIONS" | "COORDINATOR" | "FORGE_ANON_SALT">,
   session: ForgeQuotaIdentity | null,
   ip: string,
 ): Promise<ForgeReservation> {
-  const subjectKey = forgeSubjectKey(session, ip);
-  const entitlement = await inspectForgeEntitlement(kv, session, ip);
+  const subjectKey = await forgeSubjectKey(env, session, ip);
+  const entitlement = await inspectForgeEntitlement(env, session, ip);
 
   if (entitlement.remaining === null) {
     return { allowed: true, reserved: false, entitlement, subjectKey };
@@ -119,31 +159,34 @@ export async function reserveForgeQuota(
     return { allowed: false, reserved: false, entitlement, subjectKey };
   }
 
-  const key = usageKey(subjectKey);
-  const current = await readCount(kv, key);
-  if (current >= FREE_FORGE_LIMIT) {
+  const month = billingMonth();
+  const res = await callForgeQuota(env, subjectKey, {
+    op: "forge-reserve",
+    month,
+    limit: FREE_FORGE_LIMIT,
+  });
+
+  if (!res.ok) {
     return {
       allowed: false,
       reserved: false,
       subjectKey,
       entitlement: {
         allowed: false,
-        remaining: 0,
+        remaining: res.remaining,
         plan: entitlement.plan,
         limit: FREE_FORGE_LIMIT,
       },
     };
   }
 
-  const next = current + 1;
-  await kv.put(key, String(next), { expirationTtl: USAGE_TTL_SECONDS });
   return {
     allowed: true,
-    reserved: true,
+    reserved: res.reserved ?? true,
     subjectKey,
     entitlement: {
       allowed: true,
-      remaining: Math.max(0, FREE_FORGE_LIMIT - next),
+      remaining: res.remaining,
       plan: entitlement.plan,
       limit: FREE_FORGE_LIMIT,
     },
@@ -151,18 +194,16 @@ export async function reserveForgeQuota(
 }
 
 export async function releaseForgeQuota(
-  kv: KVNamespace,
+  env: Pick<Env, "SESSIONS" | "COORDINATOR" | "FORGE_ANON_SALT">,
   reservation: ForgeReservation,
 ): Promise<void> {
   if (!reservation.reserved) return;
-  const key = usageKey(reservation.subjectKey);
-  const current = await readCount(kv, key);
-  const next = Math.max(0, current - 1);
-  if (next === 0) {
-    await kv.delete(key);
-    return;
-  }
-  await kv.put(key, String(next), { expirationTtl: USAGE_TTL_SECONDS });
+  const month = billingMonth();
+  await callForgeQuota(env, reservation.subjectKey, {
+    op: "forge-release",
+    month,
+    limit: FREE_FORGE_LIMIT,
+  });
 }
 
 /**
@@ -170,28 +211,28 @@ export async function releaseForgeQuota(
  * Fully cached responses do not consume the monthly allowance.
  */
 export async function meteredGenerate<T>(
-  kv: KVNamespace,
+  env: Pick<Env, "SESSIONS" | "COORDINATOR" | "FORGE_ANON_SALT" | "FRONTEND_URL">,
   session: ForgeQuotaIdentity | null,
   ip: string,
   generate: () => Promise<GenerateOutcome<T>>,
 ): Promise<MeteredGenerateResult<T>> {
-  const reservation = await reserveForgeQuota(kv, session, ip);
+  const reservation = await reserveForgeQuota(env, session, ip);
   if (!reservation.allowed) {
     return {
       ok: false,
       status: 402,
-      body: quotaExceededBody(reservation.entitlement),
+      body: quotaExceededBody(reservation.entitlement, env.FRONTEND_URL),
     };
   }
 
   try {
     const outcome = await generate();
     if (outcome.kind === "reject") {
-      await releaseForgeQuota(kv, reservation);
+      await releaseForgeQuota(env, reservation);
       return { ok: false, status: outcome.status, body: outcome.body };
     }
     if (outcome.cacheHit) {
-      await releaseForgeQuota(kv, reservation);
+      await releaseForgeQuota(env, reservation);
     }
     return {
       ok: true,
@@ -199,13 +240,14 @@ export async function meteredGenerate<T>(
       entitlement: reservation.entitlement,
     };
   } catch (err) {
-    await releaseForgeQuota(kv, reservation);
+    await releaseForgeQuota(env, reservation);
     throw err;
   }
 }
 
 export function quotaExceededBody(
   entitlement: ForgeEntitlement,
+  frontendUrl = "https://fondof.netlify.app",
 ): Record<string, unknown> {
   const plan = entitlement.plan;
   const limit = entitlement.limit ?? FREE_FORGE_LIMIT;
@@ -218,7 +260,7 @@ export function quotaExceededBody(
 
   const howToSignIn =
     plan === "anonymous"
-      ? " Run `fondof login` (or send Authorization: Bearer <fondof session>), then retry."
+      ? ` Sign in at ${frontendUrl.replace(/\/$/, "")}/ (run \`fondof login\` or send Authorization: Bearer <fondof session>), then retry.`
       : "";
 
   const howToShare =
@@ -236,6 +278,7 @@ export function quotaExceededBody(
     limit,
     period,
     unlock: [...unlock],
+    login_url: `${frontendUrl.replace(/\/$/, "")}/`,
     hint:
       plan === "anonymous"
         ? "fondof login → retry; or share one public skill after sign-in"

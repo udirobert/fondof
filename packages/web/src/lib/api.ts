@@ -649,6 +649,15 @@ export interface ComposeResponse {
   providers?: string[];
   sourceFailures?: Array<{ url: string; error: string }>;
   error?: string;
+  code?: string;
+  hint?: string;
+  unlock?: string[];
+  login_url?: string;
+  period?: string;
+  plan?: string;
+  remaining?: number | null;
+  limit?: number | null;
+  allowed?: boolean;
 }
 
 export async function composeSkill(body: {

@@ -151,12 +151,12 @@ export function WebMCPProvider() {
         name: "compose_skill",
         title: "Compose a new skill",
         description:
-          "Turn a stated need or one or more source URLs into a single repo-specific skill. Call this once per skill and pass every source URL in the urls array; the backend merges up to 4 sources. Either a need or one or more URLs must be present before calling. Optionally pass a target repo and top_shards. Returns the generated markdown, skill hash, shareable URL, and source_urls for attribution.",
+          "Turn a stated need or one or more source URLs into a single repo-specific skill. Call this once per skill and pass every source URL in the urls array; the backend merges up to 4 sources. Either a need or one or more URLs must be present before calling. Optionally pass a target repo, top_shards, and private. Returns the generated markdown, skill hash, shareable URL, and source_urls for attribution. If a quota error is returned, stop and ask the user to sign in or share a skill.",
         inputSchema: {
           type: "object",
           additionalProperties: false,
           description:
-            "Provide exactly one of need or urls/url. repo and top_shards are optional. If the user provides multiple links, pass them all in urls. If the user only said something vague like 'create a skill', ask them for a need or urls before calling.",
+            "Provide exactly one of need or urls/url. repo, top_shards, and private are optional. If the user provides multiple links, pass them all in urls. If the user only said something vague like 'create a skill', ask them for a need or urls before calling. Set private to false only when the user explicitly wants a public share and is signed in.",
           properties: {
             need: {
               type: "string",
@@ -203,18 +203,22 @@ export function WebMCPProvider() {
               maximum: 6,
               examples: [2, 3],
             },
+            private: {
+              type: "boolean",
+              description:
+                "When false, the skill is shared publicly and can unlock unlimited forges for signed-in users. Default true. Only set false if the user explicitly asks to share.",
+            },
           },
         },
         outputSchema: {
           type: "object",
-          additionalProperties: false,
           description:
-            "The composed skill with title, hash, markdown, source attribution, and public share URL.",
+            "The composed skill, or a structured error with code, hint, unlock options, and a login URL. If error is present, stop and follow the unlock instructions.",
           properties: {
             title: { type: ["string", "null"] },
-            skill_hash: { type: "string" },
+            skill_hash: { type: ["string", "null"] },
             skill_url: { type: ["string", "null"] },
-            markdown: { type: "string" },
+            markdown: { type: ["string", "null"] },
             source_title: { type: ["string", "null"] },
             source_urls: {
               type: "array",
@@ -222,7 +226,13 @@ export function WebMCPProvider() {
               items: { type: "string" },
             },
             fitted_to: { type: ["string", "null"] },
-            private: { type: "boolean" },
+            private: { type: ["boolean", "null"] },
+            error: { type: ["string", "null"] },
+            code: { type: ["string", "null"] },
+            hint: { type: ["string", "null"] },
+            unlock: { type: "array", items: { type: "string" } },
+            login_url: { type: ["string", "null"] },
+            remaining: { type: ["number", "null"] },
           },
         },
         annotations: {
@@ -230,12 +240,13 @@ export function WebMCPProvider() {
           untrustedContentHint: true,
         },
         execute: async (input) => {
-          const { need, url, urls, repo, top_shards } = input as {
+          const { need, url, urls, repo, top_shards, private: isPrivate } = input as {
             need?: string;
             url?: string;
             urls?: string[];
             repo?: string;
             top_shards?: number;
+            private?: boolean;
           };
 
           const sourceUrls: string[] = [];
@@ -251,19 +262,22 @@ export function WebMCPProvider() {
           const hasUrls = deduped.length > 0;
 
           if (!hasNeed && !hasUrls) {
-            throw new Error(
-              "I need a source to compose from. Ask the user to either describe the skill they want in plain text (need) or paste one or more public URLs to articles, blog posts, docs pages, or YouTube videos (urls).",
-            );
+            return {
+              error:
+                "I need a source to compose from. Ask the user to either describe the skill they want in plain text (need) or paste one or more public URLs to articles, blog posts, docs pages, or YouTube videos (urls).",
+            };
           }
           if (hasNeed && hasUrls) {
-            throw new Error(
-              "Provide exactly one of need or url(s), not both. If the user gave URLs, use urls. If they described a topic in words, use need.",
-            );
+            return {
+              error:
+                "Provide exactly one of need or url(s), not both. If the user gave URLs, use urls. If they described a topic in words, use need.",
+            };
           }
           if (deduped.length > 4) {
-            throw new Error(
-              "You can combine at most 4 URLs in one compose call. Ask the user to pick the most relevant 4.",
-            );
+            return {
+              error:
+                "You can combine at most 4 URLs in one compose call. Ask the user to pick the most relevant 4.",
+            };
           }
 
           const res = await composeSkill({
@@ -271,17 +285,29 @@ export function WebMCPProvider() {
             ...(hasUrls ? { urls: deduped } : {}),
             ...(repo ? { repo } : {}),
             ...(typeof top_shards === "number" ? { topShards: top_shards } : {}),
+            ...(typeof isPrivate === "boolean" ? { private: isPrivate } : {}),
           });
-          if (res.error) throw new Error(res.error);
+
+          if (res.error) {
+            return {
+              error: res.error,
+              code: res.code ?? null,
+              hint: res.hint ?? null,
+              unlock: res.unlock ?? null,
+              login_url: res.login_url ?? null,
+              remaining: res.remaining ?? null,
+            };
+          }
+
           return {
-            title: res.title,
-            skill_hash: res.skillHash,
+            title: res.title ?? null,
+            skill_hash: res.skillHash ?? null,
             skill_url: res.skillUrl ?? null,
-            markdown: res.markdown,
-            source_title: res.sourceTitle,
+            markdown: res.markdown ?? null,
+            source_title: res.sourceTitle ?? null,
             source_urls: res.sourceUrls ?? [],
-            fitted_to: res.fittedTo,
-            private: res.private,
+            fitted_to: res.fittedTo ?? null,
+            private: res.private ?? true,
           };
         },
       },

@@ -279,7 +279,7 @@ forgeRoute.post("/forge", rateLimit("forge"), async (c) => {
 
   try {
     const metered = await meteredGenerate(
-      c.env.SESSIONS,
+      c.env,
       session,
       clientIp(c.req.raw),
       async () => {

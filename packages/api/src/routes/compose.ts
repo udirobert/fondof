@@ -195,7 +195,7 @@ composeRoute.post("/compose", rateLimit("compose"), async (c) => {
     );
 
     const metered = await meteredGenerate(
-      c.env.SESSIONS,
+      c.env,
       session,
       clientIp(c.req.raw),
       async () => {
@@ -344,7 +344,7 @@ composeRoute.post("/compose", rateLimit("compose"), async (c) => {
           "compose-share",
         );
         entitlement = await inspectForgeEntitlement(
-          c.env.SESSIONS,
+          c.env,
           session,
           clientIp(c.req.raw),
         );

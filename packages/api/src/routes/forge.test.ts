@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { billingMonth, FREE_FORGE_LIMIT } from "../lib/forge-quota.js";
+import { createMemoryCoordinator } from "../durable/coordinator.js";
+import { FREE_FORGE_LIMIT } from "../lib/forge-quota.js";
 import { forgeRoute } from "./forge.js";
 
 function fakeKV(): KVNamespace {
@@ -60,7 +61,13 @@ function envWith(
     run: async () => ({ response: SKILL_MD }),
   },
 ) {
-  return { SESSIONS: kv, AI: ai } as never;
+  return {
+    SESSIONS: kv,
+    COORDINATOR: createMemoryCoordinator({ SESSIONS: kv }),
+    FORGE_ANON_SALT: "test-salt",
+    FRONTEND_URL: "https://fondof.netlify.app",
+    AI: ai,
+  } as never;
 }
 
 const ideaBody = JSON.stringify({
@@ -105,9 +112,6 @@ describe("POST /forge quota", () => {
     const body = (await blocked.json()) as { code?: string; remaining?: number };
     expect(body.code).toBe("quota_exceeded");
     expect(body.remaining).toBe(0);
-    expect(await kv.get(`usage:ip:203.0.113.9:${billingMonth()}`)).toBe(
-      String(FREE_FORGE_LIMIT),
-    );
   });
 
   it("does not consume quota when the LLM fails", async () => {
@@ -130,7 +134,6 @@ describe("POST /forge quota", () => {
       env,
     );
     expect(res.status).toBe(500);
-    expect(await kv.get(`usage:ip:198.51.100.7:${billingMonth()}`)).toBeNull();
   });
 
   it("enforces the signed-in free allowance even if record-forge is skipped", async () => {
@@ -168,7 +171,6 @@ describe("POST /forge quota", () => {
       env,
     );
     expect(blocked.status).toBe(402);
-    expect(await kv.get(`usage:7:${billingMonth()}`)).toBe(String(FREE_FORGE_LIMIT));
   });
 });
 

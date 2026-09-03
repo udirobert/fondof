@@ -1,4 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { createMemoryCoordinator } from "../durable/coordinator.js";
+import {
+  peekOAuthExchange,
+  storeOAuthExchange,
+} from "../lib/oauth-exchange.js";
 import { authRoute } from "./auth.js";
 
 function fakeKV(): KVNamespace {
@@ -21,16 +26,12 @@ function fakeKV(): KVNamespace {
 function envWith(kv: KVNamespace) {
   return {
     SESSIONS: kv,
+    COORDINATOR: createMemoryCoordinator({ SESSIONS: kv }),
+    FORGE_ANON_SALT: "test-salt",
     FRONTEND_URL: "https://fondof.netlify.app",
     GITHUB_CLIENT_ID: "client",
     GITHUB_CLIENT_SECRET: "secret",
-  } as {
-    SESSIONS: KVNamespace;
-    FRONTEND_URL: string;
-    GITHUB_CLIENT_ID: string;
-    GITHUB_CLIENT_SECRET: string;
-    COORDINATOR?: DurableObjectNamespace;
-  };
+  } as never;
 }
 
 afterEach(() => {
@@ -145,9 +146,12 @@ describe("OAuth redirect allowlist", () => {
 describe("POST /auth/exchange", () => {
   it("is single-use and requires the initiating-browser cookie or frontend origin", async () => {
     const kv = fakeKV();
-    await kv.put(
-      "oauth-exchange:deadbeef",
-      JSON.stringify({ token: "session-token", browserNonce: "nonce" }),
+    const env = envWith(kv);
+    await storeOAuthExchange(
+      env,
+      "deadbeef",
+      { token: "session-token", browserNonce: "nonce" },
+      60,
     );
 
     const denied = await authRoute.request(
@@ -157,7 +161,7 @@ describe("POST /auth/exchange", () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code: "deadbeef" }),
       },
-      envWith(kv),
+      env,
     );
     expect(denied.status).toBe(401);
 
@@ -172,7 +176,7 @@ describe("POST /auth/exchange", () => {
         },
         body: JSON.stringify({ code: "deadbeef" }),
       },
-      envWith(kv),
+      env,
     );
     expect(first.status).toBe(200);
     expect(await first.json()).toEqual({ token: "session-token" });
@@ -188,16 +192,19 @@ describe("POST /auth/exchange", () => {
         },
         body: JSON.stringify({ code: "deadbeef" }),
       },
-      envWith(kv),
+      env,
     );
     expect(replay.status).toBe(401);
   });
 
   it("allows the frontend Origin when the cookie is blocked", async () => {
     const kv = fakeKV();
-    await kv.put(
-      "oauth-exchange:deadbeef",
-      JSON.stringify({ token: "session-token", browserNonce: "nonce" }),
+    const env = envWith(kv);
+    await storeOAuthExchange(
+      env,
+      "deadbeef",
+      { token: "session-token", browserNonce: "nonce" },
+      60,
     );
     const res = await authRoute.request(
       "/auth/exchange",
@@ -209,7 +216,7 @@ describe("POST /auth/exchange", () => {
         },
         body: JSON.stringify({ code: "deadbeef" }),
       },
-      envWith(kv),
+      env,
     );
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ token: "session-token" });
@@ -217,9 +224,12 @@ describe("POST /auth/exchange", () => {
 
   it("rejects a mismatched browser cookie even from the frontend origin", async () => {
     const kv = fakeKV();
-    await kv.put(
-      "oauth-exchange:deadbeef",
-      JSON.stringify({ token: "session-token", browserNonce: "nonce" }),
+    const env = envWith(kv);
+    await storeOAuthExchange(
+      env,
+      "deadbeef",
+      { token: "session-token", browserNonce: "nonce" },
+      60,
     );
     const res = await authRoute.request(
       "/auth/exchange",
@@ -232,17 +242,20 @@ describe("POST /auth/exchange", () => {
         },
         body: JSON.stringify({ code: "deadbeef" }),
       },
-      envWith(kv),
+      env,
     );
     expect(res.status).toBe(401);
-    expect(await kv.get("oauth-exchange:deadbeef")).toBeTruthy();
+    expect(await peekOAuthExchange(env, "deadbeef")).toBeTruthy();
   });
 
   it("rejects a code presented from another origin", async () => {
     const kv = fakeKV();
-    await kv.put(
-      "oauth-exchange:deadbeef",
-      JSON.stringify({ token: "session-token", browserNonce: "nonce" }),
+    const env = envWith(kv);
+    await storeOAuthExchange(
+      env,
+      "deadbeef",
+      { token: "session-token", browserNonce: "nonce" },
+      60,
     );
     const res = await authRoute.request(
       "/auth/exchange",
@@ -255,18 +268,15 @@ describe("POST /auth/exchange", () => {
         },
         body: JSON.stringify({ code: "deadbeef" }),
       },
-      envWith(kv),
+      env,
     );
     expect(res.status).toBe(401);
-    expect(await kv.get("oauth-exchange:deadbeef")).toBeTruthy();
+    expect(await peekOAuthExchange(env, "deadbeef")).toBeTruthy();
   });
 
   it("redeems a code only once when two requests race", async () => {
     const kv = fakeKV();
     const env = envWith(kv);
-    const { createMemoryCoordinator } = await import("../durable/coordinator.js");
-    const { storeOAuthExchange } = await import("../lib/oauth-exchange.js");
-    env.COORDINATOR = createMemoryCoordinator(env);
     await storeOAuthExchange(
       env as never,
       "deadbeef",

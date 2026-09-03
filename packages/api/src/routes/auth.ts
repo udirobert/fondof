@@ -318,7 +318,7 @@ authRoute.get("/auth/me", async (c) => {
   const session: Session = JSON.parse(raw);
 
   const entitlement = await inspectForgeEntitlement(
-    c.env.SESSIONS,
+    c.env,
     session,
     "signed-in",
   );

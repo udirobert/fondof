@@ -41,6 +41,11 @@ export interface Env {
   EXA_API_KEY?: string;
   FIRECRAWL_API_KEY?: string;
   ELEVENLABS_API_KEY?: string;
+  /**
+   * Salt for hashing anonymous forge subject keys (IPs). Set in production
+   * so the KV/DO state never contains reversible IP addresses.
+   */
+  FORGE_ANON_SALT?: string;
 }
 
 const app = new Hono<{ Bindings: Env }>();

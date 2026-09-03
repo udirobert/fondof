@@ -1,15 +1,16 @@
 # fondof
 
-Forge fitted skills from what you learn. Public URL: https://fondof.netlify.app
+Public URL: https://fondof.netlify.app
 
 ## WebMCP tools
 
 - search_skills(query) — search the public skill pool.
 - get_skill(skill_hash) — fetch a public skill by its hash.
-- compose_skill({ need | url | urls, repo?, top_shards? }) — create a new skill from a need or up to 4 source URLs. Returns markdown, skill_hash, skill_url, source_title and source_urls.
+- compose_skill({ need | url | urls, repo?, top_shards?, private? }) — create a new skill from a need or up to 4 source URLs. Returns markdown, skill_hash, skill_url, source_title and source_urls. On quota error returns error, code="quota_exceeded", hint, unlock, login_url, and remaining.
 
 ## Agent notes
 
 - Pass multiple source URLs in the `urls` array, not as repeated calls.
 - Cite `source_urls` when presenting composed skills.
-- If compose_skill returns a quota error, ask the user to sign in or share a public skill.
+- Only set `private: false` when the user explicitly asks to share and is signed in; this also unlocks unlimited forges for the month.
+- If compose_skill returns `error` with `code: "quota_exceeded"`, stop and show the user `hint`, `unlock`, and `login_url`.
