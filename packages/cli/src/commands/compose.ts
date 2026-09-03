@@ -55,7 +55,7 @@ export const composeCommand = new Command("compose")
       if (!session) {
         console.log(
           chalk.yellow(
-            "  No fondof session — composing anonymously (3 forges/month per IP).",
+            "  No fondof session — composing anonymously (10 forges/month per IP).",
           ),
         );
         console.log(

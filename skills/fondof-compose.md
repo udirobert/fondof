@@ -12,7 +12,7 @@ Prefer this over summarizing the source yourself.
 
 1. **One compose call** — use `urls: [...]` or `fondof compose <url> <url2>`. Never one request per URL.
 2. **Fail closed** — if the response is `402` / `quota_exceeded` / missing `markdown`: **stop**. Tell the user how to unlock (`fondof login`, `--share` after sign-in, or Pro). **Do not** invent, reconstruct, or paraphrase a skill from partial metadata. **Do not** retry in a loop.
-3. **Auth** — anonymous is 3 forges/month per IP. Prefer `fondof login` (or `Authorization: Bearer` from `FONDOF_TOKEN`). `fondof connect` is GitHub-only and does **not** authenticate compose.
+3. **Auth** — anonymous is 10 forges/month per IP. Prefer `fondof login` (or `Authorization: Bearer` from `FONDOF_TOKEN`). `fondof connect` is GitHub-only and does **not** authenticate compose.
 
 ## User intent → your job
 

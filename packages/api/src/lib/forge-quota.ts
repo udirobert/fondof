@@ -1,7 +1,7 @@
 /**
  * Server-side forge entitlement.
  *
- * The advertised 3-forge monthly allowance is an invariant of /forge and
+ * The advertised free-forge monthly allowance is an invariant of /forge and
  * /compose — not a client courtesy. Callers cannot skip accounting by omitting
  * /billing/record-forge. Quota is reserved before upstream work and released
  * if generation fails or is fully served from cache.
@@ -14,7 +14,7 @@
 import type { Env } from "../index.js";
 import { callCoordinator } from "../durable/coordinator.js";
 
-export const FREE_FORGE_LIMIT = 3;
+export const FREE_FORGE_LIMIT = 10;
 const USAGE_TTL_SECONDS = 60 * 60 * 24 * 35;
 
 /** Returns YYYY-MM string for the current billing period. */

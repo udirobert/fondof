@@ -86,7 +86,7 @@ afterEach(() => {
 });
 
 describe("POST /forge quota", () => {
-  it("meters anonymous generation and rejects the fourth call", async () => {
+  it("meters anonymous generation and rejects after the free allowance", async () => {
     const kv = fakeKV();
     const env = envWith(kv);
     const headers = {

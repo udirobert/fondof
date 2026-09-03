@@ -35,4 +35,4 @@ If `private` is true, `skill_url` will be null until the user explicitly shares 
 
 ## Quotas and errors
 
-Anonymous users have a limited forge quota. If `compose_skill` returns a quota error, ask the user to sign in or share an existing public skill to unlock more forges.
+Anonymous users have 10 free forges per month. If `compose_skill` returns a quota error, ask the user to sign in or share an existing public skill to unlock more forges.

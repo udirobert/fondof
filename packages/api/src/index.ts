@@ -78,8 +78,8 @@ app.use("*", async (c, next) => {
   return cors({
     origin: (origin, ctx) => {
       // Public read endpoints can be queried from any origin.
-      if (ctx.req.method === "GET") return "*";
       const allowed = frontendOriginFromEnv(ctx.env.FRONTEND_URL);
+      if (ctx.req.method === "GET") return origin || allowed;
       if (!origin) return null;
       if (
         origin === allowed ||
@@ -90,6 +90,7 @@ app.use("*", async (c, next) => {
       }
       return null;
     },
+    credentials: true,
     allowMethods: ["GET", "POST", "DELETE", "OPTIONS"],
     allowHeaders: ["Content-Type", "Authorization"],
     exposeHeaders: [
@@ -118,7 +119,7 @@ Body: { "urls": ["<source>", …] | "url": "<source>" | "need": "<stated need>",
 - Default topShards: 2 (single source) or 3 (multi). Max 6.
 - Compose is private by default; pass "private": false for an explicit public share. A shareable skillUrl is returned only after the durable public record is written and read back. If that write fails, the response stays private (skillUrl: null) with the markdown still included.
 - Response: { markdown, ideas: [{ title, description, domain, applicability, patternType, sourceUrl }], skillHash, skillUrl, title, canonicalSources, derivedFromSkillHash, sourceUrl, sourceUrls, sourceHash, sourceHashes, contentType, fittedTo, onChain, private, providers, sourceFailures? }
-- Errors: 400 bad body, 402 monthly forge quota exceeded (3/IP or signed-in free account), 422 nothing extractable, 429 rate limit (10/hour/IP), 500 upstream.
+- Errors: 400 bad body, 402 monthly forge quota exceeded (10/IP or signed-in free account), 422 nothing extractable, 429 rate limit (10/hour/IP), 500 upstream.
 
 Example (multi-source):
 curl -s -X POST https://fondof-api.trustfall.workers.dev/api/compose -H 'content-type: application/json' -d '{"urls":["https://www.youtube.com/watch?v=7wuYBfE131U","https://www.remotion.dev/docs"],"repo":"udirobert/fondof"}'
@@ -160,7 +161,7 @@ What to do with it: save markdown into .kiro/steering/ or .cursor/rules/ (or CLA
 
 ## Notes
 
-- Rate limits: compose 10/h, ingest 10/h, forge 20/h per IP. Monthly forge quota is 3 (anonymous per IP, signed-in free per account); 402 means the quota is spent. X-Cache: HIT means a cached result.
+- Rate limits: compose 10/h, ingest 10/h, forge 20/h per IP. Monthly forge quota is 10 (anonymous per IP, signed-in free per account); 402 means the quota is spent. X-Cache: HIT means a cached result.
 - Skill markdown sections: # Title, ## Context, ## Guidance, ## Anti-patterns, ## References.
 - Full product docs: https://fondof.netlify.app/llms.txt
 `;

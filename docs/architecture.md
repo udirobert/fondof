@@ -18,7 +18,7 @@ Short map so contributors don't conflate edges. Full product story: [README](../
 ## Auth & billing
 
 - **GitHub OAuth** — session in KV (`SESSIONS` namespace). Viewing/consuming is always public. Relayer-sponsored chain writes and Pro billing require a session. Forge/compose stay usable anonymously within the monthly quota.
-- **Freemium:** 3 free forges/month, enforced on `/forge` and `/compose` (anonymous keyed by IP). Share a public skill you own to unlock unlimited; Pro ($) for private unlimited. Client `record-forge` is closed. Stripe webhooks verify `Stripe-Signature` before any plan change; unpaid checkouts do not grant Pro.
+- **Freemium:** 10 free forges/month, enforced on `/forge` and `/compose` (anonymous keyed by IP). Share a public skill you own to unlock unlimited; Pro ($) for private unlimited. Client `record-forge` is closed. Stripe webhooks verify `Stripe-Signature` before any plan change; unpaid checkouts do not grant Pro.
 - **Privacy direction:** new forges begin as private drafts; explicit public sharing enables `/s/[hash]`, source attribution, and creator discovery. A public forge is only advertised (`private: false` + skillUrl) after the durable KV record reads back; a registry write failure keeps the draft private rather than handing out a 404 link. Optional SkillPool attestation is a separate proof choice. Legacy public-first records remain discoverable until lifecycle controls are applied.
 
 ## Security model

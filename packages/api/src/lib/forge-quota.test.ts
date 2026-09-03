@@ -67,7 +67,7 @@ describe("forge quota", () => {
     expect(signed.remaining).toBe(FREE_FORGE_LIMIT);
   });
 
-  it("rejects a fourth counted forge and keeps the counter at the limit", async () => {
+  it("rejects after the free allowance and keeps the counter at the limit", async () => {
     const env = testEnv();
     for (let i = 0; i < FREE_FORGE_LIMIT; i++) {
       const slot = await reserveForgeQuota(env, session(), "203.0.113.9");
