@@ -58,6 +58,7 @@ export function WebMCPProvider() {
             query: {
               type: "string",
               description: "The topic, technique, or search query.",
+              examples: ["React performance", "retry budgets for webhooks"],
             },
           },
           required: ["query"],
@@ -94,6 +95,9 @@ export function WebMCPProvider() {
               type: "string",
               description:
                 "The skill hash, found in a skill URL like /s/{hash}.",
+              examples: [
+                "55739f72d6ba6b15d82d6fcf6eac688d43f0c2852edfbe1265440eb1010eea6a",
+              ],
             },
           },
           required: ["skill_hash"],
@@ -113,24 +117,35 @@ export function WebMCPProvider() {
         name: "compose_skill",
         title: "Compose a new skill",
         description:
-          "Turn a stated need or a source URL into a repo-specific skill. Provide either need (free text) or url (a public article/YouTube), plus an optional target repo. Returns the generated markdown, skill hash, and shareable skill URL.",
+          "Turn a stated need or a source URL into a repo-specific skill. Only call this tool when the user has provided either a need (free text) or a url (public article/YouTube). Optionally pass a target repo and top_shards. Returns the generated markdown, skill hash, and shareable skill URL.",
         inputSchema: {
           type: "object",
+          description:
+            "Provide exactly one of need or url. repo and top_shards are optional.",
           properties: {
             need: {
               type: "string",
               description:
                 "A free-text description of a technique or problem to solve.",
+              examples: [
+                "retry budgets for async TypeScript fetch",
+                "structured logging for worker services",
+              ],
             },
             url: {
               type: "string",
               description:
                 "A public article, documentation, or YouTube URL to extract ideas from.",
+              examples: [
+                "https://nextjs.org/blog/next-16-3",
+                "https://www.youtube.com/watch?v=7wuYBfE131U",
+              ],
             },
             repo: {
               type: "string",
               description:
-                "Target repository in owner/name form (e.g. udirobert/fondof) or a GitHub URL.",
+                "Target repository in owner/name form or as a GitHub URL.",
+              examples: ["udirobert/fondof"],
             },
             top_shards: {
               type: "number",
@@ -138,6 +153,7 @@ export function WebMCPProvider() {
                 "Number of extracted ideas to include in the skill (1-6, default 2).",
               minimum: 1,
               maximum: 6,
+              examples: [2, 3],
             },
           },
         },
@@ -163,7 +179,9 @@ export function WebMCPProvider() {
             top_shards?: number;
           };
           if (!need && !url) {
-            throw new Error("Provide either a need or a url to compose from.");
+            throw new Error(
+              "Provide either a need (free-text problem) or a url (public article/YouTube) to compose from.",
+            );
           }
           const res = await composeSkill({
             ...(need ? { need } : {}),
