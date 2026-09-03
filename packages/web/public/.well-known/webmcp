@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "site": {
+    "domain": "fondof.netlify.app",
+    "name": "fondof",
+    "description": "Forge fitted skills from what you learn. Agent-native skill search, read, and compose tools."
+  },
+  "tools": [
+    {
+      "name": "search_skills",
+      "description": "Search the public fondof skill pool for existing skills that match a topic or query. Returns a list of skills with title, URL, and snippet.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "The topic, technique, or search query."
+          }
+        },
+        "required": ["query"]
+      },
+      "outputSchema": {
+        "type": "array",
+        "description": "A list of matching public skills, each with title, URL, and snippet.",
+        "items": {
+          "type": "object",
+          "properties": {
+            "title": { "type": "string" },
+            "url": { "type": "string" },
+            "snippet": { "type": "string" }
+          }
+        }
+      },
+      "registrationLocation": "/",
+      "scope": "site",
+      "riskClass": "read",
+      "requiresUserInteraction": false
+    },
+    {
+      "name": "get_skill",
+      "description": "Fetch a public fondof skill by its hash. Returns the title, markdown body, target repo, source URLs, and evidence summary.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "skill_hash": {
+            "type": "string",
+            "description": "The skill hash, found in a skill URL like /s/{hash}."
+          }
+        },
+        "required": ["skill_hash"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "description": "The public skill record with metadata and markdown."
+      },
+      "registrationLocation": "/",
+      "scope": "site",
+      "riskClass": "read",
+      "requiresUserInteraction": false
+    },
+    {
+      "name": "compose_skill",
+      "description": "Turn a stated need or a source URL into a repo-specific skill. Provide either need (free text) or url (a public article/YouTube), plus an optional target repo. Returns the generated markdown, skill hash, and shareable skill URL.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "need": {
+            "type": "string",
+            "description": "A free-text description of a technique or problem to solve."
+          },
+          "url": {
+            "type": "string",
+            "description": "A public article, documentation, or YouTube URL to extract ideas from."
+          },
+          "repo": {
+            "type": "string",
+            "description": "Target repository in owner/name form (e.g. udirobert/fondof) or a GitHub URL."
+          },
+          "top_shards": {
+            "type": "number",
+            "description": "Number of extracted ideas to include in the skill (1-6, default 2).",
+            "minimum": 1,
+            "maximum": 6
+          }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "description": "The composed skill with title, hash, markdown, source info, and public share URL.",
+        "properties": {
+          "title": { "type": "string" },
+          "skill_hash": { "type": "string" },
+          "skill_url": { "type": ["string", "null"] },
+          "markdown": { "type": "string" },
+          "source_title": { "type": ["string", "null"] },
+          "fitted_to": { "type": ["string", "null"] },
+          "private": { "type": "boolean" }
+        }
+      },
+      "registrationLocation": "/",
+      "scope": "site",
+      "riskClass": "mutate",
+      "requiresUserInteraction": false
+    }
+  ],
+  "links": {
+    "self": "https://fondof.netlify.app/.well-known/webmcp",
+    "landing": "https://fondof.netlify.app/"
+  },
+  "generated_at": "2026-09-03T00:00:00.000Z"
+}

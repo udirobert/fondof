@@ -4,8 +4,13 @@ import { useEffect } from "react";
 import { composeSkill, getSkillSignal, searchExistingSkills } from "@/lib/api";
 
 declare global {
+  interface Navigator {
+    modelContext?: ModelContext;
+  }
+
   interface ModelContextTool {
     name: string;
+    title?: string;
     description: string;
     inputSchema: Record<string, unknown>;
     outputSchema?: Record<string, unknown>;
@@ -13,7 +18,7 @@ declare global {
   }
 
   interface ModelContext {
-    registerTool: (tool: ModelContextTool) => Promise<undefined>;
+    registerTool: (tool: ModelContextTool) => Promise<unknown> | unknown;
   }
 
   interface Document {
@@ -32,15 +37,19 @@ declare global {
  */
 export function WebMCPProvider() {
   useEffect(() => {
-    if (typeof document === "undefined" || !document.modelContext) {
+    const mc =
+      typeof document !== "undefined"
+        ? document.modelContext ?? navigator.modelContext
+        : undefined;
+
+    if (!mc || typeof mc.registerTool !== "function") {
       return;
     }
-
-    const mc = document.modelContext;
 
     const tools: ModelContextTool[] = [
       {
         name: "search_skills",
+        title: "Search public skills",
         description:
           "Search the public fondof skill pool for existing skills that match a topic or query. Returns a list of skills with title, URL, and snippet.",
         inputSchema: {
@@ -75,6 +84,7 @@ export function WebMCPProvider() {
       },
       {
         name: "get_skill",
+        title: "Get a skill by hash",
         description:
           "Fetch a public fondof skill by its hash. Returns the title, markdown body, target repo, source URLs, and evidence summary.",
         inputSchema: {
@@ -101,6 +111,7 @@ export function WebMCPProvider() {
       },
       {
         name: "compose_skill",
+        title: "Compose a new skill",
         description:
           "Turn a stated need or a source URL into a repo-specific skill. Provide either need (free text) or url (a public article/YouTube), plus an optional target repo. Returns the generated markdown, skill hash, and shareable skill URL.",
         inputSchema: {
@@ -174,7 +185,17 @@ export function WebMCPProvider() {
       },
     ];
 
-    void Promise.all(tools.map((t) => mc.registerTool(t).catch(() => null)));
+    void (async () => {
+      for (const tool of tools) {
+        try {
+          // Some WebMCP shims return undefined; await safely handles both.
+          await mc.registerTool(tool);
+        } catch (e) {
+           
+          console.error("[WebMCP] registerTool failed:", tool.name, e);
+        }
+      }
+    })();
   }, []);
 
   return null;

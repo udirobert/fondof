@@ -1,6 +1,6 @@
 import type { NextConfig } from "next";
 
-const securityHeaders = [
+const defaultHeaders = [
   {
     key: "X-DNS-Prefetch-Control",
     value: "on",
@@ -25,6 +25,25 @@ const securityHeaders = [
     key: "X-XSS-Protection",
     value: "1; mode=block",
   },
+  {
+    key: "Link",
+    value: '<https://fondof.netlify.app/.well-known/webmcp>; rel="webmcp"',
+  },
+];
+
+const wellKnownHeaders = [
+  {
+    key: "Content-Type",
+    value: "application/json; charset=utf-8",
+  },
+  {
+    key: "Access-Control-Allow-Origin",
+    value: "*",
+  },
+  {
+    key: "Cache-Control",
+    value: "public, max-age=3600",
+  },
 ];
 
 const nextConfig: NextConfig = {
@@ -32,7 +51,11 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/(.*)",
-        headers: securityHeaders,
+        headers: defaultHeaders,
+      },
+      {
+        source: "/.well-known/:path*",
+        headers: wellKnownHeaders,
       },
     ];
   },
