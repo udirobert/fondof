@@ -30,6 +30,15 @@ export type QuickComposeInput =
   | { urls: string[]; repo?: string; shards: number; isPrivate: boolean }
   | { need: string; repo?: string; shards: number; isPrivate: boolean };
 
+function sourceHost(url: string): string {
+  try {
+    const u = new URL(url);
+    return u.hostname.replace(/^www\./i, "");
+  } catch {
+    return url;
+  }
+}
+
 interface QuickPadProps {
   busy: boolean;
   result: ComposeResponse | null;
@@ -542,6 +551,36 @@ Cap aggregate retries across a call graph so cascading failures cannot amplify l
                     </span>
                   </Tip>
                 )}
+                {(() => {
+                  const sources = result.sourceUrls?.length
+                    ? result.sourceUrls
+                    : result.sourceUrl
+                      ? [result.sourceUrl]
+                      : [];
+                  if (!sources.length) return null;
+                  return (
+                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px]">
+                      <span className="text-muted">Sources:</span>
+                      {sources.slice(0, 3).map((url) => (
+                        <a
+                          key={url}
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-0.5 text-ember hover:underline"
+                        >
+                          <ExternalLink size={10} />
+                          {sourceHost(url)}
+                        </a>
+                      ))}
+                      {sources.length > 3 && (
+                        <span className="text-muted">
+                          +{sources.length - 3} more
+                        </span>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
               {result.onChain === false && (
                 <Tip tip="Public off-chain share — no on-chain stamp, fully copyable either way.">

@@ -526,7 +526,8 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
     ],
   );
 
-  // Batch ingest for Studio: parse multiple URLs and merge their ideas.
+  // Batch ingest for Studio: parse multiple URLs, merge their ideas, and
+  // stream per-source progress so users can follow along.
   const runMultiIngest = useCallback(
     async (urls: string[]) => {
       abortRef.current?.abort();
@@ -536,20 +537,12 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
       setIngesting(true);
       setIngestError(null);
       setMode("ingest");
-      setPhases([{ phase: "ingest", label: `Extracting ${urls.length} sources…` }]);
-      setActivePhase("ingest");
       setLiveFondObject("these sources");
       setLiveTitle(undefined);
       setLiveIdeas([]);
       setDiscoverySkills([]);
       setIngestValue(null);
       setCompareNote(null);
-
-      const results = await Promise.allSettled(
-        urls.map((url) =>
-          resolveIngestStream(url, "content", {}, controller.signal),
-        ),
-      );
 
       let successCount = 0;
       let failCount = 0;
@@ -558,43 +551,94 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
 
       for (let i = 0; i < urls.length; i++) {
         const url = urls[i];
-        const r = results[i];
-        if (r.status === "rejected") {
-          failCount++;
-          failures.push(`${url}: ${r.reason instanceof Error ? r.reason.message : "failed"}`);
-          continue;
-        }
-        const result = r.value;
-        if (result.ideas.length === 0) {
-          failCount++;
-          failures.push(`${url}: no ideas extracted`);
-          continue;
-        }
-        successCount++;
-        const sourceHash = result.fromApi ? "api" : "local";
-        const contentType =
-          result.contentType === "youtube"
-            ? "youtube"
-            : result.contentType === "podcast" || result.contentType === "audio"
-              ? "podcast"
-              : result.contentType === "text"
-                ? "text"
-                : "blog";
-        addSource({
-          url: result.source.url,
-          title: result.source.title,
-          contentType,
-          ideasCount: result.ideas.length,
-          sourceHash,
-          isProcessing: false,
-          textLength: result.textLength ?? 0,
-          cacheHit: !result.fromApi,
-        });
-        allIdeas.push(
-          ...result.ideas.map((idea) =>
+        const collected: IdeaFromAPI[] = [];
+        setPhases([{
+          phase: "ingest",
+          label: `Extracting source ${i + 1} of ${urls.length}…`,
+        }]);
+        setActivePhase("ingest");
+        setLiveIdeas([...allIdeas]);
+
+        let streamContentType = "article";
+        let streamTitle = "";
+        try {
+          const result = await resolveIngestStream(
+            url,
+            "content",
+            {
+              onEvent: (event) => {
+                if (event.type === "kind") {
+                  streamContentType = event.contentType;
+                  setLiveFondObject(event.fondObject);
+                }
+                if (event.type === "phase") {
+                  setPhases((prev) => {
+                    if (prev.some((p) => p.phase === event.phase)) {
+                      return prev.map((p) =>
+                        p.phase === event.phase
+                          ? { phase: event.phase, label: event.label }
+                          : p,
+                      );
+                    }
+                    return [...prev, { phase: event.phase, label: event.label }];
+                  });
+                  setActivePhase(event.phase);
+                }
+                if (event.type === "meta") {
+                  streamTitle = event.title;
+                  setLiveTitle(event.title);
+                }
+                if (event.type === "idea") {
+                  collected.push(event.idea);
+                  setLiveIdeas([...allIdeas, ...collected]);
+                }
+              },
+            },
+            controller.signal,
+          );
+
+          if (result.ideas.length === 0) {
+            failCount++;
+            failures.push(`${url}: no ideas extracted`);
+            continue;
+          }
+
+          successCount++;
+          const sourceHash = result.fromApi ? "api" : "local";
+          const contentType =
+            result.contentType === "youtube"
+              ? "youtube"
+              : result.contentType === "podcast" || result.contentType === "audio"
+                ? "podcast"
+                : result.contentType === "text"
+                  ? "text"
+                  : streamContentType === "youtube"
+                    ? "youtube"
+                    : streamContentType === "podcast" || streamContentType === "audio"
+                      ? "podcast"
+                      : streamContentType === "text"
+                        ? "text"
+                        : "blog";
+          addSource({
+            url: result.source.url,
+            title: result.source.title || streamTitle,
+            contentType,
+            ideasCount: result.ideas.length,
+            sourceHash,
+            isProcessing: false,
+            textLength: result.textLength ?? 0,
+            cacheHit: !result.fromApi,
+          });
+          const finalIdeas = result.ideas.map((idea) =>
             toApiIdea(idea, result.source.url, sourceHash),
-          ),
-        );
+          );
+          allIdeas.push(...finalIdeas);
+        } catch (err) {
+          failCount++;
+          failures.push(
+            `${url}: ${err instanceof Error ? err.message.slice(0, 120) : "failed"}`,
+          );
+        }
       }
 
       // Merge with existing ideas, replacing any that came from these URLs.
@@ -624,6 +668,7 @@ export function FondFloor({ showFrame = false }: FondFloorProps) {
       setIngesting(false);
       setPhases([]);
       setLiveIdeas([]);
+      setLiveTitle(undefined);
       abortRef.current = null;
 
       if (successCount === 0) {
