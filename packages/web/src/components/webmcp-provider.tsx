@@ -14,6 +14,10 @@ declare global {
     description: string;
     inputSchema: Record<string, unknown>;
     outputSchema?: Record<string, unknown>;
+    annotations?: {
+      readOnlyHint?: boolean;
+      untrustedContentHint?: boolean;
+    };
     execute: (input: Record<string, unknown>) => Promise<unknown>;
   }
 
@@ -51,9 +55,10 @@ export function WebMCPProvider() {
         name: "search_skills",
         title: "Search public skills",
         description:
-          "Search the public fondof skill pool for existing skills that match a topic or query. DO NOT call this tool unless the user has provided a query. If no query is present, ask the user what topic they want to search for (e.g., React performance, retry budgets, webhook idempotency). Returns a list of skills with title, URL, and snippet.",
+          "Search the public fondof skill pool for existing skills that match a topic or query. Only call this tool once the user has provided a query. Returns a list of skills with title, URL, and snippet.",
         inputSchema: {
           type: "object",
+          additionalProperties: false,
           properties: {
             query: {
               type: "string",
@@ -70,12 +75,18 @@ export function WebMCPProvider() {
             "A list of matching public skills, each with title, URL, and snippet.",
           items: {
             type: "object",
+            additionalProperties: false,
             properties: {
               title: { type: "string" },
               url: { type: "string" },
               snippet: { type: "string" },
             },
+            required: ["title", "url"],
           },
+        },
+        annotations: {
+          readOnlyHint: true,
+          untrustedContentHint: false,
         },
         execute: async (input) => {
           const { query } = input as { query: string };
@@ -93,9 +104,10 @@ export function WebMCPProvider() {
         name: "get_skill",
         title: "Get a skill by hash",
         description:
-          "Fetch a public fondof skill by its hash. DO NOT call this tool unless the user has provided a skill hash or a fondof skill URL (e.g., https://fondof.netlify.app/s/{hash}). If neither is present, ask the user for the skill URL or hash. Returns the title, markdown body, target repo, source URLs, and evidence summary.",
+          "Fetch a public fondof skill by its hash. Only call this tool once the user has provided a skill hash or fondof skill URL (e.g., https://fondof.netlify.app/s/{hash}). Returns the title, markdown body, target repo, source URLs, and evidence summary.",
         inputSchema: {
           type: "object",
+          additionalProperties: false,
           properties: {
             skill_hash: {
               type: "string",
@@ -110,7 +122,19 @@ export function WebMCPProvider() {
         },
         outputSchema: {
           type: "object",
+          additionalProperties: false,
           description: "The public skill record with metadata and markdown.",
+          properties: {
+            title: { type: ["string", "null"] },
+            markdown: { type: ["string", "null"] },
+            repo: { type: ["string", "null"] },
+            skillHash: { type: ["string", "null"] },
+            sourceUrls: { type: "array", items: { type: "string" } },
+          },
+        },
+        annotations: {
+          readOnlyHint: true,
+          untrustedContentHint: false,
         },
         execute: async (input) => {
           const { skill_hash } = input as { skill_hash: string };
@@ -128,11 +152,12 @@ export function WebMCPProvider() {
         name: "compose_skill",
         title: "Compose a new skill",
         description:
-          "Turn a stated need or one or more source URLs into a single repo-specific skill. DO NOT call this tool unless the user has already provided either a need (free-text description of a technique or problem) or one or more urls (public articles, blog posts, documentation pages, or YouTube links). If the user gives multiple links, pass them all in the urls array so they are combined into one skill. Do not call compose_skill once per URL. If neither need nor urls are present, ask the user to describe what they want to learn or paste a link. Optionally pass a target repo and top_shards. Returns the generated markdown, skill hash, shareable URL, and source_urls for attribution.",
+          "Turn a stated need or one or more source URLs into a single repo-specific skill. Call this once per skill and pass every source URL in the urls array; the backend merges up to 4 sources. Either a need or one or more URLs must be present before calling. Optionally pass a target repo and top_shards. Returns the generated markdown, skill hash, shareable URL, and source_urls for attribution.",
         inputSchema: {
           type: "object",
+          additionalProperties: false,
           description:
-            "Provide exactly one of need or urls/url. repo and top_shards are optional. If the user provides multiple links, pass them all in urls. Do not pass need and urls together. If the user only said something vague like 'create a skill', ask them for a need or urls before calling.",
+            "Provide exactly one of need or urls/url. repo and top_shards are optional. If the user provides multiple links, pass them all in urls. If the user only said something vague like 'create a skill', ask them for a need or urls before calling.",
           properties: {
             need: {
               type: "string",
@@ -183,10 +208,11 @@ export function WebMCPProvider() {
         },
         outputSchema: {
           type: "object",
+          additionalProperties: false,
           description:
             "The composed skill with title, hash, markdown, source attribution, and public share URL.",
           properties: {
-            title: { type: "string" },
+            title: { type: ["string", "null"] },
             skill_hash: { type: "string" },
             skill_url: { type: ["string", "null"] },
             markdown: { type: "string" },
@@ -199,6 +225,10 @@ export function WebMCPProvider() {
             fitted_to: { type: ["string", "null"] },
             private: { type: "boolean" },
           },
+        },
+        annotations: {
+          readOnlyHint: false,
+          untrustedContentHint: true,
         },
         execute: async (input) => {
           const { need, url, urls, repo, top_shards } = input as {

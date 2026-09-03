@@ -1,74 +1,15 @@
 # fondof
 
-> From what you learn to what your agent does.
+Forge fitted skills from what you learn. Public URL: https://fondof.netlify.app
 
-fondof turns what developers learn — or need — into personalised coding skills fitted to a specific repo's stack, conventions, and patterns. Output is a markdown skill file any AI coding agent can use. Craft and hand-off come first; SkillPool is downstream optional proof.
+## WebMCP tools
 
-## How it works
+- search_skills(query) — search the public skill pool.
+- get_skill(skill_hash) — fetch a public skill by its hash.
+- compose_skill({ need | url | urls, repo?, top_shards? }) — create a new skill from a need or up to 4 source URLs. Returns markdown, skill_hash, skill_url, source_title and source_urls.
 
-1. Paste a URL (YouTube, blog, podcast) or describe a need
-2. fondof extracts discrete idea shards from the content
-3. Select shards and forge them into a skill fitted to your repo
-4. Copy the skill into your agent, apply it to real work, and optionally share the outcome publicly
+## Agent notes
 
-## Key URLs
-
-- Homepage: https://fondof.netlify.app
-- Skill pages: https://fondof.netlify.app/s/[hash]
-- Source pages: https://fondof.netlify.app/from/[domain]
-- User portfolios: https://fondof.netlify.app/u/[github-login]
-- Pool (quality desk): https://fondof.netlify.app/pool
-- Genre discovery: https://fondof.netlify.app/discover/[genre]
-- Remix lineage: https://fondof.netlify.app/remix/[hash]
-- API: https://fondof-api.trustfall.workers.dev
-
-## API endpoints
-
-- POST /api/ingest — extract ideas from a URL or need
-- POST /api/compose — one-shot: ingest → top shards → forge → skill markdown
-  Body: `{ "url": "https://youtu.be/...", "repo": "owner/name" }` (or `{ "need": "...", "repo": ... }`)
-  `repo` accepts "owner/name", a GitHub URL (frameworks/languages auto-detected), or `{ "name", "frameworks", "languages" }`.
-  Compose is private by default; pass `"private": false` for an explicit public share. The response returns `{ "markdown", "ideas", "skillHash", "skillUrl", "sourceUrl", "onChain", ... }` when shared. Anonymous and free accounts are limited to 3 forges/month (402 when spent).
-  `skillUrl` is a real shareable page (https://fondof.netlify.app/s/{skillHash}) that resolves without on-chain attestation. Responses include `canonicalSources` and `derivedFromSkillHash` when available.
-  Pass `"private": true` to keep it private today. Write `markdown` to `.kiro/steering/` or `.cursor/rules/`.
-- POST /api/forge — compose a skill from ideas + repo context (3 forges/month for anonymous and free accounts; 402 when spent)
-- POST /api/publish — attest a skill you own on SkillPool via the relayer (GitHub session required). Wallet forge does not use this endpoint.
-- POST /api/challenge — stake a dispute via the relayer (session required)
-- POST /api/challenge/{id}/resolve — demo oracle; allowlisted resolver login + dedicated resolver key
-- POST /api/relayer/intent — optional two-phase intent for relayer writes
-- POST /api/skills/{hash}/share — explicitly share a private draft publicly
-- DELETE /api/skills/{hash}/visibility — owner-only hide/unlist
-- GET /api/skills — public skill discovery; `sort=impact|outcomes|adapted|recent` gives focused evidence views (not causal impact). Optional `genre`, `domain`, `framework`, and `language` filters expose deterministic topic/stack discovery.
-- GET /discover/[genre] — genre landing pages such as reliability, performance, architecture, and developer-tools.
-- GET /api/skills/creator/:login — evidence summary for public skills owned by a GitHub login
-- GET /api/skills/:hash/lineage — parent and public remix metadata for a skill
-- GET /api/sources/:domain — list skills forged from a source plus an evidence-backed impact snapshot and optional self-claim
-- POST /api/sources/:domain/claim — authenticated self-claim, explicitly not proof of authorship
-- POST /api/sources/:domain/claim/challenge — short-lived nonce for proving domain control
-- POST /api/sources/:domain/claim/verify — verify nonce on a public page under the claimed domain
-- GET /api/sources/:domain/impact — compact source evidence summary for cards/embeds
-- GET /api/sources/:domain/badge.svg — embeddable badge
-- POST /api/skills/{hash}/use — record a claimed use; signed-in users deduplicate by account, anonymous users can opt into a random browser receipt key; this is not verified impact
-- POST /api/skills/{hash}/meta — attach an outcome and optional PR/screenshot; linked PRs remain unverified evidence
-- POST /api/skills/{hash}/verify-pr — optionally ask GitHub to confirm a linked public PR exists; confirmation does not prove causality
-
-## Skill lifecycle
-
-Target lifecycle: private draft → explicit public share → optional SkillPool attestation.
-The hosted flow is private-first: a draft remains useful without a public page or chain; explicit sharing creates a durable public artifact, and attestation is a separate choice. Evidence is labeled as claimed use, outcome-attached, linked-PR (unverified), or GitHub-confirmed PR (existence confirmed, causality unproven). Craft first, proof second.
-
-## Skill format
-
-Output is standard markdown with these sections:
-- # Title
-- ## Context (2-4 sentences, names the repo)
-- ## Guidance (one pattern + code example)
-- ## Anti-patterns (2-4 bullets)
-- ## References (source links)
-
-Skills work in .kiro/steering/, .cursor/rules/, CLAUDE.md, or any markdown-aware agent.
-
-## Contact
-
-- GitHub: https://github.com/udirobert/fondof
-- Twitter: @fondof_dev
+- Pass multiple source URLs in the `urls` array, not as repeated calls.
+- Cite `source_urls` when presenting composed skills.
+- If compose_skill returns a quota error, ask the user to sign in or share a public skill.
