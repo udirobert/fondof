@@ -8,6 +8,7 @@ import { API_BASE } from "@/lib/api-base";
 export interface ForgeCheck {
   allowed: boolean;
   remaining: number | null;
+  limit: number | null;
   plan: "free" | "pro" | "sharer" | "anonymous";
 }
 
@@ -24,11 +25,11 @@ export async function checkForge(): Promise<ForgeCheck> {
       method: "POST",
       headers,
     });
-    if (!res.ok) return { allowed: true, remaining: 3, plan: "anonymous" };
+    if (!res.ok) return { allowed: true, remaining: 3, limit: 3, plan: "anonymous" };
     return (await res.json()) as ForgeCheck;
   } catch {
     // UI hint only — /forge and /compose enforce quota server-side.
-    return { allowed: true, remaining: 3, plan: "anonymous" };
+    return { allowed: true, remaining: 3, limit: 3, plan: "anonymous" };
   }
 }
 

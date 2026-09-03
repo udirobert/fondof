@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ChevronDown,
+  ExternalLink,
   Flame,
   GitFork,
   Shield,
@@ -54,8 +55,17 @@ import { whereItLands } from "@/lib/where-it-lands";
 import { track } from "@/lib/track";
 import { publicSkillHashFromUrl } from "@/lib/skill-share";
 import { checkForge, type ForgeCheck } from "@/lib/billing";
+import { loginWithGitHub } from "@/lib/auth";
 
 type Phase = "ritual" | "compose" | "attested";
+
+type ForgeQuotaBlock = ForgeCheck & {
+  hint?: string;
+  login_url?: string;
+  unlock?: string[];
+  period?: string;
+  limit?: number | null;
+};
 
 interface ForgeModeProps {
   open: boolean;
@@ -99,7 +109,7 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
   const [celebrate, setCelebrate] = useState(false);
   const [attestKey, setAttestKey] = useState(0);
   const [forgeTitle, setForgeTitle] = useState<string | null>(null);
-  const [forgeBlocked, setForgeBlocked] = useState<ForgeCheck | null>(null);
+  const [forgeBlocked, setForgeBlocked] = useState<ForgeQuotaBlock | null>(null);
   const [forgePrivate, setForgePrivate] = useState(true);
   const { address, isConnected, chainId } = useConnection();
   const { switchChainAsync } = useSwitchChain();
@@ -180,6 +190,11 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
           allowed: false,
           remaining: res.remaining ?? 0,
           plan: res.plan ?? "free",
+          limit: res.limit ?? null,
+          period: res.period,
+          hint: res.hint,
+          login_url: res.login_url,
+          unlock: res.unlock,
         });
         setComposing(false);
         return;
@@ -699,28 +714,67 @@ export function ForgeMode({ open, ideas, repos, onClose }: ForgeModeProps) {
                     className="rounded-xl border border-ember/20 bg-ember/5 p-5 text-center"
                   >
                     <p className="font-medium text-sm text-ember">
-                      Free forges used this month
+                      Forge quota reached
                     </p>
-                    <p className="mt-2 text-[12px] text-foreground-secondary">
-                      You&apos;ve used all 3 free forges. Share publicly to add
-                      attribution and let others re-forge your work.
-                    </p>
-                    <p className="mt-3 text-[11px] text-muted">
-                      Need more private forges? Explore the Pro plan.
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        import("@/lib/billing").then(({ getCheckoutUrl }) => {
-                          void getCheckoutUrl().then((url) => {
-                            if (url) window.location.href = url;
-                          });
-                        });
-                      }}
-                      className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-ink/12 bg-paper px-3 py-1.5 text-xs text-muted hover:text-ink"
-                    >
-                      Upgrade to Pro
-                    </button>
+                    {forgeBlocked.hint ? (
+                      <p className="mt-2 text-[12px] text-foreground-secondary">
+                        {forgeBlocked.hint}
+                      </p>
+                    ) : (
+                      <p className="mt-2 text-[12px] text-foreground-secondary">
+                        {forgeBlocked.plan === "anonymous"
+                          ? "You’ve used all free forges. Sign in to get unlimited forges, then retry."
+                          : "You’ve used all free forges this month. Share a public skill you own, or upgrade to Pro."}
+                      </p>
+                    )}
+                    {forgeBlocked.remaining !== null &&
+                      forgeBlocked.remaining !== undefined &&
+                      forgeBlocked.limit !== null &&
+                      forgeBlocked.limit !== undefined && (
+                        <p className="mt-2 text-[11px] text-muted">
+                          {forgeBlocked.remaining} of {forgeBlocked.limit} free{" "}
+                          {forgeBlocked.limit === 1 ? "forge" : "forges"} left this{" "}
+                          {forgeBlocked.period ?? "month"}
+                        </p>
+                      )}
+                    <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+                      {(forgeBlocked.login_url || forgeBlocked.plan === "anonymous") && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            loginWithGitHub(
+                              typeof window !== "undefined"
+                                ? window.location.pathname
+                                : "/",
+                            )
+                          }
+                          className="inline-flex items-center gap-1.5 rounded-full border border-ink/12 bg-paper px-3 py-1.5 text-xs text-ember hover:bg-ember/5"
+                        >
+                          <ExternalLink size={11} />
+                          Sign in to unlock
+                        </button>
+                      )}
+                      {forgeBlocked.unlock?.includes("share") && (
+                        <span className="text-[11px] text-muted">
+                          or share a public skill
+                        </span>
+                      )}
+                      {forgeBlocked.unlock?.includes("pro") && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            import("@/lib/billing").then(({ getCheckoutUrl }) => {
+                              void getCheckoutUrl().then((url) => {
+                                if (url) window.location.href = url;
+                              });
+                            });
+                          }}
+                          className="inline-flex items-center gap-1.5 rounded-full border border-ink/12 bg-paper px-3 py-1.5 text-xs text-muted hover:text-ink"
+                        >
+                          Upgrade to Pro
+                        </button>
+                      )}
+                    </div>
                   </motion.div>
                 )}
 

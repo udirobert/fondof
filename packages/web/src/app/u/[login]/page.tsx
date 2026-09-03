@@ -22,15 +22,23 @@ export default function PortfolioPage() {
   const [skills, setSkills] = useState<PublishedSkill[]>([]);
   const [impact, setImpact] = useState<ImpactSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [copiedImpact, setCopiedImpact] = useState(false);
   const [viewerLogin, setViewerLogin] = useState<string | null>(null);
 
   useEffect(() => {
     if (!login) return;
-    void fetchPortfolio(login).then((res) => {
-      setSkills(res.skills);
-      setLoading(false);
-    });
+    setError(false);
+    setLoading(true);
+    void fetchPortfolio(login)
+      .then((res) => {
+        setSkills(res.skills);
+        setLoading(false);
+      })
+      .catch(() => {
+        setError(true);
+        setLoading(false);
+      });
     void getCreatorImpact(login).then((res) => {
       if (!res.error) setImpact(res.impact);
     }).catch(() => undefined);
@@ -136,7 +144,11 @@ export default function PortfolioPage() {
           </section>
         )}
 
-        {loading ? (
+        {error ? (
+          <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-center text-sm text-red-800">
+            Couldn&apos;t load this portfolio. Check your connection and retry.
+          </p>
+        ) : loading ? (
           <p className="text-center text-sm text-muted">Loading skills…</p>
         ) : skills.length === 0 ? (
           <div className="text-center">

@@ -33,6 +33,7 @@ export function RecentPublicSkills({
   initialGenre?: string;
 }) {
   const [skills, setSkills] = useState<PoolSkill[] | null>(null);
+  const [error, setError] = useState(false);
   const [sort, setSort] = useState<DiscoverySort>("impact");
   const [domain, setDomain] = useState("");
   const [framework, setFramework] = useState("");
@@ -47,6 +48,7 @@ export function RecentPublicSkills({
   useEffect(() => {
     let cancelled = false;
     setSkills(null);
+    setError(false);
     const query = new URLSearchParams({
       limit: String(limit),
       sort,
@@ -55,7 +57,10 @@ export function RecentPublicSkills({
       ...(genre ? { genre } : {}),
     });
     fetch(`${API_BASE}/api/skills?${query.toString()}`)
-      .then((r) => (r.ok ? r.json() : null))
+      .then(async (r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
       .then((data) => {
         if (!cancelled && Array.isArray(data?.skills)) {
           setSkills(data.skills);
@@ -68,12 +73,24 @@ export function RecentPublicSkills({
         }
       })
       .catch(() => {
-        if (!cancelled) setSkills([]);
+        if (!cancelled) {
+          setError(true);
+          setSkills([]);
+          setFacets({ domains: [], frameworks: [], languages: [], genres: [] });
+        }
       });
     return () => {
       cancelled = true;
     };
   }, [limit, sort, domain, framework, genre]);
+
+  if (error) {
+    return (
+      <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-center text-sm text-red-800">
+        Couldn&apos;t load the shelf. Check your connection and retry.
+      </div>
+    );
+  }
 
   if (skills === null) {
     return (

@@ -92,7 +92,12 @@ export interface ForgeResponse {
   code?: string;
   allowed?: boolean;
   remaining?: number | null;
+  limit?: number | null;
+  period?: string;
   plan?: "free" | "pro" | "sharer" | "anonymous";
+  hint?: string;
+  login_url?: string;
+  unlock?: string[];
 }
 
 export interface PublishResponse {
@@ -658,6 +663,26 @@ export interface ComposeResponse {
   remaining?: number | null;
   limit?: number | null;
   allowed?: boolean;
+}
+
+export interface ForgeEntitlementResponse {
+  allowed: boolean;
+  remaining: number | null;
+  plan: "free" | "pro" | "sharer" | "anonymous";
+  limit: number | null;
+}
+
+export async function checkForgeEntitlement(): Promise<ForgeEntitlementResponse> {
+  const token = getToken();
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const res = await fetch(`${API_URL}/api/billing/check-forge`, {
+    method: "POST",
+    headers,
+  });
+  return res.json();
 }
 
 export async function composeSkill(body: {

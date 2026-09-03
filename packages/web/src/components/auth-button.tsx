@@ -3,6 +3,7 @@
 /* GitHub returns external avatar URLs; user accounts are not a fixed image domain. */
 /* eslint-disable @next/next/no-img-element */
 
+import Link from "next/link";
 import { useSession } from "@/lib/use-session";
 import { LogOut } from "lucide-react";
 
@@ -32,14 +33,16 @@ export function AuthButton() {
   if (user) {
     return (
       <div className="flex items-center gap-1.5">
-        <img
-          src={user.avatarUrl}
-          alt={user.login}
-          className="h-6 w-6 rounded-full"
-        />
-        <span className="max-w-24 truncate text-xs font-medium text-ink">
-          {user.login}
-        </span>
+        <Link href={`/u/${encodeURIComponent(user.login)}`} className="flex items-center gap-1.5">
+          <img
+            src={user.avatarUrl}
+            alt={user.login}
+            className="h-6 w-6 rounded-full"
+          />
+          <span className="max-w-24 truncate text-xs font-medium text-ink hover:text-ember">
+            {user.login}
+          </span>
+        </Link>
         <button
           type="button"
           onClick={() => void logout()}

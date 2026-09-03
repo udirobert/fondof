@@ -114,16 +114,24 @@ export default function SourcePage() {
   const [proofUrl, setProofUrl] = useState("");
   const [claimNote, setClaimNote] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [copiedImpact, setCopiedImpact] = useState(false);
 
   useEffect(() => {
     if (!domain) return;
-    void fetchSourceSkills(domain).then((res) => {
-      setSkills(res.skills);
-      setImpact(res.impact);
-      setClaim(res.claim ?? null);
-      setLoading(false);
-    });
+    setError(false);
+    setLoading(true);
+    void fetchSourceSkills(domain)
+      .then((res) => {
+        setSkills(res.skills);
+        setImpact(res.impact);
+        setClaim(res.claim ?? null);
+        setLoading(false);
+      })
+      .catch(() => {
+        setError(true);
+        setLoading(false);
+      });
   }, [domain]);
 
   useEffect(() => {
@@ -220,11 +228,13 @@ export default function SourcePage() {
             Forged from {domain}
           </h1>
           <p className="mt-2 text-sm text-foreground-secondary">
-            {loading
-              ? "Loading…"
-              : skills.length === 0
-                ? "No skills forged from this source yet."
-                : `${skills.length} skill${skills.length === 1 ? "" : "s"} forged by developers from this content`}
+            {error
+              ? "Couldn’t load source skills. Check your connection and retry."
+              : loading
+                ? "Loading…"
+                : skills.length === 0
+                  ? "No skills forged from this source yet."
+                  : `${skills.length} skill${skills.length === 1 ? "" : "s"} forged by developers from this content`}
           </p>
           <a
             href={`https://${domain}`}

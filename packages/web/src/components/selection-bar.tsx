@@ -1,8 +1,11 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Flame, X } from "lucide-react";
 import { Tip } from "@/components/tip";
+import { checkForgeEntitlement, type ForgeEntitlementResponse } from "@/lib/api";
+import { loginWithGitHub } from "@/lib/auth";
 
 interface SelectionBarProps {
   count: number;
@@ -26,6 +29,19 @@ export function SelectionBar({
   composeHint,
 }: SelectionBarProps) {
   const readyToForge = count >= 1;
+  const [entitlement, setEntitlement] = useState<ForgeEntitlementResponse | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    checkForgeEntitlement().then((res) => {
+      if (!cancelled) setEntitlement(res);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [count]);
+
+  const quotaBlocked = entitlement !== null && !entitlement.allowed;
 
   return (
     <AnimatePresence>
@@ -68,6 +84,32 @@ export function SelectionBar({
               </p>
             </div>
 
+            {entitlement &&
+              entitlement.plan !== "pro" &&
+              entitlement.plan !== "sharer" &&
+              entitlement.remaining !== null &&
+              entitlement.remaining !== undefined && (
+                <div className="flex items-center justify-between gap-2 text-[10px] text-muted">
+                  <span className={quotaBlocked ? "text-amber-700" : ""}>
+                    {entitlement.remaining} of {entitlement.limit ?? 3} free{" "}
+                    {entitlement.remaining === 1 ? "forge" : "forges"} left this month
+                  </span>
+                  {quotaBlocked && entitlement.plan === "anonymous" && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        loginWithGitHub(
+                          typeof window !== "undefined" ? window.location.pathname : "/",
+                        )
+                      }
+                      className="text-ember hover:underline"
+                    >
+                      Sign in for unlimited
+                    </button>
+                  )}
+                </div>
+              )}
+
             <div className="flex items-center gap-2">
               <p className="min-w-0 flex-1 text-sm text-ink">
                 <span className="font-medium text-ember">{count}</span>
@@ -93,7 +135,7 @@ export function SelectionBar({
                 <button
                   type="button"
                   onClick={onForge}
-                  disabled={!readyToForge}
+                  disabled={!readyToForge || quotaBlocked}
                   className="flex min-h-10 w-full items-center justify-center gap-2 rounded-full bg-ember px-4 py-2 text-sm font-medium text-paper transition-colors hover:bg-ember-hot disabled:cursor-not-allowed disabled:opacity-35"
                 >
                   <Flame size={14} />

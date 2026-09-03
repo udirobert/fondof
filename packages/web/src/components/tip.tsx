@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { GLOSSARY, type GlossaryKey } from "@/lib/glossary";
 
@@ -20,6 +20,7 @@ export function Tip({ tip, children, className = "" }: TipProps) {
   const label = tip in GLOSSARY ? GLOSSARY[tip as GlossaryKey] : tip;
   const ref = useRef<HTMLSpanElement>(null);
   const [open, setOpen] = useState(false);
+  const tooltipId = useId();
 
   // Dismiss on outside tap while open
   useEffect(() => {
@@ -48,10 +49,13 @@ export function Tip({ tip, children, className = "" }: TipProps) {
       ref={ref}
       className={`group/tip relative inline-flex max-w-full ${className}`}
       onClick={handleClick}
+      aria-describedby={open ? tooltipId : undefined}
     >
       {children}
       <span
+        id={tooltipId}
         role="tooltip"
+        aria-hidden={!open}
         className={`pointer-events-none absolute bottom-[calc(100%+6px)] left-1/2 z-[60] w-max max-w-[16rem] -translate-x-1/2 rounded-md border border-ink/10 bg-ink px-2.5 py-1.5 text-left text-[11px] leading-snug font-normal normal-case tracking-normal text-paper shadow-lg transition-opacity duration-150 ${
           open
             ? "opacity-100"

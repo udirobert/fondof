@@ -18,11 +18,25 @@ import { SkillViewer } from "@/components/skill-viewer";
 import { downloadSkillMarkdown } from "@/lib/download";
 import { loginWithGitHub } from "@/lib/auth";
 import { Tip } from "@/components/tip";
-import type { ComposeResponse } from "@/lib/api";
+import {
+  checkForgeEntitlement,
+  type ComposeResponse,
+  type ForgeEntitlementResponse,
+} from "@/lib/api";
+import { liveExamples } from "@/lib/demo-data";
 
 export type QuickComposeInput =
   | { url: string; repo?: string; shards: number; isPrivate: boolean }
   | { need: string; repo?: string; shards: number; isPrivate: boolean };
+
+function isUrlLike(value: string): boolean {
+  const trimmed = value.trim();
+  if (!trimmed) return false;
+  if (/^https?:\/\//i.test(trimmed) || /^www\./i.test(trimmed)) return true;
+  // Bare domain-ish: e.g. "nextjs.org/blog/next-16-3" with no spaces
+  if (!/\s/.test(trimmed) && /\.[a-z]{2,}(\/|$)/i.test(trimmed)) return true;
+  return false;
+}
 
 interface QuickPadProps {
   busy: boolean;
@@ -60,6 +74,7 @@ export function QuickPad({
   onNewSource,
 }: QuickPadProps) {
   const [isNeed, setIsNeed] = useState(false);
+  const [modeLocked, setModeLocked] = useState(false);
   const [source, setSource] = useState("");
   const [manual, setManual] = useState(false);
   const [manualRepo, setManualRepo] = useState("");
@@ -69,6 +84,26 @@ export function QuickPad({
   const [labelIdx, setLabelIdx] = useState(0);
   const [submitted, setSubmitted] = useState<{ source: string; isNeed: boolean } | null>(null);
   const [optionsOpen, setOptionsOpen] = useState(false);
+  const [entitlement, setEntitlement] = useState<ForgeEntitlementResponse | null>(null);
+
+  // Auto-detect URL vs Need unless the user explicitly clicked a mode chip.
+  useEffect(() => {
+    if (modeLocked) return;
+    const trimmed = source.trim();
+    if (!trimmed) return;
+    setIsNeed(!isUrlLike(trimmed));
+  }, [source, modeLocked]);
+
+  // Check remaining forge quota so users aren’t surprised by the error state.
+  useEffect(() => {
+    let cancelled = false;
+    checkForgeEntitlement().then((res) => {
+      if (!cancelled && res) setEntitlement(res);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [result]);
 
   // Live from props: connected repo selection, or manual text when none picked.
   const composedRepo =
@@ -100,6 +135,15 @@ export function QuickPad({
     else onCompose({ url: trimmed, ...base });
   };
 
+  const tryExample = (url: string) => {
+    if (busy) return;
+    setSource(url);
+    setModeLocked(false);
+    setIsNeed(false);
+    setSubmitted({ source: url, isNeed: false });
+    onCompose({ url, repo: composedRepo, shards, isPrivate });
+  };
+
   const handleCopy = async () => {
     if (!result?.markdown) return;
     try {
@@ -127,28 +171,56 @@ export function QuickPad({
     >
       <form onSubmit={submit}>
         <div className="flex flex-col gap-2 rounded-2xl border border-ink/10 bg-paper p-2.5 shadow-[var(--shadow-lg)]">
-          {/* URL / Need tabs */}
-          <div className="flex justify-center gap-1">
-            {(["url", "need"] as const).map((m) => (
+          {/* URL / Need chips — auto-detected, manually overridable */}
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex gap-1">
+              {(["url", "need"] as const).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => {
+                    if (busy) return;
+                    setModeLocked(true);
+                    setIsNeed(m === "need");
+                  }}
+                  disabled={busy}
+                  className={`min-h-7 rounded-full px-2.5 py-1 text-[11px] transition-colors ${
+                    (m === "need") === isNeed
+                      ? "bg-ink text-paper"
+                      : "text-muted hover:bg-mist hover:text-ink"
+                  }`}
+                >
+                  {m === "url" ? "URL" : "Need"}
+                </button>
+              ))}
+            </div>
+            {modeLocked && (
               <button
-                key={m}
                 type="button"
-                onClick={() => !busy && setIsNeed(m === "need")}
-                disabled={busy}
-                className={`min-h-9 rounded-full px-3.5 py-1.5 text-xs transition-colors ${
-                  (m === "need") === isNeed
-                    ? "bg-ink text-paper"
-                    : "text-muted hover:bg-mist hover:text-ink"
-                }`}
+                onClick={() => {
+                  setModeLocked(false);
+                  if (source.trim()) setIsNeed(!isUrlLike(source));
+                }}
+                className="text-[10px] text-muted hover:text-ink"
               >
-                {m === "url" ? "URL" : "Need"}
+                Auto-detect
               </button>
-            ))}
+            )}
           </div>
 
           <textarea
             value={source}
-            onChange={(e) => setSource(e.target.value)}
+            onChange={(e) => {
+              const value = e.target.value;
+              setSource(value);
+              if (!value.trim()) setModeLocked(false);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                e.preventDefault();
+                submit();
+              }
+            }}
             disabled={busy}
             rows={isNeed ? 3 : 1}
             autoFocus
@@ -157,8 +229,27 @@ export function QuickPad({
                 ? "Describe the technique or problem you want a skill for…"
                 : "Paste a YouTube, blog, or podcast URL…"
             }
-            className="w-full resize-none bg-transparent px-1 text-sm text-ink placeholder:text-muted/60 focus:outline-none disabled:opacity-50"
+            className="w-full resize-none bg-transparent px-1 py-1 text-sm text-ink placeholder:text-muted/60 focus:outline-none disabled:opacity-50"
           />
+
+          {/* One-click examples */}
+          {liveExamples.length > 0 && !source && !result && !busy && (
+            <div className="flex flex-wrap items-center gap-1.5 px-0.5">
+              <span className="text-[10px] text-muted">Try:</span>
+              {liveExamples.slice(0, 3).map((ex) => (
+                <button
+                  key={ex.id}
+                  type="button"
+                  onClick={() => tryExample(ex.url)}
+                  disabled={busy}
+                  className="inline-flex items-center gap-1 rounded-full bg-mist px-2 py-1 text-[10px] text-ink transition-colors hover:bg-ember/10 hover:text-ember disabled:opacity-50"
+                >
+                  <Sparkles size={10} className="text-muted" />
+                  {ex.label}
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Fit repo — always visible; power knobs behind Options */}
           <div className="border-t border-ink/5 pt-3">
@@ -281,10 +372,34 @@ export function QuickPad({
                 onClick={() => loginWithGitHub(window.location.pathname)}
                 className="text-ember hover:underline"
               >
-                Sign in with GitHub
+                Sign in
               </button>{" "}
               for private repos and sharing.
             </p>
+          )}
+
+          {entitlement &&
+            entitlement.plan !== "pro" &&
+            entitlement.plan !== "sharer" &&
+            entitlement.remaining !== null &&
+            entitlement.remaining !== undefined && (
+            <div className="flex items-center justify-between text-[10px] text-muted">
+              <span>
+                {entitlement.remaining} free{" "}
+                {entitlement.remaining === 1 ? "forge" : "forges"} left this month
+              </span>
+              {entitlement.plan === "anonymous" ? (
+                <button
+                  type="button"
+                  onClick={() => loginWithGitHub(window.location.pathname)}
+                  className="text-ember hover:underline"
+                >
+                  Sign in for unlimited
+                </button>
+              ) : (
+                <span className="text-muted/80">Share a public skill for unlimited</span>
+              )}
+            </div>
           )}
 
           <button
@@ -306,6 +421,38 @@ export function QuickPad({
           </button>
         </div>
       </form>
+
+      {/* Sample skill preview */}
+      {!source && !result && !busy && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1, duration: 0.35 }}
+          className="mt-5 rounded-2xl border border-ink/10 bg-paper p-3 shadow-[var(--shadow-sm)]"
+        >
+          <p className="mb-2 text-[10px] font-medium uppercase tracking-wider text-muted">
+            Example output
+          </p>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <div className="sm:w-1/3">
+              <h3 className="font-serif text-base text-ink">Retry Budgets in Async Fetch</h3>
+              <span className="mt-1 inline-block rounded-full bg-mist px-2 py-0.5 text-[10px] text-muted">
+                fitted for udirobert/fondof
+              </span>
+            </div>
+            <div className="overflow-hidden rounded-xl bg-mist p-3 sm:w-2/3">
+              <pre className="overflow-x-auto text-[10px] leading-relaxed text-ink/80">
+{`## Context
+Cap aggregate retries across a call graph so cascading failures cannot amplify load.
+
+## Guidance
+- Use a shared budget per upstream dependency.
+- Jitter backoff to avoid thundering herds.`}
+              </pre>
+            </div>
+          </div>
+        </motion.div>
+      )}
 
       {/* Error */}
       {result?.error && (
@@ -365,6 +512,24 @@ export function QuickPad({
                 </p>
               </div>
             </div>
+
+            {result.sourceFailures && result.sourceFailures.length > 0 && (
+              <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-900">
+                <p className="font-medium">
+                  Couldn&apos;t use {result.sourceFailures.length} source
+                  {result.sourceFailures.length === 1 ? "" : "s"}
+                </p>
+                <ul className="mt-1.5 space-y-1">
+                  {result.sourceFailures.map((f, i) => (
+                    <li key={i} className="text-amber-800/80">
+                      <span className="font-medium">{f.url}</span>
+                      {f.error ? ` — ${f.error}` : null}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
             <div className="mb-3 flex items-start justify-between gap-3">
               <div>
                 <h2 className="font-serif text-lg text-ink">{result.title}</h2>

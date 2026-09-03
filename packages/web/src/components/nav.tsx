@@ -21,7 +21,7 @@ export function Nav() {
   const step = forgeOpen ? 3 : ideas.length > 0 ? 2 : isIngesting ? 1 : 1;
   const showObject = ideas.length > 0 || isIngesting;
   const onFloor = pathname === "/" || pathname === "/canvas";
-  const onPool = pathname === "/pool" || pathname?.startsWith("/s/");
+  const onPool = pathname === "/pool";
 
   return (
     <nav className="fixed top-0 right-0 left-0 z-50 border-b border-ink/8 bg-parchment/90 pt-[env(safe-area-inset-top)] backdrop-blur-md">

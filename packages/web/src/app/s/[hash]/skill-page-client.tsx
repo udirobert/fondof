@@ -600,9 +600,7 @@ export default function SkillPublicPage() {
 
   const sourceHashes = skill?.sourceHashes ?? [];
 
-  const isOwner =
-    Boolean(viewerLogin) &&
-    (skill?.ownerLogin ? viewerLogin === skill.ownerLogin : true);
+  const isOwner = Boolean(viewerLogin) && viewerLogin === skill?.ownerLogin;
 
   const onSaveAgentUrl = (url: string) => {
     setAgentUrl(url);
